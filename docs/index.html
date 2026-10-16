@@ -1,30 +1,287 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="rose">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#fbf7f7">
-  <meta name="description" content="SimmerSpace is a cozy bilingual pre-beta mod manager prototype for The Sims 4.">
-  <title>SimmerSpace — a cozy home for your Sims 4 mods</title>
+  <meta name="theme-color" content="#f7efed">
+  <meta name="description" content="SimmerSpace is a cozy, bilingual Sims 4 mod manager in pre-beta: a home for your CC library, game folders, and future downloads.">
+  <title>SimmerSpace — your cozy home for Sims 4 CC</title>
   <style>
-    :root{color-scheme:light;--ink:#413a43;--muted:#756b77;--paper:#fbf7f7;--card:#fffdfd;--rose:#b66f87;--rose-soft:#f5e3e8;--lav:#eee8f4;--sage:#e7eee5;--line:#eee5e9;--shadow:0 24px 70px #57425012;font-family:Inter,"Segoe UI",Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 16% 0%,#f5e5ec 0,transparent 38%),radial-gradient(ellipse at 90% 20%,#e9e6f2 0,transparent 33%),var(--paper);color:var(--ink);line-height:1.65}.wrap{width:min(1080px,calc(100% - 40px));margin:auto}.top{display:flex;align-items:center;justify-content:space-between;padding:24px 0}.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:-.04em;font-size:1.22rem}.mark{display:grid;place-items:center;width:40px;height:40px;border-radius:15px;background:linear-gradient(145deg,#efd6df,#e5dff0);color:#8d5b71;font-size:1.3rem}.nav{display:flex;gap:10px;align-items:center}.nav a,.button{color:inherit;text-decoration:none;font-size:.92rem;font-weight:700}.nav a{padding:9px 13px;border-radius:999px}.nav a:hover{background:#fff9}.button{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:999px;background:var(--rose);color:#fff;box-shadow:0 8px 20px #b66f8730}.button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}.hero{padding:68px 0 56px;display:grid;grid-template-columns:1.15fr .85fr;gap:45px;align-items:center}.eyebrow{font-size:.76rem;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:var(--rose)}h1{font-size:clamp(2.8rem,6vw,5rem);line-height:1.03;letter-spacing:-.065em;margin:14px 0 18px}h1 span{color:var(--rose)}.intro{font-size:1.15rem;color:var(--muted);max-width:620px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.preview{position:relative;min-height:345px;border-radius:34px;background:linear-gradient(145deg,#f1e1e7,#eeebf4 56%,#e4eee5);box-shadow:var(--shadow);padding:22px;overflow:hidden}.window{height:100%;min-height:300px;border-radius:24px;background:#fffc;box-shadow:0 14px 45px #58495616;padding:20px}.window-top{display:flex;align-items:center;gap:7px;margin-bottom:22px}.dot{width:9px;height:9px;border-radius:50%;background:#e6b5c3}.dot:nth-child(2){background:#ddc89c}.dot:nth-child(3){background:#b9cbb8}.pill{margin-left:auto;border-radius:999px;padding:5px 10px;background:var(--rose-soft);font-size:.7rem;color:#85596b;font-weight:700}.mock-title{font-size:1.2rem;font-weight:800;letter-spacing:-.04em}.mock-sub{font-size:.78rem;color:var(--muted);margin:2px 0 18px}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.tile{height:105px;border-radius:17px;padding:12px;display:flex;align-items:end;color:#534954;font-size:.77rem;font-weight:750}.tile:nth-child(1){background:linear-gradient(145deg,#e8d9e8,#f5e6df)}.tile:nth-child(2){background:linear-gradient(145deg,#e8ddcf,#dce7dc)}.tile:nth-child(3){background:linear-gradient(145deg,#e4e0f0,#f2dfe3)}.tile:nth-child(4){background:linear-gradient(145deg,#dce7eb,#eee1d9)}section{padding:34px 0}h2{font-size:1.9rem;letter-spacing:-.045em;margin:0 0 12px}.section-intro{color:var(--muted);max-width:700px;margin:0 0 22px}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.feature{background:#fff9;border:1px solid var(--line);border-radius:22px;padding:22px}.feature .icon{font-size:1.5rem}.feature h3{margin:10px 0 6px;font-size:1.03rem}.feature p{margin:0;color:var(--muted);font-size:.93rem}.status{margin:30px 0 56px;padding:23px 25px;border-radius:22px;background:#fff9;border:1px solid var(--line);display:flex;gap:15px;align-items:flex-start}.status b{display:block;margin-bottom:4px}.status p{margin:0;color:var(--muted)}.lang{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-top:1px solid var(--line);padding-top:30px}.lang article{padding:15px 18px;border-radius:18px;background:#fff8}.lang h3{margin:0 0 5px}.lang p{margin:0;color:var(--muted)}footer{border-top:1px solid var(--line);padding:24px 0 34px;color:var(--muted);font-size:.87rem;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.fine{font-size:.8rem}@media(max-width:760px){.hero{grid-template-columns:1fr;padding-top:35px;gap:28px}.preview{min-height:320px}.features{grid-template-columns:1fr}.top{align-items:flex-start}.nav a:not(.button){display:none}.lang{grid-template-columns:1fr}.intro{font-size:1.05rem}}
+    :root {
+      color-scheme: light;
+      --ink: #40353d;
+      --muted: #786a72;
+      --paper: #f7efed;
+      --card: #fffaf8;
+      --card-soft: #f3e7e8;
+      --accent: #a95f78;
+      --accent-strong: #87445e;
+      --accent-contrast: #fff9fa;
+      --accent-wash: #f0dce2;
+      --secondary-wash: #e8e3ef;
+      --tertiary-wash: #e3e9df;
+      --line: #e8dadd;
+      --glow-a: #ead2d8;
+      --glow-b: #dcd6e8;
+      --shadow: 0 24px 70px #543c4312;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+    html[data-theme="lavender"] {
+      --ink: #3d3847; --muted: #726b7d; --paper: #f3eff6; --card: #fcf9ff;
+      --card-soft: #ebe5f2; --accent: #79648f; --accent-strong: #5d4775;
+      --accent-wash: #e3daed; --secondary-wash: #e4e6f0; --tertiary-wash: #e4ece3;
+      --line: #e1dbe9; --glow-a: #e0d6eb; --glow-b: #d8e0ec;
+    }
+    html[data-theme="sage"] {
+      --ink: #39433c; --muted: #68756b; --paper: #f1f4ed; --card: #fbfcf8;
+      --card-soft: #e8eee3; --accent: #68816d; --accent-strong: #4a6651;
+      --accent-wash: #dce8dc; --secondary-wash: #e4e8ed; --tertiary-wash: #eee7df;
+      --line: #dce5d9; --glow-a: #dce9dc; --glow-b: #e5e1d7;
+    }
+    html[data-theme="night-rose"], html[data-theme="night-lavender"], html[data-theme="night-sage"] {
+      color-scheme: dark;
+      --ink: #f3eaf0; --muted: #c2b2bf; --paper: #211b22; --card: #2d252f;
+      --card-soft: #342a36; --accent: #d397ad; --accent-strong: #ecc0d1;
+      --accent-contrast: #261d25; --accent-wash: #47333f; --secondary-wash: #393344;
+      --tertiary-wash: #303a34; --line: #493c4a; --glow-a: #553846; --glow-b: #3f394e;
+      --shadow: 0 24px 70px #09070b55;
+    }
+    html[data-theme="night-lavender"] {
+      --ink: #eeeaf5; --muted: #bcb5cb; --paper: #1e1c26; --card: #292632;
+      --card-soft: #322e3d; --accent: #b4a0d2; --accent-strong: #d0bde9;
+      --accent-wash: #40384e; --secondary-wash: #363648; --tertiary-wash: #303a37;
+      --line: #454052; --glow-a: #40354e; --glow-b: #343b4d;
+    }
+    html[data-theme="night-sage"] {
+      --ink: #e9f0e8; --muted: #b5c2b5; --paper: #1d231f; --card: #28312b;
+      --card-soft: #303b33; --accent: #a5c0a7; --accent-strong: #c8dec8;
+      --accent-wash: #35483a; --secondary-wash: #343a43; --tertiary-wash: #414039;
+      --line: #3e4c40; --glow-a: #35483a; --glow-b: #343c45;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--ink); line-height: 1.65;
+      background: radial-gradient(ellipse at 12% 0%, var(--glow-a) 0, transparent 36%),
+                  radial-gradient(ellipse at 92% 18%, var(--glow-b) 0, transparent 34%), var(--paper);
+      transition: background-color .25s ease, color .25s ease;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, calc(100% - 44px)); margin-inline: auto; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 0; }
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-weight: 850; letter-spacing: -.045em; font-size: 1.23rem; white-space: nowrap; }
+    .mark { display: grid; place-items: center; width: 41px; height: 41px; border-radius: 16px; color: var(--accent-strong); background: linear-gradient(145deg, var(--accent-wash), var(--secondary-wash)); font-size: 1.35rem; }
+    .nav { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+    .nav a, .control-label { padding: 9px 12px; border-radius: 999px; text-decoration: none; font-size: .89rem; font-weight: 700; }
+    .nav a:hover { background: color-mix(in srgb, var(--card) 75%, transparent); }
+    .tools { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+    .select-wrap { position: relative; }
+    select, .lang-button { min-height: 42px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-weight: 700; font-size: .83rem; padding: 0 34px 0 14px; cursor: pointer; }
+    select { appearance: none; }
+    .select-wrap::after { content: "⌄"; position: absolute; right: 13px; top: 7px; color: var(--muted); pointer-events: none; }
+    .lang-button { padding: 0 14px; }
+    select:focus-visible, .lang-button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .hero { display: grid; grid-template-columns: 1.02fr .98fr; align-items: center; gap: clamp(30px, 6vw, 72px); padding: 64px 0 54px; }
+    .eyebrow { color: var(--accent-strong); font-size: .75rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { max-width: 660px; margin: 14px 0 18px; font-size: clamp(2.7rem, 6vw, 5rem); line-height: 1.02; letter-spacing: -.065em; }
+    h1 span { color: var(--accent-strong); }
+    .intro { max-width: 610px; margin: 0; color: var(--muted); font-size: clamp(1.06rem, 1.7vw, 1.2rem); }
+    .actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 27px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 47px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: var(--accent); color: var(--accent-contrast); text-decoration: none; font-size: .91rem; font-weight: 800; box-shadow: 0 9px 22px color-mix(in srgb, var(--accent) 24%, transparent); transition: transform .18s ease, background .18s ease; }
+    .button:hover { transform: translateY(-2px); background: var(--accent-strong); color: var(--accent-contrast); }
+    .button.secondary { border-color: var(--line); background: var(--card); color: var(--ink); box-shadow: none; }
+    .button.secondary:hover { border-color: var(--accent); }
+    .preview { position: relative; padding: 17px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 31px; background: linear-gradient(145deg, var(--accent-wash), var(--secondary-wash) 60%, var(--tertiary-wash)); box-shadow: var(--shadow); }
+    .app-window { overflow: hidden; border: 1px solid color-mix(in srgb, var(--line) 75%, transparent); border-radius: 23px; background: var(--card); box-shadow: 0 16px 45px #21151a17; }
+    .window-top { display: flex; align-items: center; gap: 7px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #d99aaa; }
+    .dot:nth-child(2) { background: #d5bd8d; }.dot:nth-child(3) { background: #9bb49b; }
+    .version { margin-left: auto; padding: 5px 10px; border-radius: 999px; background: var(--accent-wash); color: var(--accent-strong); font-size: .67rem; font-weight: 850; letter-spacing: .06em; }
+    .app-body { display: grid; grid-template-columns: 132px 1fr; min-height: 270px; }
+    .app-side { padding: 17px 11px; border-right: 1px solid var(--line); background: color-mix(in srgb, var(--card-soft) 52%, var(--card)); }
+    .side-brand { margin: 0 0 16px 6px; font-size: .77rem; font-weight: 850; letter-spacing: -.03em; }
+    .side-item { display: flex; align-items: center; gap: 7px; margin: 3px 0; padding: 7px 8px; border-radius: 10px; color: var(--muted); font-size: .67rem; font-weight: 700; }
+    .side-item.active { background: var(--accent-wash); color: var(--accent-strong); }
+    .app-content { min-width: 0; padding: 19px 17px; }
+    .mock-title { margin: 0; font-size: 1.04rem; font-weight: 850; letter-spacing: -.04em; }
+    .mock-sub { margin: 2px 0 14px; color: var(--muted); font-size: .71rem; }
+    .mock-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .mock-card { display: flex; min-height: 80px; align-items: flex-end; padding: 9px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 13px; color: var(--ink); font-size: .67rem; font-weight: 800; background: linear-gradient(145deg, var(--accent-wash), var(--card)); }
+    .mock-card:nth-child(2) { background: linear-gradient(145deg, var(--tertiary-wash), var(--card)); }
+    .mock-card:nth-child(3) { background: linear-gradient(145deg, var(--secondary-wash), var(--card)); }
+    .mock-card:nth-child(4) { background: linear-gradient(145deg, var(--card-soft), var(--card)); }
+    .mock-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; color: var(--muted); font-size: .62rem; }
+    section { padding: 39px 0; }
+    h2 { max-width: 760px; margin: 6px 0 11px; font-size: clamp(1.8rem, 3.3vw, 2.55rem); line-height: 1.12; letter-spacing: -.05em; }
+    .section-intro { max-width: 730px; margin: 0 0 23px; color: var(--muted); }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .feature { min-height: 192px; padding: 21px; border: 1px solid var(--line); border-radius: 21px; background: color-mix(in srgb, var(--card) 84%, transparent); }
+    .icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 14px; background: var(--accent-wash); color: var(--accent-strong); font-size: 1.2rem; }
+    .feature h3 { margin: 12px 0 5px; font-size: 1.02rem; letter-spacing: -.02em; }
+    .feature p { margin: 0; color: var(--muted); font-size: .91rem; }
+    .vision { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: 32px; padding: 28px; border: 1px solid var(--line); border-radius: 26px; background: linear-gradient(120deg, color-mix(in srgb, var(--accent-wash) 62%, var(--card)), color-mix(in srgb, var(--secondary-wash) 55%, var(--card))); }
+    .vision h2 { margin-bottom: 0; }
+    .vision p { margin: 0; color: var(--muted); }
+    .now { margin: 34px 0 48px; padding: 23px 25px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); display: flex; align-items: flex-start; gap: 15px; }
+    .now-icon { font-size: 1.2rem; }
+    .now b { display: block; margin-bottom: 3px; }
+    .now p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .legal { max-width: 860px; margin: 0 auto 24px; color: var(--muted); font-size: .79rem; text-align: center; }
+    footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 22px 0 31px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    footer a { text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); text-underline-offset: 3px; }
+    @media (max-width: 850px) { .hero { grid-template-columns: 1fr; padding-top: 39px; }.preview { max-width: 590px; }.vision { grid-template-columns: 1fr; gap: 12px; } }
+    @media (max-width: 680px) { .wrap { width: min(100% - 30px, 540px); }.top { align-items: flex-start; flex-wrap: wrap; }.nav { width: 100%; justify-content: space-between; flex-wrap: wrap; }.nav a { padding-inline: 8px; }.tools { margin-left: 0; }.features { grid-template-columns: 1fr; }.feature { min-height: auto; }.hero { padding-top: 29px; }.app-body { grid-template-columns: 112px 1fr; }.app-side { padding-inline: 7px; }.side-item { font-size: .62rem; }.app-content { padding: 15px 12px; }.mock-card { min-height: 73px; font-size: .61rem; } }
+    @media (max-width: 430px) { .nav { gap: 2px; }.nav a { font-size: .78rem; }.tools { gap: 5px; }.theme-select { max-width: 142px; }.app-body { grid-template-columns: 1fr; }.app-side { display: flex; align-items: center; gap: 3px; overflow: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 7px; }.side-brand { display: none; }.side-item { white-space: nowrap; }.app-content { min-height: 220px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
 </head>
 <body>
   <header class="wrap top">
-    <div class="brand"><span class="mark" aria-hidden="true">✿</span>SimmerSpace</div>
-    <nav class="nav" aria-label="Main navigation"><a href="#about">About</a><a href="#about-es">Español</a><a class="button secondary" href="https://github.com/karisqueen/simmerspace">Source code</a></nav>
+    <a class="brand" href="#top" aria-label="SimmerSpace home" data-aria-en="SimmerSpace home" data-aria-es="Inicio de SimmerSpace"><span class="mark" aria-hidden="true">✿</span>SimmerSpace</a>
+    <nav class="nav" aria-label="Main navigation" data-aria-en="Main navigation" data-aria-es="Navegación principal">
+      <a href="#about" data-copy="navAbout">The app</a>
+      <a href="#vision" data-copy="navVision">Our big picture</a>
+      <a href="https://github.com/karisqueen/simmerspace" data-copy="navCode">Project on GitHub</a>
+      <div class="tools">
+        <label class="select-wrap"><span class="sr-only" data-copy="themeLabel">Color theme</span>
+          <select class="theme-select" id="theme-picker" aria-label="Color theme">
+            <optgroup label="Soft light" data-group="light"><option value="rose">Rose</option><option value="lavender">Lavender</option><option value="sage">Sage</option></optgroup>
+            <optgroup label="After hours" data-group="dark"><option value="night-rose">Rose night</option><option value="night-lavender">Lavender night</option><option value="night-sage">Sage night</option></optgroup>
+          </select>
+        </label>
+        <button class="lang-button" id="language-toggle" type="button" aria-label="Change language">ES</button>
+      </div>
+    </nav>
   </header>
-  <main class="wrap">
+  <main class="wrap" id="top">
     <section class="hero" id="about">
-      <div><div class="eyebrow">A cozy home for your Sims 4 mods</div><h1>Make your game<br><span>feel like yours.</span></h1><p class="intro">SimmerSpace is a bilingual pre-beta desktop prototype for keeping your Sims 4 mod library easy to see and manage.</p><div class="actions"><a class="button" href="https://github.com/karisqueen/simmerspace/releases/latest">Get the Windows pre-beta</a><a class="button secondary" href="https://github.com/karisqueen/simmerspace">Explore the project</a></div></div>
-      <div class="preview" aria-label="Illustration of the SimmerSpace interface"><div class="window"><div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="pill">PRE-BETA · 0.5.3</span></div><div class="mock-title">Your CC library</div><div class="mock-sub">A softer way to keep track of your game content</div><div class="cards"><div class="tile">Hair & details</div><div class="tile">Build & buy</div><div class="tile">Your folders</div><div class="tile">Saved finds</div></div></div></div>
+      <div>
+        <div class="eyebrow" data-copy="heroEyebrow">A gentler way to care for your Mods folder</div>
+        <h1><span data-copy="heroTitleFirst">More room for</span><br><span data-copy="heroTitleSecond">the fun stuff.</span></h1>
+        <p class="intro" data-copy="heroIntro">SimmerSpace is being made for the joy and the little chaos of custom content: one warm, thoughtful home for finding, organizing, and enjoying the mods you love.</p>
+        <div class="actions"><a class="button" href="https://github.com/karisqueen/simmerspace/releases" data-copy="downloadButton">See Windows downloads</a><a class="button secondary" href="https://github.com/karisqueen/simmerspace" data-copy="exploreButton">Meet the project</a></div>
+      </div>
+      <div class="preview" aria-label="Illustration of the SimmerSpace app interface" data-aria-en="Illustration of the SimmerSpace app interface" data-aria-es="Ilustración de la interfaz de SimmerSpace">
+        <div class="app-window">
+          <div class="window-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="version">PRE-BETA · v0.5.3</span></div>
+          <div class="app-body">
+            <aside class="app-side" aria-label="SimmerSpace navigation preview" data-aria-en="SimmerSpace navigation preview" data-aria-es="Vista previa de la navegación de SimmerSpace">
+              <div class="side-brand">SimmerSpace</div>
+              <div class="side-item active"><span>▦</span><span data-copy="sideLibrary">CC Library</span></div>
+              <div class="side-item"><span>⌂</span><span data-copy="sideFolders">Game folders</span></div>
+              <div class="side-item"><span>♡</span><span data-copy="sideSaved">Saved finds</span></div>
+              <div class="side-item"><span>✿</span><span data-copy="sideInspiration">Inspiration</span></div>
+            </aside>
+            <div class="app-content">
+              <h2 class="mock-title" data-copy="mockTitle">Your CC library</h2>
+              <p class="mock-sub" data-copy="mockSub">A little easier to find your way around.</p>
+              <div class="mock-cards"><div class="mock-card" data-copy="mockCard1">Hair & little details</div><div class="mock-card" data-copy="mockCard2">Build & buy</div><div class="mock-card" data-copy="mockCard3">Your folders</div><div class="mock-card" data-copy="mockCard4">Saved for later</div></div>
+              <div class="mock-foot"><span data-copy="mockCount">Library preview</span><span data-copy="mockVersion">Windows · v0.5.3</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
-    <section><div class="eyebrow">Local-first mod management</div><h2>Made for your Mods folder</h2><p class="section-intro">The current pre-beta helps you set your Sims 4 folder locations and inspect your local content. Scanning is read-only: it lists supported filenames without opening or changing your files.</p><div class="features"><article class="feature"><div class="icon">⌂</div><h3>Set your game folders</h3><p>Choose the Mods folder, Sims 4 user folder, game installation, and optional Sims 4 Studio location.</p></article><article class="feature"><div class="icon">▧</div><h3>Inspect local CC</h3><p>Manually scan `.package` and `.ts4script` filenames in Mods and its subfolders.</p></article><article class="feature"><div class="icon">✦</div><h3>Preview the experience</h3><p>Explore demo filters, creator profiles, Inspiration boards, and collections in Spanish or English.</p></article></div></section>
-    <aside class="status"><span aria-hidden="true">☁</span><div><b>Pre-beta: external integrations are not active.</b><p>This version does not connect to content platforms or install mods. Demo listings and creator profiles are fictional and do not represent real creators or downloads.</p></div></aside>
-    <section class="lang" id="about-es"><article><h3>Acerca de SimmerSpace</h3><p>SimmerSpace es un prototipo bilingüe para gestionar visualmente el contenido de Los Sims 4. Esta pre-beta permite configurar las rutas del juego y revisar nombres de archivos de CC en modo de solo lectura.</p></article><article><h3>Estado actual</h3><p>Esta versión no se conecta a plataformas externas ni instala mods. Los perfiles, enlaces, estadísticas y elementos del catálogo son datos ficticios de demostración.</p></article></section>
-    <p class="fine">SimmerSpace is an independent fan project. It is not affiliated with or endorsed by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc. · SimmerSpace v0.5.3 pre-beta</p>
+
+    <section>
+      <div class="eyebrow" data-copy="featuresEyebrow">Made around your real Sims routine</div>
+      <h2 data-copy="featuresTitle">A cozy home for your CC journey</h2>
+      <p class="section-intro" data-copy="featuresIntro">Your game folders, your growing library, and all those little finds you want to come back to—SimmerSpace is bringing them together in one friendly desktop app.</p>
+      <div class="features">
+        <article class="feature"><div class="icon" aria-hidden="true">⌂</div><h3 data-copy="featureFoldersTitle">Know where everything lives</h3><p data-copy="featureFoldersText">Set your Sims 4 folders, keep the important paths close, and make your setup easier to manage.</p></article>
+        <article class="feature"><div class="icon" aria-hidden="true">▧</div><h3 data-copy="featureLibraryTitle">Make sense of your library</h3><p data-copy="featureLibraryText">Scan your Mods folder, including subfolders, and get a read-only view of the files you already have.</p></article>
+        <article class="feature"><div class="icon" aria-hidden="true">♡</div><h3 data-copy="featureFindsTitle">Keep the good finds close</h3><p data-copy="featureFindsText">Explore the design direction for discovery, creators, inspiration boards, and collections.</p></article>
+      </div>
+    </section>
+
+    <section id="vision">
+      <div class="vision"><div><div class="eyebrow" data-copy="visionEyebrow">The dream we're building toward</div><h2 data-copy="visionTitle">A proper mod manager, made with Simmers in mind.</h2></div><p data-copy="visionText">The goal is a polished, installable desktop app that helps you find content, download and install it, and keep a large Mods folder organized and running smoothly. SimmerSpace is early, but that bigger picture is what guides every step.</p></div>
+    </section>
+
+    <section>
+      <div class="eyebrow" data-copy="nowEyebrow">A small, honest beginning</div>
+      <h2 data-copy="nowTitle">What this pre-beta can do today</h2>
+      <p class="section-intro" data-copy="nowIntro">Try the first pieces of the experience while SimmerSpace grows into the fuller manager it is meant to become.</p>
+      <div class="features">
+        <article class="feature"><div class="icon" aria-hidden="true">✓</div><h3 data-copy="nowRoutesTitle">Game paths</h3><p data-copy="nowRoutesText">Choose your Mods folder, Sims 4 user folder, game installation, and optional Sims 4 Studio location.</p></article>
+        <article class="feature"><div class="icon" aria-hidden="true">⌕</div><h3 data-copy="nowScanTitle">Read-only library scan</h3><p data-copy="nowScanText">Inspect `.package` and `.ts4script` filenames in the Mods folder and its subfolders, without changing them.</p></article>
+        <article class="feature"><div class="icon" aria-hidden="true">✦</div><h3 data-copy="nowDemoTitle">A feel for what's ahead</h3><p data-copy="nowDemoText">Browse the visual concepts for finding CC, following creators, saving inspiration, and sharing collections.</p></article>
+      </div>
+    </section>
+
+    <aside class="now"><span class="now-icon" aria-hidden="true">☁</span><div><b data-copy="statusTitle">Still in pre-beta</b><p data-copy="statusText">Online catalogs, creator integrations, and in-app downloads or installation are not active yet. Any sample listings and creator profiles are fictional demonstration content.</p></div></aside>
+    <p class="legal" data-copy="legal">SimmerSpace is an independent fan project and is not affiliated with or endorsed by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc.</p>
   </main>
-  <footer class="wrap"><span>© 2026 SimmerSpace</span><span><a href="https://github.com/karisqueen/simmerspace">GitHub project</a> · No account required</span></footer>
+  <footer class="wrap"><span data-copy="footerMade">Made with care for the Sims community.</span><span><a href="https://github.com/karisqueen/simmerspace" data-copy="footerGitHub">Explore SimmerSpace on GitHub</a> · <span data-copy="footerVersion">Pre-beta v0.5.3</span></span></footer>
+  <script>
+    const copy = {
+      en: {
+        pageTitle: "SimmerSpace — your cozy home for Sims 4 CC", pageDescription: "SimmerSpace is a cozy, bilingual Sims 4 mod manager in pre-beta: a home for your CC library, game folders, and future downloads.",
+        navAbout: "The app", navVision: "Our big picture", navCode: "Project on GitHub", themeLabel: "Color theme", themeLight: "Soft light", themeDark: "After hours", languageLabel: "Change language",
+        heroEyebrow: "A gentler way to care for your Mods folder", heroTitleFirst: "More room for", heroTitleSecond: "the fun stuff.", heroIntro: "SimmerSpace is being made for the joy and the little chaos of custom content: one warm, thoughtful home for finding, organizing, and enjoying the mods you love.", downloadButton: "See Windows downloads", exploreButton: "Meet the project",
+        sideLibrary: "CC Library", sideFolders: "Game folders", sideSaved: "Saved finds", sideInspiration: "Inspiration", mockTitle: "Your CC library", mockSub: "A little easier to find your way around.", mockCard1: "Hair & little details", mockCard2: "Build & buy", mockCard3: "Your folders", mockCard4: "Saved for later", mockCount: "Library preview", mockVersion: "Windows · v0.5.3",
+        featuresEyebrow: "Made around your real Sims routine", featuresTitle: "A cozy home for your CC journey", featuresIntro: "Your game folders, your growing library, and all those little finds you want to come back to—SimmerSpace is bringing them together in one friendly desktop app.", featureFoldersTitle: "Know where everything lives", featureFoldersText: "Set your Sims 4 folders, keep the important paths close, and make your setup easier to manage.", featureLibraryTitle: "Make sense of your library", featureLibraryText: "Scan your Mods folder, including subfolders, and get a read-only view of the files you already have.", featureFindsTitle: "Keep the good finds close", featureFindsText: "Explore the design direction for discovery, creators, inspiration boards, and collections.",
+        visionEyebrow: "The dream we're building toward", visionTitle: "A proper mod manager, made with Simmers in mind.", visionText: "The goal is a polished, installable desktop app that helps you find content, download and install it, and keep a large Mods folder organized and running smoothly. SimmerSpace is early, but that bigger picture is what guides every step.",
+        nowEyebrow: "A small, honest beginning", nowTitle: "What this pre-beta can do today", nowIntro: "Try the first pieces of the experience while SimmerSpace grows into the fuller manager it is meant to become.", nowRoutesTitle: "Game paths", nowRoutesText: "Choose your Mods folder, Sims 4 user folder, game installation, and optional Sims 4 Studio location.", nowScanTitle: "Read-only library scan", nowScanText: "Inspect `.package` and `.ts4script` filenames in the Mods folder and its subfolders, without changing them.", nowDemoTitle: "A feel for what's ahead", nowDemoText: "Browse the visual concepts for finding CC, following creators, saving inspiration, and sharing collections.", statusTitle: "Still in pre-beta", statusText: "Online catalogs, creator integrations, and in-app downloads or installation are not active yet. Any sample listings and creator profiles are fictional demonstration content.", legal: "SimmerSpace is an independent fan project and is not affiliated with or endorsed by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc.", footerMade: "Made with care for the Sims community.", footerGitHub: "Explore SimmerSpace on GitHub", footerVersion: "Pre-beta v0.5.3"
+      },
+      es: {
+        pageTitle: "SimmerSpace — un espacio acogedor para tu CC de Los Sims 4", pageDescription: "SimmerSpace es un gestor bilingüe de mods de Los Sims 4 en pre-beta: un lugar para tu biblioteca de CC, las carpetas del juego y futuras descargas.",
+        navAbout: "La aplicación", navVision: "Nuestra visión", navCode: "Proyecto en GitHub", themeLabel: "Tema de color", themeLight: "Luz suave", themeDark: "Después de horas", languageLabel: "Cambiar idioma",
+        heroEyebrow: "Una forma más amable de cuidar tu carpeta Mods", heroTitleFirst: "Más espacio para", heroTitleSecond: "lo divertido.", heroIntro: "SimmerSpace nace para disfrutar el contenido personalizado y ese pequeño caos que viene con él: un espacio cálido y pensado para encontrar, organizar y disfrutar los mods que te encantan.", downloadButton: "Ver descargas para Windows", exploreButton: "Conoce el proyecto",
+        sideLibrary: "Biblioteca CC", sideFolders: "Carpetas del juego", sideSaved: "Guardados", sideInspiration: "Inspiración", mockTitle: "Tu biblioteca de CC", mockSub: "Para encontrar tu camino con más facilidad.", mockCard1: "Cabello y detalles", mockCard2: "Construir y comprar", mockCard3: "Tus carpetas", mockCard4: "Para después", mockCount: "Vista previa", mockVersion: "Windows · v0.5.3",
+        featuresEyebrow: "Pensado para tu rutina simmer", featuresTitle: "Un espacio acogedor para tu CC", featuresIntro: "Las carpetas del juego, tu biblioteca en crecimiento y esos hallazgos a los que quieres volver: SimmerSpace quiere reunirlo todo en una aplicación de escritorio amable y fácil de usar.", featureFoldersTitle: "Ubica cada cosa", featureFoldersText: "Configura las carpetas de Los Sims 4, ten a la mano las rutas importantes y gestiona tu instalación con más facilidad.", featureLibraryTitle: "Entiende tu biblioteca", featureLibraryText: "Escanea la carpeta Mods, incluidas sus subcarpetas, y consulta los archivos que ya tienes en modo de solo lectura.", featureFindsTitle: "Guarda tus hallazgos favoritos", featureFindsText: "Explora el diseño de las secciones para descubrir CC, conocer creadores, guardar inspiración y crear colecciones.",
+        visionEyebrow: "El sueño que estamos construyendo", visionTitle: "Un verdadero gestor de mods, hecho para quienes juegan Los Sims.", visionText: "La meta es crear una aplicación de escritorio pulida e instalable que te ayude a encontrar contenido, descargarlo e instalarlo, y mantener organizada una carpeta Mods grande sin perder rendimiento. SimmerSpace apenas comienza, pero esa visión guía cada paso.",
+        nowEyebrow: "Un comienzo pequeño y honesto", nowTitle: "Lo que puedes probar en esta pre-beta", nowIntro: "Explora las primeras partes de la experiencia mientras SimmerSpace crece hasta convertirse en el gestor completo que queremos crear.", nowRoutesTitle: "Rutas del juego", nowRoutesText: "Elige tu carpeta Mods, la carpeta de usuario de Los Sims 4, la instalación del juego y, de forma opcional, la ruta de Sims 4 Studio.", nowScanTitle: "Escaneo de solo lectura", nowScanText: "Consulta los nombres de archivos `.package` y `.ts4script` en Mods y sus subcarpetas, sin modificarlos.", nowDemoTitle: "Una probadita de lo que viene", nowDemoText: "Conoce los conceptos visuales para encontrar CC, seguir creadores, guardar inspiración y compartir colecciones.", statusTitle: "Seguimos en pre-beta", statusText: "Los catálogos en línea, la conexión con creadores y las descargas o instalaciones desde la aplicación todavía no están activas. Los listados y perfiles de muestra son contenido ficticio de demostración.", legal: "SimmerSpace es un proyecto independiente de fans; no está afiliado ni cuenta con el respaldo de Electronic Arts o Maxis. The Sims y Los Sims 4 son marcas comerciales de Electronic Arts Inc.", footerMade: "Hecho con cariño para la comunidad simmer.", footerGitHub: "Conoce SimmerSpace en GitHub", footerVersion: "Pre-beta v0.5.3"
+      }
+    };
+    const themeLabels = {
+      en: { light: "Soft light", dark: "After hours", rose: "Rose", lavender: "Lavender", sage: "Sage", nrose: "Rose night", nlavender: "Lavender night", nsage: "Sage night" },
+      es: { light: "Luz suave", dark: "Después de horas", rose: "Rosa", lavender: "Lavanda", sage: "Salvia", nrose: "Rosa nocturno", nlavender: "Lavanda nocturno", nsage: "Salvia nocturno" }
+    };
+    const themePicker = document.getElementById("theme-picker");
+    const languageToggle = document.getElementById("language-toggle");
+    let currentLanguage = localStorage.getItem("simmerspace-site-language") || "en";
+    const savedTheme = localStorage.getItem("simmerspace-site-theme");
+    if (savedTheme && [...themePicker.options].some(option => option.value === savedTheme)) document.documentElement.dataset.theme = savedTheme;
+    themePicker.value = document.documentElement.dataset.theme;
+    function updateThemeLabels(language) {
+      const labels = themeLabels[language];
+      themePicker.querySelector('[data-group="light"]').label = labels.light;
+      themePicker.querySelector('[data-group="dark"]').label = labels.dark;
+      themePicker.options[0].text = labels.rose;
+      themePicker.options[1].text = labels.lavender;
+      themePicker.options[2].text = labels.sage;
+      themePicker.options[3].text = labels.nrose;
+      themePicker.options[4].text = labels.nlavender;
+      themePicker.options[5].text = labels.nsage;
+    }
+    function setLanguage(language) {
+      currentLanguage = language;
+      document.documentElement.lang = language;
+      document.title = copy[language].pageTitle;
+      document.querySelector('meta[name="description"]').content = copy[language].pageDescription;
+      document.querySelectorAll("[data-copy]").forEach(element => {
+        const key = element.dataset.copy;
+        if (copy[language][key]) element.textContent = copy[language][key];
+      });
+      document.querySelectorAll("[data-aria-en][data-aria-es]").forEach(element => {
+        element.setAttribute("aria-label", element.dataset[`aria${language === "en" ? "En" : "Es"}`]);
+      });
+      languageToggle.textContent = language === "en" ? "ES" : "EN";
+      languageToggle.setAttribute("aria-label", copy[language].languageLabel);
+      themePicker.setAttribute("aria-label", copy[language].themeLabel);
+      updateThemeLabels(language);
+      localStorage.setItem("simmerspace-site-language", language);
+    }
+    themePicker.addEventListener("change", () => {
+      document.documentElement.dataset.theme = themePicker.value;
+      localStorage.setItem("simmerspace-site-theme", themePicker.value);
+      const color = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim();
+      document.querySelector('meta[name="theme-color"]').content = color;
+    });
+    languageToggle.addEventListener("click", () => setLanguage(currentLanguage === "en" ? "es" : "en"));
+    setLanguage(currentLanguage);
+  </script>
 </body>
 </html>
