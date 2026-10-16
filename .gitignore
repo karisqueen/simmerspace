@@ -1,0 +1,25 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+.electron-cache/
+
+# Local settings, temporary files, and generated builds
+.local-appdata/
+.tmp/
+.asar-check/
+dist/
+outputs/
+release-assets/
+
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Operating-system and editor noise
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

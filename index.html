@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf8f5" />
+    <meta name="description" content="A cozy visual manager for Sims 4 custom content." />
+    <title>SimmerSpace — your Sims 4 mod manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="theme-soft-lavender">
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar"></aside>
+      <main class="main-area">
+        <header class="topbar">
+          <div class="breadcrumbs"><span id="crumb-kicker"></span><b> / </b><strong id="crumb-title"></strong></div>
+          <div class="top-actions">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="" autocomplete="off"/><kbd>Ctrl K</kbd></label>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Switch theme"><span class="theme-icon">☾</span></button>
+            <button class="avatar top-avatar" id="profile-button" aria-label="Profile">S</button>
+          </div>
+        </header>
+        <div class="content-wrap" id="page-content"></div>
+        <footer class="footer-note"><span>✦</span> <span id="footer-copy"></span> <span>·</span> <b id="footer-version"></b></footer>
+      </main>
+    </div>
+    <input id="directory-fallback" type="file" webkitdirectory directory multiple hidden />
+    <div class="overlay" id="overlay" hidden><section class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"></section></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./demo-data.js"></script>
+    <script src="./app.js"></script>
+    <script src="./folders.js"></script>
+  </body>
+</html>
