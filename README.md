@@ -14,11 +14,12 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 - Local Sims 4 folder settings: Mods, user Documents, game installation, and optional Sims 4 Studio.
 - Manual, read-only scan of `.package` and `.ts4script` filenames in the selected Mods folder and its subfolders.
 - Demo Discover filters, creator profiles, Inspiration boards, and CC collections.
+- Manually add public Patreon profile links to a local creator catalog and follow profiles on this device.
 - Local preferences and demo collections stored on this computer.
 
 This pre-beta does not connect to external content platforms or install mods.
 
-All catalog entries, creator profiles, links, dates, popularity values, and references are synthetic examples used to demonstrate the interface. They do not represent real creator accounts, real CurseForge listings, or real downloads. The creator names in the sample data are fictional.
+Catalog entries and demo creator profiles are synthetic examples used to demonstrate the interface. Manually added Patreon profile links are saved only on this device; they are not sent to Patreon or synchronized. Example links, dates, popularity values, and references do not represent real CurseForge listings or real downloads. The creator names in the sample data are fictional.
 
 ## Get the app
 
@@ -43,6 +44,7 @@ The desktop application does not need Node.js or pnpm after it has been built. T
 ## Privacy and file access
 
 - SimmerSpace stores selected folder paths and interface preferences locally on this PC.
+- Manually added Patreon profile links and the creator follow list are also stored locally; this pre-beta does not fetch creator posts.
 - The Mods scan reads folder listings and filenames ending in `.package` or `.ts4script`; it does not open or change those files.
 - This pre-beta does not send folder paths or scanned filenames to a server.
 - Folder selection and scanning are not installation or deletion features. They are local setup and read-only inspection only.
@@ -50,7 +52,9 @@ The desktop application does not need Node.js or pnpm after it has been built. T
 
 ## Current status
 
-Third-party platform connections, downloads, and mod installation are not available in this pre-beta. No API key or user credential is included in this repository.
+Third-party platform connections, automatic Patreon posts, downloads, and mod installation are not available in this pre-beta. No API key or user credential is included in this repository. A future Patreon connection would use API v2. Patreon requires the `campaigns.posts` scope to list campaign posts and directs apps seeking access to other creators' campaign data to contact its developers forum. SimmerSpace will not scrape Patreon or put API secrets in the desktop interface.
+
+See [the Patreon integration plan](docs/PATREON-INTEGRATION.md) for the proposed Sims 4 creator directory, public-post discovery, optional patron linking, and the approvals required before member-only posts can be shown.
 
 ## Project status
 
