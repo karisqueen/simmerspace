@@ -70,30 +70,16 @@ button {
   padding: 3px 9px 36px;
 }
 .brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #e7d8ed, #f3d7df);
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: repeat(2, 7px);
-  grid-template-rows: repeat(2, 7px);
-  gap: 3px;
-  place-content: center;
-  transform: rotate(-5deg);
+  place-items: center;
+  color: var(--accent);
+  background: linear-gradient(145deg, var(--lav), var(--pink));
+  transform: rotate(-4deg);
 }
-.brand-mark span {
-  background: #806a8c;
-  border-radius: 3px;
-}
-.brand-mark span:nth-child(2) {
-  background: #d894aa;
-}
-.brand-mark span:nth-child(3) {
-  background: #bfa8cb;
-}
-.brand-mark span:nth-child(4) {
-  background: #eee8f0;
-}
+.brand-mark svg { width: 27px; height: 27px; }
 .brand-name {
   font-weight: 700;
   font-size: 17px;
@@ -147,11 +133,16 @@ button {
   color: var(--lav-strong);
 }
 .nav-icon {
-  font-size: 18px;
-  width: 19px;
-  text-align: center;
-  color: inherit;
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent);
 }
+.nav-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .nav-count {
   margin-left: auto;
   font-size: 12px;

@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld(
     appInfo: invoke('app:info'),
     loadRoutes: invoke('settings:load-routes'),
     chooseFolder: invoke('folders:choose'),
+    chooseCoverImage: invoke('collections:choose-cover'),
+    launchGame: invoke('game:launch'),
     manageMods: Object.freeze({
       scan: invoke('mods:scan'),
       cancelScan: () => ipcRenderer.send('mods:cancel-scan'),

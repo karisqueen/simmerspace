@@ -1,6 +1,15 @@
 # Changelog
 
-SimmerSpace is pre-beta. Versions follow this rule: a patch (0.6.**x**) for small or internal fixes, a minor version (0.**x**.0) for new user-facing features.
+## 0.7.1 (2026-10-22)
+
+- Collections now support search, ten pastel color swatches, image covers, consistent cover sizing, alphabetical/recent/custom sorting, and drag-and-drop custom order.
+- Inspiration boards can be sorted by name, recent use, or custom order; show all boards or return to the six most recent.
+- Discover adds age choices through Infants, Babies and Elders; CAS clothing/accessory quick subfilters; animal CC type filters; and supernatural-type filters. These refine the existing sample catalog and will become useful with matching tagged catalog data.
+- Settings can launch Sims 4 from the selected installation folder.
+- This release prepares the product boundary for future online catalogs; CurseForge remains inactive until its API access and compliant secure service are approved.
+
+
+SimmerSpace is in beta. Versions follow this rule: a patch (0.6.**x**) for small or internal fixes, a minor version (0.**x**.0) for new user-facing features.
 
 ## 0.7.0 (2026-10-19)
 

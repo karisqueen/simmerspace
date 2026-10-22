@@ -1,5 +1,5 @@
 /* SimmerSpace interface: state, pages and local interactions. Demo catalog data lives in demo-data.js. */
-let APP_VERSION = '0.7.0';
+let APP_VERSION = '0.7.1';
 const THEMES = ['soft-rose', 'soft-lavender', 'soft-sage', 'dark-rose', 'dark-lavender', 'dark-sage'];
 const DEFAULT_THEME = 'soft-lavender';
 
@@ -37,7 +37,14 @@ const state = {
   theme: savedTheme(),
   lang: savedLanguage(),
   activeCollection: null,
-  activeBoard: null
+  activeBoard: null,
+  animalType: 'All',
+  occultType: 'All',
+  casDetail: 'All',
+  collectionQuery: '',
+  collectionSort: safeGet('collection-sort') || 'custom',
+  boardSort: safeGet('board-sort') || 'recent',
+  showAllBoards: safeGet('boards-show-all') === 'true'
 };
 if (!Array.isArray(state.collections)) state.collections = structuredClone(SEED_COLLECTIONS);
 if (!Array.isArray(state.favorites)) state.favorites = [];
@@ -106,24 +113,22 @@ function art(item, extra = '') {
 }
 
 /* ---------- Shell ---------- */
+function navIcon(id) {
+  const paths = {
+    discover: '<circle cx="10.8" cy="10.8" r="6.2"/><path d="m15.4 15.4 4 4"/>',
+    mycc: '<path d="M3 6.5h7l2 2h9v9.8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M7 13h10M7 16h7"/>',
+    inspiration: '<rect x="4" y="4" width="15" height="16" rx="2.5"/><path d="M8 8h7M8 11h7M8 15l2.2-2 2 1.7 2.8-2.7"/>',
+    creators: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M15 5.5a3 3 0 0 1 0 5.8M17 14a4 4 0 0 1 3.5 4v1"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="m19.3 13.8 1.1 1.8-2 2-1.8-1.1a7 7 0 0 1-1.5.6L14.5 19h-3l-.6-1.9a7 7 0 0 1-1.5-.6l-1.8 1.1-2-2 1.1-1.8a7 7 0 0 1-.6-1.5L4.2 12v-3l1.9-.6a7 7 0 0 1 .6-1.5L5.6 5.1l2-2 1.8 1.1a7 7 0 0 1 1.5-.6L11.5 1.7h3l.6 1.9a7 7 0 0 1 1.5.6l1.8-1.1 2 2-1.1 1.8a7 7 0 0 1 .6 1.5l1.9.6v3l-1.9.6a7 7 0 0 1-.6 1.2Z" transform="translate(-1 2) scale(.95)"/>'
+  };
+  return `<svg viewBox="0 0 24 24" focusable="false"><g>${paths[id] || paths.discover}</g></svg>`;
+}
 function nav() {
-  const pages = [
-    ['discover', '✳'],
-    ['mycc', '▦'],
-    ['inspiration', '♡'],
-    ['creators', '✧']
-  ];
+  const pages = ['discover', 'mycc', 'inspiration', 'creators'];
   const modsCount = typeof scannedModCount === 'function' ? scannedModCount() : null;
-  const navButton = (id, icon) =>
-    `<button class="nav-item ${state.page === id ? 'active' : ''}" data-page="${id}" ${state.page === id ? 'aria-current="page"' : ''}><span class="nav-icon" aria-hidden="true">${icon}</span><span>${t(id)}</span>${id === 'mycc' && modsCount !== null ? `<span class="nav-count" title="${esc(t('navModsCount'))}">${modsCount.toLocaleString(state.lang)}</span>` : ''}</button>`;
-  document.getElementById('sidebar').innerHTML = `<a class="brand" href="#" data-page="discover" aria-label="SimmerSpace"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span class="brand-name"><span class="brand-simmer">simmer</span><span class="brand-space">space</span></span></a><div class="side-label">${t('space')}</div><nav class="main-nav" aria-label="${esc(t('space'))}">${pages
-    .map(([id, icon]) => navButton(id, icon))
-    .join('')}</nav><div class="side-label side-label-spaced">${t('collections')}<button class="tiny-add" id="new-collection" aria-label="${esc(t('newCollection'))}" title="${esc(t('newCollection'))}">+</button></div><button class="collection-all" id="show-all-collections">${t('viewAllCollections')} →</button><div class="collection-nav">${state.collections
-    .map(
-      c =>
-        `<button class="nav-item ${state.page === 'collection' && state.activeCollection === c.id ? 'active' : ''}" data-collection="${esc(c.id)}"><span class="collection-dot" aria-hidden="true"></span><span>${esc(collectionLabel(c))}</span></button>`
-    )
-    .join('')}</div><div class="sidebar-bottom">${navButton('settings', '⚙')}<div class="profile-card"><div class="avatar" aria-hidden="true">S</div><div><strong>${t('profile')}</strong><small>${t('local')}</small></div></div></div>`;
+  const navButton = id =>
+    `<button class="nav-item ${state.page === id ? 'active' : ''}" data-page="${id}" ${state.page === id ? 'aria-current="page"' : ''}><span class="nav-icon" aria-hidden="true">${navIcon(id)}</span><span>${t(id)}</span>${id === 'mycc' && modsCount !== null ? `<span class="nav-count" title="${esc(t('navModsCount'))}">${modsCount.toLocaleString(state.lang)}</span>` : ''}</button>`;
+  document.getElementById('sidebar').innerHTML = `<a class="brand" href="#" data-page="discover" aria-label="SimmerSpace"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 33V18M20 23c-8 0-12-5-12-12 8 0 12 4 12 12Zm0-5c0-8 5-12 12-12 0 8-4 12-12 12Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="33" r="2" fill="currentColor"/></svg></span><span class="brand-name"><span class="brand-simmer">simmer</span><span class="brand-space">space</span></span></a><div class="side-label">${t('space')}</div><nav class="main-nav" aria-label="${esc(t('space'))}">${pages.map(navButton).join('')}</nav><div class="side-label side-label-spaced">${t('collections')}<button class="tiny-add" id="new-collection" aria-label="${esc(t('newCollection'))}" title="${esc(t('newCollection'))}">+</button></div><button class="collection-all" id="show-all-collections">${t('viewAllCollections')} →</button><div class="collection-nav">${state.collections.map(c => `<button class="nav-item ${state.page === 'collection' && state.activeCollection === c.id ? 'active' : ''}" data-collection="${esc(c.id)}"><span class="collection-dot" aria-hidden="true"></span><span>${esc(collectionLabel(c))}</span></button>`).join('')}</div><div class="sidebar-bottom">${navButton('settings')}<div class="profile-card"><div class="avatar" aria-hidden="true">S</div><div><strong>${t('profile')}</strong><small>${t('local')}</small></div></div></div>`;
 }
 function setShell() {
   document.body.className = `theme-${state.theme}${overlay.hidden ? '' : ' dialog-open'}`;
@@ -147,7 +152,7 @@ function setShell() {
   document.getElementById('crumb-kicker').textContent = t('kicker');
   document.getElementById('crumb-title').textContent = names[state.page] || t('discover');
   document.getElementById('footer-copy').textContent = t('footer');
-  document.getElementById('footer-version').textContent = `SimmerSpace v${APP_VERSION} · ${t('preBeta')}`;
+  document.getElementById('footer-version').textContent = `SimmerSpace v${APP_VERSION} · ${t('betaLabel')}`;
   document.title = `${names[state.page] || t('discover')} · SimmerSpace`;
   search.placeholder = t('search');
   search.setAttribute('aria-label', t('search'));
@@ -202,8 +207,17 @@ function filteredItems() {
     if (state.sub === 'Body' && state.parent === 'cas') {
       if (!['Hair', 'Makeup', 'Lashes', 'Eyebrows', 'Eyes'].includes(i.sub)) return false;
     } else if (state.sub !== 'All' && i.sub !== state.sub && i.category !== state.sub) return false;
+    if (state.casDetail !== 'All') {
+      const type = i.casType || ({'Clothing':'Tops','Accessories':'Jewelry','Hair':'Hair','Makeup':'Makeup'}[i.sub] || i.sub);
+      if (type !== state.casDetail) return false;
+    }
+    if (state.animalType !== 'All' && i.animalType !== state.animalType) return false;
+    if (state.occultType !== 'All' && i.occultType !== state.occultType) return false;
     if (state.gender !== 'All' && i.gender !== 'All' && i.gender !== state.gender && i.gender !== 'Unisex') return false;
-    if (state.age !== 'All ages' && i.age !== 'All ages' && i.age !== state.age) return false;
+    if (state.age !== 'All ages' && i.age !== 'All ages') {
+      const ageAliases = { Elders: ['Elder','Elders'], Infants: ['Infant','Infants'], Babies: ['Baby','Babies'] };
+      if (!(ageAliases[state.age] || [state.age]).includes(i.age)) return false;
+    }
     if (state.style !== 'All' && i.type !== state.style && i.type !== 'Both') return false;
     if (state.source !== 'All' && i.source !== state.source) return false;
     return true;
@@ -257,8 +271,11 @@ function renderDiscover() {
       ['All ages', t('allages')],
       ['Teen', t('teen')],
       ['Young Adult', t('youngadult')],
+      ['Elders', t('elders')],
       ['Kids', t('kids')],
-      ['Toddlers', t('toddlers')]
+      ['Toddlers', t('toddlers')],
+      ['Infants', t('infants')],
+      ['Babies', t('babies')]
     ],
     state.age
   )}${selectField(
@@ -270,7 +287,7 @@ function renderDiscover() {
       ['Alpha', 'Alpha']
     ],
     state.style
-  )}${selectField('source-filter', t('source'), [['All', t('anysource')], ...sources.map(s => [s, s])], state.source)}${selectField(
+  )}${selectField('source-filter', t('source'), [['All', t('anysource')], ...sources.map(s => [s, s])], state.source)}${state.parent === 'cas' && state.sub === 'Clothing' ? selectField('cas-detail-filter', t('casType'), [['All', t('all')], ...['Tops','Bottoms','Full body','Shoes','Swimwear','Outerwear'].map(v => [v, t(`cas_${v}`)])], state.casDetail) : ''}${state.parent === 'cas' && state.sub === 'Accessories' ? selectField('cas-detail-filter', t('casType'), [['All', t('all')], ...['Hats','Glasses','Jewelry','Bags','Gloves','Socks'].map(v => [v, t(`cas_${v}`)])], state.casDetail) : ''}${state.parent === 'cas' && state.sub === 'Animals' ? selectField('animal-filter', t('animalType'), [['All',t('all')], ...['Skins','Clothing','Eyes','Accessories','Objects'].map(v=>[v,t(`animal_${v}`)])], state.animalType) : ''}${selectField(
     'sort-filter',
     t('sort'),
     [
@@ -280,7 +297,7 @@ function renderDiscover() {
       ['popular', t('popular')]
     ],
     state.sort
-  )}</div>`;
+  )}</div><div class="quick-filters extended-filters">${selectField('occult-filter', t('occultType'), [['All',t('all')], ...['Vampires','Werewolves','Mermaids','Fairies','PlantSims','Genies','Spellcasters','Aliens','Ghosts','Servos'].map(v=>[v,t(`occult_${v}`)])], state.occultType)}</div>`;
   content.innerHTML = `<section class="hero"><div><div class="eyebrow">${t('heroEyebrow')}</div><h1>${t('heroTitle').replace('\n', '<br>')}</h1><p>${t('heroText')}</p></div><div class="hero-note"><i aria-hidden="true">✳</i><span><b>${t('mycc')}</b> ${t('heroNote')} <small>${t('demo')} · ${items.length} ${t('finds')}</small></span></div></section><div class="demo-banner" role="note"><b>${t('demo')}</b><span>${t('discoverDemoNote')}</span></div><div class="section-toolbar"><h2>${t('filterBy')}</h2></div><div class="category-row parent-filters">${parents
     .map(
       ([id, name]) =>
@@ -329,9 +346,10 @@ function renderLibrary() {
 }
 
 function recentBoards() {
-  return getBoards()
-    .sort((a, b) => (b.used || 0) - (a.used || 0))
-    .slice(0, 6);
+  const boards = getBoards();
+  if (state.boardSort === 'az') return boards.sort((a,b) => boardLabel(a).localeCompare(boardLabel(b), state.lang));
+  if (state.boardSort === 'custom') return boards;
+  return boards.sort((a, b) => (b.used || 0) - (a.used || 0));
 }
 function recommendedItems() {
   const saved = ITEMS.filter(i => state.favorites.includes(i.id) || isInCollection(i));
@@ -359,12 +377,13 @@ function boardPreview(b, index) {
     .join('')}</span>`;
 }
 function renderInspiration() {
-  const boards = recentBoards();
+  const allBoards = recentBoards();
+  const boards = state.showAllBoards ? allBoards : allBoards.slice(0, 6);
   const recommendations = recommendedItems();
-  content.innerHTML = `${heading(t('inspiration').toUpperCase(), t('inspiration'), t('inspirationText'))}<div class="inspo-columns"><section><div class="section-toolbar"><h2>${t('recentBoards')} <span>${boards.length}</span></h2><button class="small-chip" id="new-board">＋ ${t('newBoard')}</button></div><div class="board-grid">${boards
+  content.innerHTML = `${heading(t('inspiration').toUpperCase(), t('inspiration'), t('inspirationText'))}<div class="inspo-columns"><section><div class="section-toolbar"><h2>${t('recentBoards')} <span>${boards.length}/${allBoards.length}</span></h2><div class="collection-actions"><label class="sort-control">${t('sort')} <select id="board-sort"><option value="recent" ${state.boardSort==='recent'?'selected':''}>${t('recentlyUsed')}</option><option value="az" ${state.boardSort==='az'?'selected':''}>${t('az')}</option><option value="custom" ${state.boardSort==='custom'?'selected':''}>${t('customOrder')}</option></select></label><button class="small-chip" id="toggle-all-boards">${state.showAllBoards?t('showRecent'):t('showAllBoards')}</button><button class="small-chip" id="new-board">＋ ${t('newBoard')}</button></div></div><div class="board-grid">${boards
     .map(
       (b, i) =>
-        `<button class="board-card" data-board="${esc(b.id)}">${boardPreview(b, i)}<span class="board-label"><strong>${esc(boardLabel(b))}</strong><span>${b.refs.length} ${t('pins')}</span></span></button>`
+        `<button class="board-card" data-board="${esc(b.id)}" ${state.boardSort==='custom'?'draggable="true"':''}>${boardPreview(b, i)}<span class="board-label"><strong>${esc(boardLabel(b))}</strong><span>${b.refs.length} ${t('pins')}</span></span></button>`
     )
     .join('')}</div><div class="section-toolbar section-toolbar-spaced"><h2>${t('pinterest')} <span>${t('demo')}</span></h2><button class="small-chip" id="upload-reference" title="${esc(t('planned'))}">＋ ${t('uploadImage')}</button></div><div class="masonry">${REFERENCES.map(refCard).join('')}</div></section><aside class="recommend-panel"><div class="eyebrow">✦ ${t('recommendations')}</div><p>${t('noRecommendations')}</p><div class="recommend-list">${recommendations
     .map(
@@ -451,9 +470,10 @@ function renderCollection() {
     return renderDiscover();
   }
   const items = ITEMS.filter(i => i.isCC !== false && c.items.includes(i.id));
-  content.innerHTML = `${heading(t('collectionsTitle').toUpperCase(), esc(collectionLabel(c)), t('collectionsText'))}<div class="collection-actions"><button class="primary-btn" data-export="${esc(c.id)}">${t('share')}</button><button class="secondary-btn" id="import-collection-button">${t('importCollection')}</button><button class="small-chip" id="rename-collection">${t('rename')}</button><button class="small-chip cover-image-button" disabled title="${esc(t('coverSoon'))}">▧ ${t('coverImage')} · ${t('coverSoon')}</button></div><p class="muted-note">${t('onlyLinks')}</p><div class="section-toolbar"><h2>${t('downloadable')} <span>${items.length} ${t('demo')}</span></h2></div>${items.length ? `<div class="masonry">${items.map(itemCard).join('')}</div>` : empty(t('noCC'), t('onlyLinks'))}`;
+  content.innerHTML = `${heading(t('collectionsTitle').toUpperCase(), esc(collectionLabel(c)), t('collectionsText'))}<div class="collection-actions"><button class="primary-btn" data-export="${esc(c.id)}">${t('share')}</button><button class="secondary-btn" id="import-collection-button">${t('importCollection')}</button><button class="small-chip" id="rename-collection">${t('rename')}</button><button class="small-chip cover-image-button" id="choose-collection-cover">▧ ${t('coverImage')}</button><label class="collection-palette-label">${t('collectionColor')}<span class="collection-palette">${['#f5c9d3','#f8d9bd','#f4e9ae','#d5e8c3','#c5e6df','#c8e3f2','#cfd8f5','#dfd0f0','#f0d3e8','#d9d9d1'].map(color=>`<button type="button" class="palette-swatch ${c.color===color?'selected':''}" data-collection-color="${color}" style="--swatch:${color}" aria-label="${color}" aria-pressed="${c.color===color}"></button>`).join('')}</span></label></div><p class="muted-note">${t('onlyLinks')}</p><div class="section-toolbar"><h2>${t('downloadable')} <span>${items.length} ${t('demo')}</span></h2></div>${items.length ? `<div class="masonry">${items.map(itemCard).join('')}</div>` : empty(t('noCC'), t('onlyLinks'))}`;
 }
 function collectionPreview(c) {
+  if (c.cover) return `<span class="collection-cover-collage collection-photo-cover" style="--collection-color:${esc(c.color || '#dfd0f0')}"><img src="${esc(c.cover)}" alt=""></span>`;
   const items = ITEMS.filter(i => c.items.includes(i.id)).slice(0, 3);
   const defaults = ['✧', '✿', '☼'];
   return `<span class="collection-cover-collage" aria-hidden="true">${[0, 1, 2]
@@ -464,12 +484,15 @@ function collectionPreview(c) {
     .join('')}</span>`;
 }
 function renderCollections() {
-  content.innerHTML = `${heading(t('collectionsTitle').toUpperCase(), t('collectionsTitle'), t('collectionsText'))}<div class="collection-actions"><button class="primary-btn" id="new-collection-page">＋ ${t('newCollection')}</button><button class="secondary-btn" id="import-collection-button">${t('importCollection')}</button></div><div class="collection-grid">${state.collections
+  let collections = state.collections.filter(c => collectionLabel(c).toLowerCase().includes(state.collectionQuery.toLowerCase()));
+  if (state.collectionSort === 'az') collections.sort((a,b)=>collectionLabel(a).localeCompare(collectionLabel(b),state.lang));
+  if (state.collectionSort === 'opened') collections.sort((a,b)=>(b.opened||0)-(a.opened||0));
+  content.innerHTML = `${heading(t('collectionsTitle').toUpperCase(), t('collectionsTitle'), t('collectionsText'))}<div class="collection-actions"><button class="primary-btn" id="new-collection-page">＋ ${t('newCollection')}</button><button class="secondary-btn" id="import-collection-button">${t('importCollection')}</button><div class="collection-search"><span aria-hidden="true">⌕</span><input id="collection-search" type="search" value="${esc(state.collectionQuery)}" placeholder="${esc(t('searchCollections'))}"></div><label class="sort-control">${t('sort')} <select id="collection-sort"><option value="custom" ${state.collectionSort==='custom'?'selected':''}>${t('customOrder')}</option><option value="az" ${state.collectionSort==='az'?'selected':''}>${t('az')}</option><option value="opened" ${state.collectionSort==='opened'?'selected':''}>${t('recentlyOpened')}</option></select></label></div><div class="collection-grid">${collections
     .map(
       c =>
-        `<button class="collection-tile" data-collection="${esc(c.id)}">${collectionPreview(c)}<span class="collection-tile-info"><strong>${esc(collectionLabel(c))}</strong><span>${c.items.length} · →</span></span></button>`
+        `<button class="collection-tile" data-collection="${esc(c.id)}" ${state.collectionSort==='custom'?'draggable="true"':''} style="--collection-color:${esc(c.color||'#dfd0f0')}">${collectionPreview(c)}<span class="collection-tile-info"><strong>${esc(collectionLabel(c))}</strong><span>${c.items.length} · →</span></span></button>`
     )
-    .join('')}</div>`;
+    .join('')}</div>${collections.length ? '' : empty(t('noResult'))}`;
 }
 
 function themeOption(mode, title, key) {
@@ -477,7 +500,7 @@ function themeOption(mode, title, key) {
   return `<button class="theme-option theme-swatch ${active ? 'active' : ''}" data-theme="${mode}" aria-pressed="${active}"><i class="swatch-dot" aria-hidden="true"></i><span>${title}</span><small>${t(key)}</small></button>`;
 }
 function renderSettings() {
-  content.innerHTML = `${heading(t('settingsTitle').toUpperCase(), t('settingsTitle'), t('settingsText'))}<div class="settings-grid"><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('soft') ? 'open' : ''}><summary><span><b>${t('softLight')}</b><small>${t('softLightNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('soft-rose', t('rose'), 'softLight')}${themeOption('soft-lavender', t('lavender'), 'softLight')}${themeOption('soft-sage', t('sage'), 'softLight')}</div></details><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('dark') ? 'open' : ''}><summary><span><b>${t('afterHours')}</b><small>${t('afterHoursNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('dark-rose', t('rose'), 'afterHours')}${themeOption('dark-lavender', t('lavender'), 'afterHours')}${themeOption('dark-sage', t('sage'), 'afterHours')}</div></details><section class="setting-card"><h3>${t('organization')}</h3><p>${t('organizationNote')}</p><label>${t('groupBy')} <select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></section><section class="setting-card"><h3>${t('language')}</h3><p>${t('languageNote')}</p><div class="theme-options"><button class="theme-option ${state.lang === 'es' ? 'active' : ''}" data-language="es" aria-pressed="${state.lang === 'es'}" lang="es">Español</button><button class="theme-option ${state.lang === 'en' ? 'active' : ''}" data-language="en" aria-pressed="${state.lang === 'en'}" lang="en">English</button></div></section><section class="setting-card"><h3>${t('about')}</h3><p>${t('version')}: <b>${APP_VERSION} ${t('preBeta')}</b><br>${t('compatibility')}: <b>${t('windows')}</b><br>${t('sourceDemo')}<br>${t('privacyNote')}</p></section><section class="setting-card"><h3>${t('signIn')}</h3><p>${t('accountText')}</p><button class="secondary-btn" disabled>${t('signIn')} · ${t('comingSoon')}</button></section><section class="setting-card"><h3>${t('feedback')} / ${t('donate')}</h3><p>${t('feedbackNote')}</p><div class="setting-actions"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="small-chip" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div></section></div>${folderSettingsSection()}`;
+  content.innerHTML = `${heading(t('settingsTitle').toUpperCase(), t('settingsTitle'), t('settingsText'))}<div class="settings-grid"><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('soft') ? 'open' : ''}><summary><span><b>${t('softLight')}</b><small>${t('softLightNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('soft-rose', t('rose'), 'softLight')}${themeOption('soft-lavender', t('lavender'), 'softLight')}${themeOption('soft-sage', t('sage'), 'softLight')}</div></details><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('dark') ? 'open' : ''}><summary><span><b>${t('afterHours')}</b><small>${t('afterHoursNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('dark-rose', t('rose'), 'afterHours')}${themeOption('dark-lavender', t('lavender'), 'afterHours')}${themeOption('dark-sage', t('sage'), 'afterHours')}</div></details><section class="setting-card"><h3>${t('organization')}</h3><p>${t('organizationNote')}</p><label>${t('groupBy')} <select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></section><section class="setting-card"><h3>${t('language')}</h3><p>${t('languageNote')}</p><div class="theme-options"><button class="theme-option ${state.lang === 'es' ? 'active' : ''}" data-language="es" aria-pressed="${state.lang === 'es'}" lang="es">Español</button><button class="theme-option ${state.lang === 'en' ? 'active' : ''}" data-language="en" aria-pressed="${state.lang === 'en'}" lang="en">English</button></div></section><section class="setting-card"><h3>${t('about')}</h3><p>${t('version')}: <b>${APP_VERSION} ${t('betaLabel')}</b><br>${t('compatibility')}: <b>${t('windows')}</b><br>${t('sourceDemo')}<br>${t('privacyNote')}</p></section><section class="setting-card"><h3>${t('curseforgeTitle')}</h3><p>${t('curseforgeReadiness')}</p><span class="status-pill status-pending">${t('notConnected')}</span></section><section class="setting-card"><h3>${t('signIn')}</h3><p>${t('accountText')}</p><button class="secondary-btn" disabled>${t('signIn')} · ${t('comingSoon')}</button></section><section class="setting-card"><h3>${t('feedback')} / ${t('donate')}</h3><p>${t('feedbackNote')}</p><div class="setting-actions"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="small-chip" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div></section></div>${folderSettingsSection()}`;
 }
 function renderFavorites() {
   const items = ITEMS.filter(i => state.favorites.includes(i.id));
@@ -665,7 +688,7 @@ function renameCollectionDialog() {
   );
 }
 function resetDiscoverFilters() {
-  Object.assign(state, { parent: 'all', sub: 'All', gender: 'All', age: 'All ages', style: 'All', source: 'All', sort: 'curated', query: '' });
+  Object.assign(state, { parent: 'all', sub: 'All', gender: 'All', age: 'All ages', style: 'All', source: 'All', sort: 'curated', query: '', casDetail:'All', animalType:'All', occultType:'All' });
   search.value = '';
   render();
 }
@@ -674,6 +697,7 @@ function resetDiscoverFilters() {
 // Simple id-based buttons. Each handler receives the clicked button.
 const CLICK_ACTIONS = {
   'new-collection': newCollectionDialog,
+  'launch-game': async () => { try { await callDesktop(desktop?.launchGame); toast(t('gameLaunched')); } catch(e) { toast(errorMessage(e),'error'); } },
   'new-collection-page': newCollectionDialog,
   'new-collection-from-save': newCollectionDialog,
   'create-collection': createCollection,
@@ -715,6 +739,11 @@ const CLICK_ACTIONS = {
     toast(t('shareFile'));
   },
   'rename-collection': renameCollectionDialog,
+  'choose-collection-cover': async () => {
+    const c=state.collections.find(x=>x.id===state.activeCollection); if(!c) return;
+    try { const result=await callDesktop(desktop?.chooseCoverImage); if(result){ c.cover=result; persist(); render(); } } catch(error){ toast(errorMessage(error),'error'); }
+  },
+  'toggle-all-boards': () => { state.showAllBoards=!state.showAllBoards; safeSet('boards-show-all',String(state.showAllBoards)); render(); },
   'save-rename': () => {
     const c = state.collections.find(x => x.id === state.activeCollection);
     const name = document.getElementById('collection-name').value.trim();
@@ -753,6 +782,8 @@ function setTheme(theme) {
 
 document.addEventListener('click', async event => {
   const target = event.target;
+  const colorChoice=target.closest('[data-collection-color]');
+  if(colorChoice){ const c=state.collections.find(x=>x.id===state.activeCollection); if(c){c.color=colorChoice.dataset.collectionColor;persist();render();} return; }
   const button = target.closest('button[id]');
   if (button && CLICK_ACTIONS[button.id]) {
     await CLICK_ACTIONS[button.id](button);
@@ -766,17 +797,22 @@ document.addEventListener('click', async event => {
   const collection = target.closest('[data-collection]');
   if (collection) {
     state.activeCollection = collection.dataset.collection;
+    const opened = state.collections.find(c => c.id === state.activeCollection);
+    if (opened) { opened.opened = Date.now(); persist(); }
     return goTo('collection');
   }
   const parent = target.closest('[data-parent]');
   if (parent) {
     state.parent = parent.dataset.parent;
     state.sub = 'All';
+    state.casDetail = 'All'; state.animalType = 'All';
     return render();
   }
   const sub = target.closest('[data-sub]');
   if (sub) {
     state.sub = sub.dataset.sub;
+    if (!['Clothing','Accessories'].includes(state.sub)) state.casDetail='All';
+    if (state.sub !== 'Animals') state.animalType='All';
     return render();
   }
   const library = target.closest('[data-library-state]');
@@ -859,7 +895,7 @@ document.addEventListener('click', async event => {
   if (exp) return shareCollection(exp.dataset.export);
 });
 
-const CHANGE_FIELDS = { 'gender-filter': 'gender', 'age-filter': 'age', 'style-filter': 'style', 'source-filter': 'source', 'sort-filter': 'sort', 'creator-platform': 'creatorPlatform' };
+const CHANGE_FIELDS = { 'gender-filter': 'gender', 'age-filter': 'age', 'style-filter': 'style', 'source-filter': 'source', 'sort-filter': 'sort', 'creator-platform': 'creatorPlatform', 'animal-filter':'animalType', 'occult-filter':'occultType', 'cas-detail-filter':'casDetail' };
 document.addEventListener('change', event => {
   const target = event.target;
   if (target.id === 'group-mode' || target.id === 'group-mode-settings') {
@@ -867,6 +903,8 @@ document.addEventListener('change', event => {
     safeSet('group-mode', state.groupMode);
     return render();
   }
+  if (target.id === 'collection-sort') { state.collectionSort=target.value; safeSet('collection-sort',target.value); return render(); }
+  if (target.id === 'board-sort') { state.boardSort=target.value; safeSet('board-sort',target.value); return render(); }
   if (CHANGE_FIELDS[target.id]) {
     state[CHANGE_FIELDS[target.id]] = target.value;
     return render();
@@ -885,6 +923,7 @@ document.addEventListener('change', event => {
   }
 });
 document.addEventListener('input', event => {
+  if (event.target.id === 'collection-search') { state.collectionQuery=event.target.value; const at=event.target.selectionStart; render(); const input=document.getElementById('collection-search'); input?.focus(); input?.setSelectionRange(at,at); return; }
   if (event.target.id === 'library-search') {
     state.libraryQuery = event.target.value;
     render();
@@ -907,3 +946,31 @@ document.addEventListener('keydown', event => {
     search.select();
   }
 });
+
+
+// Drag ordering is saved locally and used only when the corresponding custom sort is selected.
+let draggedSortCard = null;
+document.addEventListener('dragstart', event => {
+  const card = event.target.closest('[data-collection], [data-board]');
+  if (!card || !card.draggable) return;
+  draggedSortCard = card;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', card.dataset.collection || card.dataset.board);
+});
+document.addEventListener('dragover', event => {
+  if (draggedSortCard && event.target.closest('[data-collection], [data-board]')) event.preventDefault();
+});
+document.addEventListener('drop', event => {
+  const target = event.target.closest('[data-collection], [data-board]');
+  if (!draggedSortCard || !target || draggedSortCard === target) return;
+  event.preventDefault();
+  if (draggedSortCard.hasAttribute('data-collection')) {
+    const from=state.collections.findIndex(x=>x.id===draggedSortCard.dataset.collection), to=state.collections.findIndex(x=>x.id===target.dataset.collection);
+    if(from>=0 && to>=0){ const [item]=state.collections.splice(from,1); state.collections.splice(to,0,item); persist(); }
+  } else {
+    const boards=getBoards(), from=boards.findIndex(x=>x.id===draggedSortCard.dataset.board), to=boards.findIndex(x=>x.id===target.dataset.board);
+    if(from>=0 && to>=0){ const [item]=boards.splice(from,1); boards.splice(to,0,item); safeWrite('boards',boards); }
+  }
+  draggedSortCard=null; render();
+});
+document.addEventListener('dragend', () => { draggedSortCard=null; });

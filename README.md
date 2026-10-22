@@ -2,13 +2,13 @@
 
 **A cozy, bilingual Sims 4 mod manager prototype. / Un prototipo acogedor y bilingüe para gestionar mods de Los Sims 4.**
 
-SimmerSpace is a pre-beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code and synthetic demo content.
+SimmerSpace is a beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code and synthetic demo content.
 
 SimmerSpace is an independent fan project and is not affiliated with, endorsed by, or sponsored by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc.
 
 SimmerSpace is provided as-is. Back up important files before using any mod-management software.
 
-## Current pre-beta features
+## Current beta features
 
 - Spanish and English interface with six color themes (three light, three dark).
 - Local Sims 4 folder settings: Mods, user Documents, game installation, and optional Sims 4 Studio. Only the Mods folder is used by features in this version.
@@ -99,19 +99,19 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 ## Privacy and file access
 
 - SimmerSpace stores selected folder paths and interface preferences locally on this PC.
-- Manually added Patreon profile links and the creator follow list are also stored locally; this pre-beta does not fetch creator posts.
+- Manually added Patreon profile links and the creator follow list are also stored locally; this beta does not fetch creator posts.
 - The Mods scan reads folder listings and filenames for supported active and disabled extensions; it does not open file contents.
-- This pre-beta does not send folder paths or scanned filenames to a server.
+- This beta does not send folder paths or scanned filenames to a server.
 - Import, rename, enable/disable, organization, and deletion are explicit local actions. Category/creator tags are stored in this device's SimmerSpace data and keyed to file paths.
 - There is no account sign-in or cross-device sync in this version.
 
 ## Current status
 
-Third-party platform connections, automatic Patreon posts, downloads, and mod installation are not available in this pre-beta. No API key or user credential is included in this repository. A future Patreon connection would use API v2. Patreon requires the `campaigns.posts` scope to list campaign posts and directs apps seeking access to other creators' campaign data to contact its developers forum. SimmerSpace will not scrape Patreon or put API secrets in the desktop interface.
+Third-party platform connections, automatic Patreon posts, downloads, and mod installation are not available in this beta. No API key or user credential is included in this repository. A future Patreon connection would use API v2. Patreon requires the `campaigns.posts` scope to list campaign posts and directs apps seeking access to other creators' campaign data to contact its developers forum. SimmerSpace will not scrape Patreon or put API secrets in the desktop interface.
 
 ## Project status
 
-Current version: **0.7.0 pre-beta**. See [CHANGELOG.md](CHANGELOG.md) for what changed. / Versión actual: **0.7.0 pre-beta**.
+Current version: **0.7.1 beta**. Collections now support search, covers, colors and sorting; Inspiration boards can be sorted and expanded; Discover has additional age, CAS, animal and occult filters. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.7.1 beta**. Las colecciones permiten búsqueda, portadas, colores y orden; los tableros de Inspiración se pueden ordenar y mostrar todos; Descubrir amplía los filtros de edad, CAS, animales y seres sobrenaturales. Consulta [CHANGELOG.md](CHANGELOG.md).
 
 Bug reports and suggestions can be opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files in an issue.
 

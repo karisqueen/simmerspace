@@ -603,7 +603,7 @@ const SEED_BOARDS = [
 const SUBS = {
   all: ['All'],
   mods: ['All', 'Gameplay', 'Careers', 'Traits', 'Overrides'],
-  cas: ['All', 'Body', 'Clothing', 'Accessories'],
+  cas: ['All', 'Body', 'Clothing', 'Accessories', 'Animals'],
   buildbuy: ['All', 'Furniture', 'Decor', 'Lighting', 'Plants', 'Kitchen']
 };
 

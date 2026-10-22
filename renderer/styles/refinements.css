@@ -557,3 +557,24 @@ body {
 .scan-progress-track {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface));
 }
+
+
+/* 0.7.1 collection controls and durable drag ordering */
+.collection-search { display:flex; align-items:center; gap:8px; min-width:220px; padding:8px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--muted); }
+.collection-search input { min-width:0; width:100%; border:0; outline:0; color:var(--text); background:transparent; }
+.sort-control { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
+.sort-control select { max-width:240px; padding:9px 30px 9px 12px; border:1px solid var(--line); border-radius:11px; color:var(--text); background:var(--surface); font:inherit; }
+.collection-tile[draggable=true], .board-card[draggable=true] { cursor:grab; }
+.collection-tile[draggable=true]:active, .board-card[draggable=true]:active { cursor:grabbing; opacity:.72; }
+.collection-tile { position:relative; }
+.collection-cover-collage { background:var(--collection-color, var(--lav)); }
+.collection-photo-cover { display:block; width:100%; height:116px; overflow:hidden; background:var(--collection-color); }
+.collection-photo-cover img { width:100%; height:100%; display:block; object-fit:cover; }
+.collection-palette-label { display:flex; flex-direction:column; gap:6px; justify-content:center; color:var(--muted); font-size:12px; }
+.collection-palette { display:flex; gap:5px; }
+.palette-swatch { width:22px; height:22px; padding:0; border:2px solid var(--surface); border-radius:50%; background:var(--swatch); box-shadow:0 0 0 1px var(--line); cursor:pointer; }
+.palette-swatch.selected { box-shadow:0 0 0 2px var(--accent); }
+.launch-game-row { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:12px 0 18px; padding:15px 17px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+.launch-game-row > div { display:grid; gap:4px; }
+.launch-game-row small { color:var(--muted); }
+@media(max-width:720px){ .collection-actions { flex-wrap:wrap; } .collection-search { flex:1 1 100%; } .launch-game-row { align-items:flex-start; flex-direction:column; } }

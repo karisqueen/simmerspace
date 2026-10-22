@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { fileURLToPath } = require('node:url');
@@ -80,6 +80,28 @@ const ipc = createIpc({ ipcMain, isTrustedSender: isAppPage });
 ipc.handle('app:info', validators.none, () => ({ version: APP_VERSION, platform: process.platform }));
 ipc.handle('settings:load-routes', validators.none, () => settings.loadRoutes());
 ipc.handle('folders:choose', validators.oneOf(ROUTE_IDS), chooseFolder);
+ipc.handle('collections:choose-cover', validators.none, async () => {
+  const result = await dialog.showOpenDialog(mainWindow, { title: 'Choose a collection cover', properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png','jpg','jpeg','webp'] }] });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const file = result.filePaths[0];
+  const stat = await fs.stat(file);
+  if (!stat.isFile() || stat.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.');
+  const mime = ({ '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.webp':'image/webp' })[path.extname(file).toLowerCase()];
+  if (!mime) throw new Error('Unsupported image format.');
+  const image = nativeImage.createFromPath(file);
+  if (image.isEmpty()) throw new Error('The selected image could not be read.');
+  const thumbnail = image.resize({ width: 720, height: 480, quality: 'good' }).toJPEG(78);
+  return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
+});
+ipc.handle('game:launch', validators.none, async () => {
+  const gameFolder = (await settings.loadRoutes()).game?.path;
+  if (!gameFolder) throw new (require('./errors.cjs').AppError)('GAME_FOLDER_NOT_SET', 'Choose the Sims 4 installation folder in Settings first.');
+  const candidates = [path.join(gameFolder,'Game','Bin','TS4_x64.exe'), path.join(gameFolder,'Game','Bin','TS4.exe'), path.join(gameFolder,'TS4_x64.exe')];
+  for (const candidate of candidates) {
+    try { if ((await fs.stat(candidate)).isFile()) { const error = await shell.openPath(candidate); if (error) throw new Error(error); return true; } } catch (error) { if (error.message && !['ENOENT','ENOTDIR'].includes(error.code)) throw error; }
+  }
+  throw new (require('./errors.cjs').AppError)('GAME_EXECUTABLE_NOT_FOUND', 'The Sims 4 executable was not found in the selected folder.');
+});
 ipc.handle('mods:scan', validators.none, () => modsService.scan());
 ipc.on('mods:cancel-scan', () => modsService.cancel());
 ipc.handle('mods:load-catalog', validators.none, () => modsService.loadCatalog());
