@@ -12,18 +12,22 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 
 - Spanish and English interface with six color themes.
 - Local Sims 4 folder settings: Mods, user Documents, game installation, and optional Sims 4 Studio.
-- Manual, read-only scan of `.package` and `.ts4script` filenames in the selected Mods folder and its subfolders.
+- Scan local `.package`, `.ts4script`, `.packageoff`, and `.ts4scriptoff` files.
+- Copy supported files or folders into Mods, tag individual files by category, creator, style, and age, and optionally organize selected tagged files into user-chosen folders.
+- Enable and disable files by changing their extensions in place; rename files while preserving their supported extension; send files to the Windows Recycle Bin.
 - Demo Discover filters, creator profiles, Inspiration boards, and CC collections.
 - Manually add public Patreon profile links to a local creator catalog and follow profiles on this device.
 - Local preferences and demo collections stored on this computer.
 
-This pre-beta does not connect to external content platforms or install mods.
+The mod manager makes local file changes only after the user chooses an action. Import copies and never overwrites; organizing moves selected files inside the chosen Mods folder; deletion uses the Windows Recycle Bin. The app does not install mods into the game automatically or connect to external content platforms.
 
 Catalog entries and demo creator profiles are synthetic examples used to demonstrate the interface. Manually added Patreon profile links are saved only on this device; they are not sent to Patreon or synchronized. Example links, dates, popularity values, and references do not represent real CurseForge listings or real downloads. The creator names in the sample data are fictional.
 
 ## Get the app
 
-The source archive from GitHub's **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run Windows app. Any Windows build published by the project owner will be listed separately in **Releases**.
+The beta tester ZIP is a ready-to-run Windows build. Extract `SimmerSpace-0.7.0-portable.zip` to a folder you can write to, then open `SimmerSpace.exe`. It does not need an installer, Node.js, pnpm, or internet access to launch. Keep the extracted folder together; do not run the executable from inside the ZIP preview.
+
+Settings and catalog data are stored in this Windows user account's local app data, so they remain when the extracted app folder is moved or replaced. The ZIP contains the Windows x64 application and does not include the project source or development dependencies. The source archive from GitHub's **Code → Download ZIP** is for inspecting or building the project; it is not the ready-to-run app.
 
 To run from source, install Node.js and pnpm, then run:
 
@@ -45,9 +49,9 @@ The desktop application does not need Node.js or pnpm after it has been built. T
 
 - SimmerSpace stores selected folder paths and interface preferences locally on this PC.
 - Manually added Patreon profile links and the creator follow list are also stored locally; this pre-beta does not fetch creator posts.
-- The Mods scan reads folder listings and filenames ending in `.package` or `.ts4script`; it does not open or change those files.
+- The Mods scan reads folder listings and filenames for supported active and disabled extensions; it does not open file contents.
 - This pre-beta does not send folder paths or scanned filenames to a server.
-- Folder selection and scanning are not installation or deletion features. They are local setup and read-only inspection only.
+- Import, rename, enable/disable, organization, and deletion are explicit local actions. Category/creator tags are stored in this device's SimmerSpace data and keyed to file paths.
 - There is no account sign-in or cross-device sync in this version.
 
 ## Current status
@@ -58,7 +62,7 @@ See [the Patreon integration plan](docs/PATREON-INTEGRATION.md) for the proposed
 
 ## Project status
 
-Current version: **0.5.3 pre-beta**.
+Current version: **0.7.0 pre-beta**.
 
 Bug reports and suggestions can be opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files in an issue.
 

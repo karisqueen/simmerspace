@@ -1,11 +1,12 @@
 {
   "name": "simmerspace",
-  "version": "0.5.3",
+  "version": "0.7.0",
   "private": true,
   "description": "A visual Sims 4 mods and custom content manager prototype.",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
+    "test": "node --test",
     "dist": "electron-builder --win nsis",
     "dist:dir": "electron-builder --win dir"
   },
@@ -16,6 +17,8 @@
   "build": {
     "appId": "com.simmerspace.desktop",
     "productName": "SimmerSpace",
+    "electronVersion": "42.11.14",
+    "npmRebuild": false,
     "asar": true,
     "directories": {
       "output": "dist"
@@ -23,7 +26,9 @@
     "files": [
       "index.html",
       "styles.css",
+      "mods-manager.css",
       "app.js",
+      "mods-manager.js",
       "folders.js",
       "demo-data.js",
       "electron/**/*"

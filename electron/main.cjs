@@ -1,8 +1,9 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { createModsService } = require('./mods-service.cjs');
 
-const APP_VERSION = '0.5.3';
+const APP_VERSION = '0.7.0';
 let mainWindow;
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 
@@ -16,6 +17,14 @@ async function saveSettings(settings) {
   const current = await loadSettings();
   await fs.writeFile(file, JSON.stringify({ ...current, ...settings }, null, 2), 'utf8');
 }
+const modsService = createModsService({
+  app,
+  dialog,
+  shell,
+  getWindow: () => mainWindow,
+  getModsRoot: async () => (await loadSettings()).routes?.mods?.path,
+  report: progress => mainWindow?.webContents.send('mods:scan-progress', progress)
+});
 let cancelModsScan = false;
 const defaultFolders = {
   mods: path.join(app.getPath('documents'), 'Electronic Arts', 'The Sims 4', 'Mods'),
@@ -96,6 +105,18 @@ ipcMain.handle('folders:scan-mods', async () => {
   return scanModsFolder(folder, progress => mainWindow?.webContents.send('folders:scan-progress', progress));
 });
 ipcMain.on('folders:cancel-scan', () => { cancelModsScan = true; });
+ipcMain.handle('mods:scan', () => modsService.scan());
+ipcMain.on('mods:cancel-scan', () => modsService.cancel());
+ipcMain.handle('mods:load-catalog', () => modsService.loadCatalog());
+ipcMain.handle('mods:save-catalog', (_event, catalog) => modsService.saveCatalog(catalog));
+ipcMain.handle('mods:import', (_event, kind) => modsService.importMods(kind));
+ipcMain.handle('mods:toggle', (_event, relativePath) => modsService.toggleMod(relativePath));
+ipcMain.handle('mods:toggle-many', (_event, relativePaths, enabled) => modsService.toggleMods(relativePaths, enabled));
+ipcMain.handle('mods:rename', (_event, relativePath, newBaseName) => modsService.renameMod(relativePath, newBaseName));
+ipcMain.handle('mods:organize', (_event, entries) => modsService.organizeMods(entries));
+ipcMain.handle('mods:trash', (_event, relativePath) => modsService.trashMod(relativePath));
+ipcMain.handle('mods:trash-many', (_event, relativePaths) => modsService.trashMods(relativePaths));
+ipcMain.handle('mods:create-folders', (_event, folderNames) => modsService.createCategoryFolders(folderNames));
 
 function createWindow() {
   mainWindow = new BrowserWindow({
