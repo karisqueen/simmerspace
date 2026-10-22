@@ -2,13 +2,15 @@
   "name": "simmerspace",
   "version": "0.7.0",
   "private": true,
-  "description": "A visual Sims 4 mods and custom content manager prototype.",
+  "description": "A cozy, bilingual Sims 4 mods and custom content manager for Windows.",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
     "test": "node --test",
+    "check": "node scripts/check.cjs",
     "dist": "electron-builder --win nsis",
-    "dist:dir": "electron-builder --win dir"
+    "dist:dir": "electron-builder --win dir",
+    "dist:portable": "electron-builder --win portable"
   },
   "devDependencies": {
     "electron": "^42.0.0",
@@ -17,20 +19,12 @@
   "build": {
     "appId": "com.simmerspace.desktop",
     "productName": "SimmerSpace",
-    "electronVersion": "42.11.14",
-    "npmRebuild": false,
     "asar": true,
     "directories": {
       "output": "dist"
     },
     "files": [
-      "index.html",
-      "styles.css",
-      "mods-manager.css",
-      "app.js",
-      "mods-manager.js",
-      "folders.js",
-      "demo-data.js",
+      "renderer/**/*",
       "electron/**/*"
     ],
     "win": {
@@ -43,7 +37,11 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     }
   }
 }

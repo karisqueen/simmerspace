@@ -1,34 +1,40 @@
+/* The renderer's only bridge to the desktop. Every call returns { ok, value } or { ok: false, error: { code, message } }. */
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('simmerSpace', Object.freeze({
-  loadRoutes: () => ipcRenderer.invoke('settings:load-routes'),
-  saveRoutes: routes => ipcRenderer.invoke('settings:save-routes', routes),
-  chooseFolder: id => ipcRenderer.invoke('folders:choose', id),
-  scanMods: () => ipcRenderer.invoke('folders:scan-mods'),
-  cancelModsScan: () => ipcRenderer.send('folders:cancel-scan'),
-  manageMods: Object.freeze({
-    scan: () => ipcRenderer.invoke('mods:scan'),
-    cancelScan: () => ipcRenderer.send('mods:cancel-scan'),
-    loadCatalog: () => ipcRenderer.invoke('mods:load-catalog'),
-    saveCatalog: catalog => ipcRenderer.invoke('mods:save-catalog', catalog),
-    importFiles: () => ipcRenderer.invoke('mods:import', 'files'),
-    importFolder: () => ipcRenderer.invoke('mods:import', 'folder'),
-    toggle: relativePath => ipcRenderer.invoke('mods:toggle', relativePath),
-    toggleMany: (relativePaths, enabled) => ipcRenderer.invoke('mods:toggle-many', relativePaths, enabled),
-    rename: (relativePath, newBaseName) => ipcRenderer.invoke('mods:rename', relativePath, newBaseName),
-    organize: entries => ipcRenderer.invoke('mods:organize', entries),
-    trash: relativePath => ipcRenderer.invoke('mods:trash', relativePath),
-    trashMany: relativePaths => ipcRenderer.invoke('mods:trash-many', relativePaths),
-    createFolders: folderNames => ipcRenderer.invoke('mods:create-folders', folderNames),
-    onProgress: callback => {
-      const listener = (_event, progress) => callback(progress);
-      ipcRenderer.on('mods:scan-progress', listener);
-      return () => ipcRenderer.removeListener('mods:scan-progress', listener);
-    }
-  }),
-  onScanProgress: callback => {
-    const listener = (_event, progress) => callback(progress);
-    ipcRenderer.on('folders:scan-progress', listener);
-    return () => ipcRenderer.removeListener('folders:scan-progress', listener);
-  }
-}));
+const invoke = channel => (...args) => ipcRenderer.invoke(channel, ...args);
+
+contextBridge.exposeInMainWorld(
+  'simmerSpace',
+  Object.freeze({
+    appInfo: invoke('app:info'),
+    loadRoutes: invoke('settings:load-routes'),
+    chooseFolder: invoke('folders:choose'),
+    manageMods: Object.freeze({
+      scan: invoke('mods:scan'),
+      cancelScan: () => ipcRenderer.send('mods:cancel-scan'),
+      loadCatalog: invoke('mods:load-catalog'),
+      saveCatalog: invoke('mods:save-catalog'),
+      importFiles: () => ipcRenderer.invoke('mods:import', 'files'),
+      importFolder: () => ipcRenderer.invoke('mods:import', 'folder'),
+      toggle: invoke('mods:toggle'),
+      toggleMany: invoke('mods:toggle-many'),
+      rename: invoke('mods:rename'),
+      planOrganize: invoke('mods:plan-organize'),
+      applyOrganize: invoke('mods:apply-organize'),
+      cancelOrganize: () => ipcRenderer.send('mods:cancel-organize'),
+      trash: invoke('mods:trash'),
+      trashMany: invoke('mods:trash-many'),
+      createFolders: invoke('mods:create-folders'),
+      onOrganizeProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('mods:organize-progress', listener);
+        return () => ipcRenderer.removeListener('mods:organize-progress', listener);
+      },
+      onProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('mods:scan-progress', listener);
+        return () => ipcRenderer.removeListener('mods:scan-progress', listener);
+      }
+    })
+  })
+);

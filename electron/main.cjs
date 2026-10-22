@@ -1,31 +1,44 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { fileURLToPath } = require('node:url');
 const { createModsService } = require('./mods-service.cjs');
+const { createSettingsStore, ROUTE_IDS } = require('./settings-store.cjs');
+const { createIpc, validators } = require('./ipc.cjs');
 
-const APP_VERSION = '0.7.0';
+const APP_VERSION = app.getVersion();
+const INDEX_FILE = path.join(__dirname, '..', 'renderer', 'index.html');
+
+// True only for the bundled index.html (any #hash allowed).
+function isAppPage(url) {
+  try {
+    const target = new URL(url);
+    return target.protocol === 'file:' && path.resolve(fileURLToPath(target)).toLowerCase() === path.resolve(INDEX_FILE).toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+// Optional isolated profile for testing (e.g. SIMMERSPACE_PROFILE_DIR=C:\Temp\ss-test) so a test run
+// never reads or writes the player's normal settings.
+if (process.env.SIMMERSPACE_PROFILE_DIR) app.setPath('userData', path.resolve(process.env.SIMMERSPACE_PROFILE_DIR));
+
 let mainWindow;
-const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-
-async function loadSettings() {
-  try { return JSON.parse(await fs.readFile(settingsFile(), 'utf8')); }
-  catch { return {}; }
-}
-async function saveSettings(settings) {
-  const file = settingsFile();
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  const current = await loadSettings();
-  await fs.writeFile(file, JSON.stringify({ ...current, ...settings }, null, 2), 'utf8');
-}
+const settings = createSettingsStore({ getUserDataPath: () => app.getPath('userData') });
 const modsService = createModsService({
   app,
   dialog,
   shell,
   getWindow: () => mainWindow,
-  getModsRoot: async () => (await loadSettings()).routes?.mods?.path,
-  report: progress => mainWindow?.webContents.send('mods:scan-progress', progress)
+  getModsRoot: async () => (await settings.loadRoutes()).mods?.path,
+  report: progress => sendToPage('mods:scan-progress', progress),
+  reportOrganize: progress => sendToPage('mods:organize-progress', progress)
 });
-let cancelModsScan = false;
+
+function sendToPage(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+}
+
 const defaultFolders = {
   mods: path.join(app.getPath('documents'), 'Electronic Arts', 'The Sims 4', 'Mods'),
   documents: path.join(app.getPath('documents'), 'Electronic Arts', 'The Sims 4'),
@@ -36,87 +49,58 @@ const defaultFolders = {
   ],
   s4s: 'C:\\Program Files (x86)\\Sims 4 Studio'
 };
+
+// Closest existing folder to the usual location, used only as the dialog's starting point.
 async function existingDefault(value) {
-  const candidates = Array.isArray(value) ? value : [value];
-  for (const candidate of candidates) {
+  for (const candidate of Array.isArray(value) ? value : [value]) {
     let current = candidate;
     while (current && current !== path.dirname(current)) {
-      try { if ((await fs.stat(current)).isDirectory()) return current; } catch {}
+      try {
+        if ((await fs.stat(current)).isDirectory()) return current;
+      } catch {}
       current = path.dirname(current);
     }
   }
   return app.getPath('documents');
 }
 
-async function scanModsFolder(folder, report) {
-  const stack = [{ absolute: folder, relative: '' }];
-  const files = [];
-  let visited = 0;
-  let unreadableFolders = 0;
-  cancelModsScan = false;
-  while (stack.length && !cancelModsScan) {
-    const current = stack.pop();
-    let entries;
-    try { entries = await fs.readdir(current.absolute, { withFileTypes: true }); }
-    catch { unreadableFolders++; continue; }
-    for (const entry of entries) {
-      if (cancelModsScan) break;
-      visited++;
-      const relativePath = current.relative ? path.join(current.relative, entry.name) : entry.name;
-      if (entry.isDirectory()) {
-        stack.push({ absolute: path.join(current.absolute, entry.name), relative: relativePath });
-      } else if (entry.isFile() && /\.(package|ts4script)$/i.test(entry.name)) {
-        files.push({ name: entry.name, relativePath, extension: path.extname(entry.name).slice(1).toLowerCase() });
-      }
-      if (visited % 1000 === 0) {
-        report({ visited, found: files.length, unreadableFolders });
-        await new Promise(resolve => setImmediate(resolve));
-      }
-    }
-  }
-  return { files, visited, unreadableFolders, cancelled: cancelModsScan };
-}
-
-ipcMain.handle('settings:load-routes', async () => (await loadSettings()).routes || {});
-ipcMain.handle('settings:save-routes', async (_event, routes) => {
-  await saveSettings({ routes });
-  return true;
-});
-ipcMain.handle('folders:choose', async (_event, id) => {
-  const suggested = await existingDefault(defaultFolders[id]);
+// Folder locations are only ever saved from a folder the player picked in the system dialog.
+async function chooseFolder(id) {
+  const routes = await settings.loadRoutes();
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Choose a folder for SimmerSpace',
     properties: ['openDirectory'],
-    defaultPath: suggested
+    defaultPath: routes[id]?.path || (await existingDefault(defaultFolders[id]))
   });
   if (result.canceled || !result.filePaths[0]) return null;
-  const selectedPath = result.filePaths[0];
-  return {
-    id,
-    path: selectedPath,
-    name: path.basename(selectedPath) || selectedPath,
-    updated: Date.now()
-  };
-});
-ipcMain.handle('folders:scan-mods', async () => {
-  const routes = (await loadSettings()).routes || {};
-  const folder = routes.mods?.path;
-  if (!folder) throw new Error('Choose your Mods folder in Settings first.');
-  return scanModsFolder(folder, progress => mainWindow?.webContents.send('folders:scan-progress', progress));
-});
-ipcMain.on('folders:cancel-scan', () => { cancelModsScan = true; });
-ipcMain.handle('mods:scan', () => modsService.scan());
-ipcMain.on('mods:cancel-scan', () => modsService.cancel());
-ipcMain.handle('mods:load-catalog', () => modsService.loadCatalog());
-ipcMain.handle('mods:save-catalog', (_event, catalog) => modsService.saveCatalog(catalog));
-ipcMain.handle('mods:import', (_event, kind) => modsService.importMods(kind));
-ipcMain.handle('mods:toggle', (_event, relativePath) => modsService.toggleMod(relativePath));
-ipcMain.handle('mods:toggle-many', (_event, relativePaths, enabled) => modsService.toggleMods(relativePaths, enabled));
-ipcMain.handle('mods:rename', (_event, relativePath, newBaseName) => modsService.renameMod(relativePath, newBaseName));
-ipcMain.handle('mods:organize', (_event, entries) => modsService.organizeMods(entries));
-ipcMain.handle('mods:trash', (_event, relativePath) => modsService.trashMod(relativePath));
-ipcMain.handle('mods:trash-many', (_event, relativePaths) => modsService.trashMods(relativePaths));
-ipcMain.handle('mods:create-folders', (_event, folderNames) => modsService.createCategoryFolders(folderNames));
+  return settings.saveRoute(id, result.filePaths[0]);
+}
+
+const ipc = createIpc({ ipcMain, isTrustedSender: isAppPage });
+ipc.handle('app:info', validators.none, () => ({ version: APP_VERSION, platform: process.platform }));
+ipc.handle('settings:load-routes', validators.none, () => settings.loadRoutes());
+ipc.handle('folders:choose', validators.oneOf(ROUTE_IDS), chooseFolder);
+ipc.handle('mods:scan', validators.none, () => modsService.scan());
+ipc.on('mods:cancel-scan', () => modsService.cancel());
+ipc.handle('mods:load-catalog', validators.none, () => modsService.loadCatalog());
+ipc.handle('mods:save-catalog', validators.object, catalog => modsService.saveCatalog(catalog));
+ipc.handle('mods:import', validators.oneOf(['files', 'folder']), kind => modsService.importMods(kind));
+ipc.handle('mods:toggle', validators.string, relativePath => modsService.toggleMod(relativePath));
+ipc.handle('mods:toggle-many', validators.listAndBoolean, (paths, enabled) => modsService.toggleMods(paths, enabled));
+ipc.handle('mods:rename', validators.twoStrings, (relativePath, name) => modsService.renameMod(relativePath, name));
+ipc.handle('mods:plan-organize', validators.listAndObject, (entries, options) => modsService.planOrganize(entries, options));
+ipc.handle('mods:apply-organize', validators.string, planId => modsService.applyOrganize(planId));
+ipc.on('mods:cancel-organize', () => modsService.cancelOrganize());
+ipc.handle('mods:trash', validators.string, relativePath => modsService.trashMod(relativePath));
+ipc.handle('mods:trash-many', validators.list, paths => modsService.trashMods(paths));
+ipc.handle('mods:create-folders', validators.list, names => modsService.createCategoryFolders(names));
+
+function openExternalSafely(url) {
+  try {
+    const target = new URL(url);
+    if (target.protocol === 'https:') shell.openExternal(target.href);
+  } catch {}
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -131,19 +115,62 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      webviewTag: false,
+      spellcheck: false
     }
   });
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://')) shell.openExternal(url);
+    openExternalSafely(url);
     return { action: 'deny' };
   });
-  mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+  // The window only ever shows the bundled page; links leave through the system browser.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isAppPage(url)) return;
+    event.preventDefault();
+    openExternalSafely(url);
+  });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+  mainWindow.loadFile(INDEX_FILE);
 }
 
-app.whenReady().then(() => {
-  createWindow();
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+if (!app.requestSingleInstanceLock()) {
+  // A second copy would race the first one on the same settings and tag files.
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
+
+  app.whenReady().then(() => {
+    session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
+
+// Let pending tag/settings writes finish before the process exits.
+let quitting = false;
+app.on('before-quit', event => {
+  if (quitting || (!modsService.hasPendingWrites() && !modsService.isOrganizing())) return;
+  event.preventDefault();
+  quitting = true;
+  // Quitting mid-organize stops after the file being moved, then waits for the tag update.
+  modsService.cancelOrganize();
+  waitForOrganize()
+    .then(() => Promise.all([modsService.whenIdle(), settings.whenIdle()]))
+    .finally(() => app.quit());
 });
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+async function waitForOrganize() {
+  while (modsService.isOrganizing()) await new Promise(resolve => setTimeout(resolve, 50));
+}
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
