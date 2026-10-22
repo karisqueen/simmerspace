@@ -109,8 +109,6 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 Third-party platform connections, automatic Patreon posts, downloads, and mod installation are not available in this pre-beta. No API key or user credential is included in this repository. A future Patreon connection would use API v2. Patreon requires the `campaigns.posts` scope to list campaign posts and directs apps seeking access to other creators' campaign data to contact its developers forum. SimmerSpace will not scrape Patreon or put API secrets in the desktop interface.
 
-See [the Patreon integration plan](docs/PATREON-INTEGRATION.md) for the proposed Sims 4 creator directory, public-post discovery, optional patron linking, and the approvals required before member-only posts can be shown.
-
 ## Project status
 
 Current version: **0.7.0 pre-beta**. See [CHANGELOG.md](CHANGELOG.md) for what changed. / Versión actual: **0.7.0 pre-beta**.

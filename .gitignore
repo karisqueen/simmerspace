@@ -18,6 +18,12 @@ release-assets/
 !.env.example
 *.local
 
+# Internal planning and collaboration notes (keep local, do not publish)
+ROADMAP.md
+roadmap.md
+COLLABORATION.md
+docs/PATREON-INTEGRATION.md
+
 # Operating-system and editor noise
 .DS_Store
 Thumbs.db
