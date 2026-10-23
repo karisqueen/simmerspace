@@ -10,7 +10,9 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 
 ## Current beta features
 
-- Spanish and English interface with six color themes (three light, three dark).
+- Spanish and English interface with four coordinated colors (rose, lavender, sage and Sims blue), light/dark modes, and one- or two-color combinations.
+- Redesigned navigation and settings, consistent typography, color-matched Plumbob collection icons, and compact Discover subfilters.
+- Launch The Sims 4 from the sidebar after selecting its installation folder.
 - Local Sims 4 folder settings: Mods, user Documents, game installation, and optional Sims 4 Studio. Only the Mods folder is used by features in this version.
 - **Read-only scan** of `.package`, `.ts4script`, `.packageoff` and `.ts4scriptoff` files in the Mods folder and all its subfolders, with progress and a Stop button. Scanning never opens, moves or changes files.
 - Tags saved only in SimmerSpace: category, creator, gender and age, for single files or many at once. Tags follow a file when SimmerSpace renames, enables, disables or moves it.
@@ -26,7 +28,7 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 - Tags are linked to file paths. Files moved or renamed outside SimmerSpace lose their tags until they are tagged again.
 - Organize leaves emptied folders in place; delete them in File Explorer if you like.
 - Default category folder names are in Spanish (for example `Cabello`) in both languages, so folders made by earlier versions keep matching. You can rename them in **Categories & folders**.
-- Discover, creators, Inspiration and collections use fictional sample data. There is no connection to CurseForge, Patreon or any other platform, no downloads, and no automatic installation.
+- Discover, creators, Inspiration and collections use fictional sample data. CurseForge, Patreon and other platforms are not connected; there are no online downloads or automatic installation. CurseForge API access is an app credential and is not a user sign-in. Any future connection requires approval and a protected service; no API key is included in the app.
 
 The mod manager makes local file changes only after the user chooses an action and confirms it. The app does not install mods into the game automatically or connect to external content platforms.
 
@@ -34,7 +36,9 @@ Catalog entries and demo creator profiles are synthetic examples used to demonst
 
 ## Funciones actuales (español)
 
-- Interfaz en español e inglés con seis temas de color (tres claros y tres oscuros).
+- Interfaz en español e inglés con cuatro colores coordinados (rosa, lavanda, salvia y azul Sims), modos claro/oscuro y combinaciones de uno o dos colores.
+- Navegación y ajustes rediseñados, tipografía unificada, plumbobs de colección con color y subfiltros compactos en Descubrir.
+- Inicia Los Sims 4 desde la barra lateral después de seleccionar su carpeta de instalación.
 - Ajustes de carpetas de Los Sims 4: Mods, Documentos del usuario, instalación del juego y, opcionalmente, Sims 4 Studio. En esta versión solo la carpeta Mods se usa en funciones.
 - **Escaneo de solo lectura** de archivos `.package`, `.ts4script`, `.packageoff` y `.ts4scriptoff` en Mods y todas sus subcarpetas, con progreso y botón para detener. El escaneo nunca abre, mueve ni cambia archivos.
 - Etiquetas guardadas solo en SimmerSpace: categoría, creador, género y edad, para uno o muchos archivos. Las etiquetas siguen al archivo cuando SimmerSpace lo renombra, activa, desactiva o mueve.
@@ -50,7 +54,7 @@ Catalog entries and demo creator profiles are synthetic examples used to demonst
 - Las etiquetas están ligadas a la ruta del archivo. Si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas hasta que los etiquetes de nuevo.
 - Organizar deja en su sitio las carpetas que quedan vacías; puedes borrarlas en el Explorador de archivos.
 - Los nombres predeterminados de las carpetas de categoría están en español (por ejemplo `Cabello`) en ambos idiomas, para que las carpetas creadas por versiones anteriores sigan coincidiendo. Puedes cambiarlos en **Categorías y carpetas**.
-- Descubrir, creadores, Inspiración y colecciones usan datos ficticios de ejemplo. No hay conexión con CurseForge, Patreon ni otras plataformas, ni descargas, ni instalación automática.
+- Descubrir, creadores, Inspiración y colecciones usan datos ficticios de ejemplo. CurseForge, Patreon y otras plataformas no están conectadas; no hay descargas en línea ni instalación automática. El acceso API de CurseForge corresponde a la aplicación, no al inicio de sesión de una persona. Una futura conexión requiere aprobación y un servicio protegido; la aplicación no incluye claves API.
 
 ## Get the app
 
@@ -111,7 +115,7 @@ Third-party platform connections, automatic Patreon posts, downloads, and mod in
 
 ## Project status
 
-Current version: **0.7.1 beta**. Collections now support search, covers, colors and sorting; Inspiration boards can be sorted and expanded; Discover has additional age, CAS, animal and occult filters. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.7.1 beta**. Las colecciones permiten búsqueda, portadas, colores y orden; los tableros de Inspiración se pueden ordenar y mostrar todos; Descubrir amplía los filtros de edad, CAS, animales y seres sobrenaturales. Consulta [CHANGELOG.md](CHANGELOG.md).
+Current version: **0.8.0 beta**. Includes a redesigned interface, Sims blue, customizable one- or two-color palettes, reorganized settings, launcher shortcut, and refreshed Discover filters. CurseForge browsing, downloads, and account sign-in are not connected yet. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.8.0 beta**. Incluye interfaz rediseñada, azul Sims, paletas personalizables de uno o dos colores, ajustes reorganizados, acceso directo para iniciar el juego y filtros renovados en Descubrir. La exploración, descarga e inicio de sesión de CurseForge aún no están conectados. Consulta [CHANGELOG.md](CHANGELOG.md).
 
 Bug reports and suggestions can be opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files in an issue.
 

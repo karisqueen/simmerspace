@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 (2026-10-22)
+
+- Reworked the desktop visual system with a calmer layout, consistent typography, refreshed controls, and a redesigned SimmerSpace wordmark.
+- Added a Sims-inspired blue palette in light and dark modes. Personalization now combines one or two of the four colors.
+- Grouped settings into clear expandable sections and removed the technical CurseForge readiness explanation from the user-facing settings.
+- Moved Launch The Sims 4 into the sidebar below collections, added color-matched Plumbob collection icons, simplified the Discover header, and changed CAS, animal, and occult filters to compact chips.
+- Prepared a local integration plan for CurseForge. Live search, downloads, user sign-in, and SimmerSpace accounts are not connected in this release; no API key is embedded.
+
 ## 0.7.1 (2026-10-22)
 
 - Collections now support search, ten pastel color swatches, image covers, consistent cover sizing, alphabetical/recent/custom sorting, and drag-and-drop custom order.

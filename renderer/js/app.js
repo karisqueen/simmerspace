@@ -1,6 +1,7 @@
 /* SimmerSpace interface: state, pages and local interactions. Demo catalog data lives in demo-data.js. */
-let APP_VERSION = '0.7.1';
-const THEMES = ['soft-rose', 'soft-lavender', 'soft-sage', 'dark-rose', 'dark-lavender', 'dark-sage'];
+let APP_VERSION = '0.8.0';
+const HUES = ['rose', 'lavender', 'sage', 'blue'];
+const THEMES = HUES.flatMap(hue => [`soft-${hue}`, `dark-${hue}`]);
 const DEFAULT_THEME = 'soft-lavender';
 
 function savedTheme() {
@@ -35,6 +36,8 @@ const state = {
   collections: safeRead('collections', SEED_COLLECTIONS),
   statuses: safeRead('statuses', {}),
   theme: savedTheme(),
+  primaryHue: HUES.includes(safeGet('primary-hue')) ? safeGet('primary-hue') : savedTheme().split('-')[1],
+  secondaryHue: HUES.includes(safeGet('secondary-hue')) ? safeGet('secondary-hue') : '',
   lang: savedLanguage(),
   activeCollection: null,
   activeBoard: null,
@@ -128,10 +131,11 @@ function nav() {
   const modsCount = typeof scannedModCount === 'function' ? scannedModCount() : null;
   const navButton = id =>
     `<button class="nav-item ${state.page === id ? 'active' : ''}" data-page="${id}" ${state.page === id ? 'aria-current="page"' : ''}><span class="nav-icon" aria-hidden="true">${navIcon(id)}</span><span>${t(id)}</span>${id === 'mycc' && modsCount !== null ? `<span class="nav-count" title="${esc(t('navModsCount'))}">${modsCount.toLocaleString(state.lang)}</span>` : ''}</button>`;
-  document.getElementById('sidebar').innerHTML = `<a class="brand" href="#" data-page="discover" aria-label="SimmerSpace"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 33V18M20 23c-8 0-12-5-12-12 8 0 12 4 12 12Zm0-5c0-8 5-12 12-12 0 8-4 12-12 12Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="33" r="2" fill="currentColor"/></svg></span><span class="brand-name"><span class="brand-simmer">simmer</span><span class="brand-space">space</span></span></a><div class="side-label">${t('space')}</div><nav class="main-nav" aria-label="${esc(t('space'))}">${pages.map(navButton).join('')}</nav><div class="side-label side-label-spaced">${t('collections')}<button class="tiny-add" id="new-collection" aria-label="${esc(t('newCollection'))}" title="${esc(t('newCollection'))}">+</button></div><button class="collection-all" id="show-all-collections">${t('viewAllCollections')} →</button><div class="collection-nav">${state.collections.map(c => `<button class="nav-item ${state.page === 'collection' && state.activeCollection === c.id ? 'active' : ''}" data-collection="${esc(c.id)}"><span class="collection-dot" aria-hidden="true"></span><span>${esc(collectionLabel(c))}</span></button>`).join('')}</div><div class="sidebar-bottom">${navButton('settings')}<div class="profile-card"><div class="avatar" aria-hidden="true">S</div><div><strong>${t('profile')}</strong><small>${t('local')}</small></div></div></div>`;
+  document.getElementById('sidebar').innerHTML = `<a class="brand" href="#" data-page="discover" aria-label="SimmerSpace"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 4 32 20 20 36 8 20Z" fill="currentColor" opacity=".2"/><path d="M20 4 32 20 20 36 8 20Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="m20 9 8 11-8 11-8-11Z" fill="currentColor" opacity=".72"/></svg></span><span class="brand-name"><span class="brand-simmer">simmer</span><span class="brand-space">space</span></span></a><div class="side-label">${t('space')}</div><nav class="main-nav" aria-label="${esc(t('space'))}">${pages.map(navButton).join('')}</nav><div class="side-label side-label-spaced">${t('collections')}<button class="tiny-add" id="new-collection" aria-label="${esc(t('newCollection'))}" title="${esc(t('newCollection'))}">+</button></div><button class="collection-all" id="show-all-collections">${t('viewAllCollections')} →</button><div class="collection-nav">${state.collections.map(c => `<button class="nav-item ${state.page === 'collection' && state.activeCollection === c.id ? 'active' : ''}" data-collection="${esc(c.id)}"><span class="collection-plumbob" aria-hidden="true" style="--plumbob:${esc(c.color || '#b9a4ce')}"><svg viewBox="0 0 20 24"><path d="M10 1 19 11 10 23 1 11Z" fill="currentColor"/><path d="m10 4 6 7-6 9-6-9Z" fill="white" opacity=".26"/></svg></span><span>${esc(collectionLabel(c))}</span></button>`).join('')}</div><div class="sidebar-game"><button class="game-launch-link" id="launch-game" ${desktop && routeRecords.game?.path ? '' : 'disabled'}><span aria-hidden="true">▶</span><span>${t('launchGame')}</span></button></div><div class="sidebar-bottom">${navButton('settings')}<div class="profile-card"><div class="avatar" aria-hidden="true">S</div><div><strong>${t('profile')}</strong><small>${t('local')}</small></div></div></div>`;
 }
 function setShell() {
   document.body.className = `theme-${state.theme}${overlay.hidden ? '' : ' dialog-open'}`;
+  applyPalette();
   // The page scrollbar belongs to <html>, which cannot see the body's theme colors, so it gets the theme too.
   document.documentElement.dataset.appTheme = state.theme;
   document.documentElement.lang = state.lang;
@@ -167,7 +171,7 @@ function setShell() {
   document.getElementById('skip-link').textContent = t('skipToContent');
 }
 function heading(eyebrow, title, subtitle) {
-  return `<div class="page-heading"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${subtitle}</p></div>`;
+  return `<div class="page-heading"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1></div>`;
 }
 function empty(title = t('empty'), text = t('emptyText')) {
   return `<div class="empty-state"><span aria-hidden="true">☁</span><b>${title}</b><div>${text}</div></div>`;
@@ -287,7 +291,7 @@ function renderDiscover() {
       ['Alpha', 'Alpha']
     ],
     state.style
-  )}${selectField('source-filter', t('source'), [['All', t('anysource')], ...sources.map(s => [s, s])], state.source)}${state.parent === 'cas' && state.sub === 'Clothing' ? selectField('cas-detail-filter', t('casType'), [['All', t('all')], ...['Tops','Bottoms','Full body','Shoes','Swimwear','Outerwear'].map(v => [v, t(`cas_${v}`)])], state.casDetail) : ''}${state.parent === 'cas' && state.sub === 'Accessories' ? selectField('cas-detail-filter', t('casType'), [['All', t('all')], ...['Hats','Glasses','Jewelry','Bags','Gloves','Socks'].map(v => [v, t(`cas_${v}`)])], state.casDetail) : ''}${state.parent === 'cas' && state.sub === 'Animals' ? selectField('animal-filter', t('animalType'), [['All',t('all')], ...['Skins','Clothing','Eyes','Accessories','Objects'].map(v=>[v,t(`animal_${v}`)])], state.animalType) : ''}${selectField(
+  )}${selectField('source-filter', t('source'), [['All', t('anysource')], ...sources.map(s => [s, s])], state.source)}${state.parent === 'cas' && ['Clothing','Accessories'].includes(state.sub) ? `<div class="cas-subfilter-wrap"><span class="filter-caption">${t('casType')}</span><div class="cas-subfilters">${(state.sub==='Clothing'?['Tops','Bottoms','Full body','Shoes','Swimwear','Outerwear']:['Hats','Glasses','Jewelry','Bags','Gloves','Socks']).map(v=>`<button type="button" class="filter-chip ${state.casDetail===v?'selected':''}" data-cas-detail="${esc(v)}" aria-pressed="${state.casDetail===v}">${t(`cas_${v}`)}</button>`).join('')}</div></div>` : ''}${state.parent === 'cas' && state.sub === 'Animals' ? `<div class="cas-subfilter-wrap"><span class="filter-caption">${t('animalType')}</span><div class="cas-subfilters">${['Skins','Clothing','Eyes','Accessories','Objects'].map(v=>`<button type="button" class="filter-chip ${state.animalType===v?'selected':''}" data-animal-detail="${v}" aria-pressed="${state.animalType===v}">${t(`animal_${v}`)}</button>`).join('')}</div></div>` : ''}${selectField(
     'sort-filter',
     t('sort'),
     [
@@ -297,7 +301,7 @@ function renderDiscover() {
       ['popular', t('popular')]
     ],
     state.sort
-  )}</div><div class="quick-filters extended-filters">${selectField('occult-filter', t('occultType'), [['All',t('all')], ...['Vampires','Werewolves','Mermaids','Fairies','PlantSims','Genies','Spellcasters','Aliens','Ghosts','Servos'].map(v=>[v,t(`occult_${v}`)])], state.occultType)}</div>`;
+  )}</div><details class="occult-filter"><summary>${t('occultType')} <span>${state.occultType==='All'?t('all'):t(`occult_${state.occultType}`)}⌄</span></summary><div class="occult-options">${['Vampires','Werewolves','Mermaids','Fairies','PlantSims','Genies','Spellcasters','Aliens','Ghosts','Servos'].map(v=>`<button type="button" class="filter-chip ${state.occultType===v?'selected':''}" data-occult-detail="${v}" aria-pressed="${state.occultType===v}">${t(`occult_${v}`)}</button>`).join('')}</div></details>`;
   content.innerHTML = `<section class="hero"><div><div class="eyebrow">${t('heroEyebrow')}</div><h1>${t('heroTitle').replace('\n', '<br>')}</h1><p>${t('heroText')}</p></div><div class="hero-note"><i aria-hidden="true">✳</i><span><b>${t('mycc')}</b> ${t('heroNote')} <small>${t('demo')} · ${items.length} ${t('finds')}</small></span></div></section><div class="demo-banner" role="note"><b>${t('demo')}</b><span>${t('discoverDemoNote')}</span></div><div class="section-toolbar"><h2>${t('filterBy')}</h2></div><div class="category-row parent-filters">${parents
     .map(
       ([id, name]) =>
@@ -495,12 +499,35 @@ function renderCollections() {
     .join('')}</div>${collections.length ? '' : empty(t('noResult'))}`;
 }
 
-function themeOption(mode, title, key) {
-  const active = state.theme === mode;
-  return `<button class="theme-option theme-swatch ${active ? 'active' : ''}" data-theme="${mode}" aria-pressed="${active}"><i class="swatch-dot" aria-hidden="true"></i><span>${title}</span><small>${t(key)}</small></button>`;
+const HUE_COLORS = {
+  rose: { light: ['#a3657c','#f7e7eb','#fae4e7'], dark: ['#e0b2c5','#493340','#49313d'] },
+  lavender: { light: ['#715d7f','#eee7f4','#f7e6e9'], dark: ['#d0bce0','#41354a','#49353f'] },
+  sage: { light: ['#586c53','#e8efe3','#eff0e4'], dark: ['#bdd2b9','#354639','#3d463b'] },
+  blue: { light: ['#2869a8','#e3effb','#dceafb'], dark: ['#91c7ff','#24394f','#263d57'] }
+};
+function applyPalette() {
+  const dark = state.theme.startsWith('dark');
+  const [strong, wash, pink] = HUE_COLORS[state.primaryHue]?.[dark ? 'dark' : 'light'] || HUE_COLORS.lavender[dark ? 'dark' : 'light'];
+  const secondary = state.secondaryHue && state.secondaryHue !== state.primaryHue ? HUE_COLORS[state.secondaryHue][dark ? 'dark' : 'light'] : null;
+  const root = document.body.style;
+  root.setProperty('--accent', strong);
+  root.setProperty('--lav-strong', strong);
+  root.setProperty('--lav', wash);
+  root.setProperty('--pink', secondary?.[2] || pink);
+  root.setProperty('--accent-secondary', secondary?.[0] || strong);
+  root.setProperty('--secondary-wash', secondary?.[1] || wash);
+  root.setProperty('--secondary-hue', secondary?.[0] || strong);
+  root.setProperty('--focus-ring', `color-mix(in srgb, ${strong} 82%, transparent)`);
+  document.documentElement.style.setProperty('--page-thumb', strong);
+  document.documentElement.style.setProperty('--page-track', dark ? '#1b2531' : '#e8eff7');
+}
+function hueButton(hue, slot) {
+  const selected = slot === 'primary' ? state.primaryHue === hue : state.secondaryHue === hue;
+  return `<button type="button" class="palette-choice ${selected ? 'selected' : ''}" data-${slot}-hue="${hue}" aria-pressed="${selected}" style="--choice:${HUE_COLORS[hue].light[0]}"><span aria-hidden="true"></span>${t(hue)}</button>`;
 }
 function renderSettings() {
-  content.innerHTML = `${heading(t('settingsTitle').toUpperCase(), t('settingsTitle'), t('settingsText'))}<div class="settings-grid"><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('soft') ? 'open' : ''}><summary><span><b>${t('softLight')}</b><small>${t('softLightNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('soft-rose', t('rose'), 'softLight')}${themeOption('soft-lavender', t('lavender'), 'softLight')}${themeOption('soft-sage', t('sage'), 'softLight')}</div></details><details class="setting-card theme-card theme-disclosure" ${state.theme.startsWith('dark') ? 'open' : ''}><summary><span><b>${t('afterHours')}</b><small>${t('afterHoursNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="theme-options">${themeOption('dark-rose', t('rose'), 'afterHours')}${themeOption('dark-lavender', t('lavender'), 'afterHours')}${themeOption('dark-sage', t('sage'), 'afterHours')}</div></details><section class="setting-card"><h3>${t('organization')}</h3><p>${t('organizationNote')}</p><label>${t('groupBy')} <select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></section><section class="setting-card"><h3>${t('language')}</h3><p>${t('languageNote')}</p><div class="theme-options"><button class="theme-option ${state.lang === 'es' ? 'active' : ''}" data-language="es" aria-pressed="${state.lang === 'es'}" lang="es">Español</button><button class="theme-option ${state.lang === 'en' ? 'active' : ''}" data-language="en" aria-pressed="${state.lang === 'en'}" lang="en">English</button></div></section><section class="setting-card"><h3>${t('about')}</h3><p>${t('version')}: <b>${APP_VERSION} ${t('betaLabel')}</b><br>${t('compatibility')}: <b>${t('windows')}</b><br>${t('sourceDemo')}<br>${t('privacyNote')}</p></section><section class="setting-card"><h3>${t('curseforgeTitle')}</h3><p>${t('curseforgeReadiness')}</p><span class="status-pill status-pending">${t('notConnected')}</span></section><section class="setting-card"><h3>${t('signIn')}</h3><p>${t('accountText')}</p><button class="secondary-btn" disabled>${t('signIn')} · ${t('comingSoon')}</button></section><section class="setting-card"><h3>${t('feedback')} / ${t('donate')}</h3><p>${t('feedbackNote')}</p><div class="setting-actions"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="small-chip" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div></section></div>${folderSettingsSection()}`;
+  const dark = state.theme.startsWith('dark');
+  content.innerHTML = `${heading(t('settingsTitle').toUpperCase(), t('settingsTitle'), t('settingsText'))}<div class="settings-groups"><details class="setting-card setting-group theme-disclosure" open><summary><span><b>${t('personalization')}</b><small>${t('personalizationHelp')}</small></span><i aria-hidden="true">⌄</i></summary><div class="setting-group-body"><div class="personalization-row"><span>${t('appearance')}</span><div class="segmented-control"><button type="button" data-appearance="light" class="${!dark?'active':''}" aria-pressed="${!dark}">${t('light')}</button><button type="button" data-appearance="dark" class="${dark?'active':''}" aria-pressed="${dark}">${t('dark')}</button></div></div><div class="personalization-row"><span>${t('mainColor')}</span><div class="palette-choices">${HUES.map(h=>hueButton(h,'primary')).join('')}</div></div><div class="personalization-row"><span>${t('secondColor')}</span><div class="palette-choices">${`<button type="button" class="palette-choice ${!state.secondaryHue?'selected':''}" data-secondary-hue="none" aria-pressed="${!state.secondaryHue}"><span aria-hidden="true">＋</span>${t('oneColor')}</button>`}${HUES.map(h=>hueButton(h,'secondary')).join('')}</div></div></div></details><details class="setting-card setting-group"><summary><span><b>${t('gameSettings')}</b><small>${t('folderRoutes')}</small></span><i aria-hidden="true">⌄</i></summary><div class="setting-group-body"><section class="setting-card nested-setting"><h3>${t('organization')}</h3><p>${t('organizationNote')}</p><label>${t('groupBy')} <select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></section><div class="nested-setting">${folderSettingsSection()}</div></div></details><details class="setting-card setting-group"><summary><span><b>${t('connections')}</b><small>${t('connectionSettingsHelp')}</small></span><i aria-hidden="true">⌄</i></summary><div class="setting-group-body"><section class="connection-card"><div><h3>CurseForge</h3><p>${t('curseforgeStatus')}</p></div><span class="status-pill status-pending">${t('notConnected')}</span></section><p class="connection-footnote">${t('curseforgeLoginClarification')}</p></div></details><details class="setting-card setting-group"><summary><span><b>${t('language')}</b><small>${t('languageNote')}</small></span><i aria-hidden="true">⌄</i></summary><div class="setting-group-body"><div class="theme-options"><button class="theme-option ${state.lang === 'es' ? 'active' : ''}" data-language="es" aria-pressed="${state.lang === 'es'}" lang="es">Español</button><button class="theme-option ${state.lang === 'en' ? 'active' : ''}" data-language="en" aria-pressed="${state.lang === 'en'}" lang="en">English</button></div></div></details><details class="setting-card setting-group"><summary><span><b>${t('about')}</b><small>${t('version')} ${APP_VERSION} · ${t('betaLabel')}</small></span><i aria-hidden="true">⌄</i></summary><div class="setting-group-body"><p>${t('compatibility')}: <b>${t('windows')}</b><br>${t('sourceDemo')}<br>${t('privacyNote')}</p><div class="setting-actions"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="small-chip" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div></div></details></div>`;
 }
 function renderFavorites() {
   const items = ITEMS.filter(i => state.favorites.includes(i.id));
@@ -703,8 +730,7 @@ const CLICK_ACTIONS = {
   'create-collection': createCollection,
   'confirm-save': el => saveSelection(el.dataset.item),
   'theme-toggle': () => {
-    const hue = state.theme.split('-')[1] || 'lavender';
-    setTheme(state.theme.startsWith('dark') ? `soft-${hue}` : `dark-${hue}`);
+    setTheme(`${state.theme.startsWith('dark') ? 'soft' : 'dark'}-${state.primaryHue}`);
   },
   'new-board': newBoardDialog,
   'add-patreon-creator': addPatreonCreatorDialog,
@@ -776,7 +802,9 @@ const CLICK_ACTIONS = {
 function setTheme(theme) {
   if (!THEMES.includes(theme)) return;
   state.theme = theme;
+  state.primaryHue = theme.split('-')[1];
   safeSet('theme', theme);
+  safeSet('primary-hue', state.primaryHue);
   render();
 }
 
@@ -784,6 +812,12 @@ document.addEventListener('click', async event => {
   const target = event.target;
   const colorChoice=target.closest('[data-collection-color]');
   if(colorChoice){ const c=state.collections.find(x=>x.id===state.activeCollection); if(c){c.color=colorChoice.dataset.collectionColor;persist();render();} return; }
+  const casDetail = target.closest('[data-cas-detail]');
+  if(casDetail){ state.casDetail=state.casDetail===casDetail.dataset.casDetail?'All':casDetail.dataset.casDetail; return render(); }
+  const animalDetail = target.closest('[data-animal-detail]');
+  if(animalDetail){ state.animalType=state.animalType===animalDetail.dataset.animalDetail?'All':animalDetail.dataset.animalDetail; return render(); }
+  const occultDetail = target.closest('[data-occult-detail]');
+  if(occultDetail){ state.occultType=state.occultType===occultDetail.dataset.occultDetail?'All':occultDetail.dataset.occultDetail; return render(); }
   const button = target.closest('button[id]');
   if (button && CLICK_ACTIONS[button.id]) {
     await CLICK_ACTIONS[button.id](button);
@@ -832,6 +866,12 @@ document.addEventListener('click', async event => {
   }
   const theme = target.closest('[data-theme]');
   if (theme) return setTheme(theme.dataset.theme);
+  const primary = target.closest('[data-primary-hue]');
+  if (primary) { state.primaryHue = primary.dataset.primaryHue; setTheme(`${state.theme.startsWith('dark')?'dark':'soft'}-${state.primaryHue}`); return; }
+  const secondary = target.closest('[data-secondary-hue]');
+  if (secondary) { state.secondaryHue = secondary.dataset.secondaryHue === 'none' || secondary.dataset.secondaryHue === state.primaryHue ? '' : secondary.dataset.secondaryHue; safeSet('secondary-hue', state.secondaryHue); return render(); }
+  const appearance = target.closest('[data-appearance]');
+  if (appearance) { setTheme(`${appearance.dataset.appearance === 'dark'?'dark':'soft'}-${state.primaryHue}`); return; }
   const lang = target.closest('[data-language]');
   if (lang) {
     state.lang = lang.dataset.language === 'es' ? 'es' : 'en';
