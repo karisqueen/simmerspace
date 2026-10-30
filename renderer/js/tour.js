@@ -2,19 +2,17 @@
    "onboarding-done" preference) and can be replayed from Settings → Help. Each step may open a page and
    point at an element; when the element is missing (for example, no Mods folder chosen yet) it points at a
    fallback or shows the step in the middle of the window. */
+// Order (0.12.1): Home, Explore, My CC, Creators, Collections, Inspiration, Settings, then Launch The Sims 4.
 const TOUR_STEPS = [
   { title: 'tourWelcomeTitle', text: 'tourWelcomeText' },
-  { title: 'tourNavTitle', text: 'tourNavText', target: '.side-nav', openSidebar: true },
-  { title: 'tourLibraryTitle', text: 'tourLibraryText', target: '.nav-item[data-page="mycc"]', openSidebar: true },
-  { title: 'tourScanTitle', text: 'tourScanText', page: 'mycc', target: ['#managed-scan-mods', '[data-pick-folder="mods"]'] },
-  { title: 'tourImportTitle', text: 'tourImportText', page: 'mycc', target: ['#import-mod-files', '[data-pick-folder="mods"]'] },
-  { title: 'tourCategoriesTitle', text: 'tourCategoriesText', page: 'mycc', target: ['#manage-mod-categories', '#mods-manager-root'] },
-  { title: 'tourCreatorsOrgTitle', text: 'tourCreatorsOrgText', page: 'mycc', target: ['#manage-mod-creators', '#mods-manager-root'] },
+  { title: 'tourHomeTitle', text: 'tourHomeText', page: 'home', target: '.nav-item[data-page="home"]', openSidebar: true },
+  { title: 'tourExploreTitle', text: 'tourExploreText', target: '.nav-item[data-page="curseforge"]', openSidebar: true },
+  { title: 'tourLibraryTitle', text: 'tourLibraryText', page: 'mycc', target: ['#open-organizer', '#managed-scan-mods', '[data-pick-folder="mods"]', '#mods-manager-root'] },
+  { title: 'tourCreatorsTitle', text: 'tourCreatorsText', target: '.nav-item[data-page="creators"]', openSidebar: true },
   { title: 'tourCollectionsTitle', text: 'tourCollectionsText', target: '.nav-item[data-page="collections"]', openSidebar: true },
-  { title: 'tourFollowTitle', text: 'tourFollowText', target: '.nav-item[data-page="creators"]', openSidebar: true },
   { title: 'tourInspirationTitle', text: 'tourInspirationText', target: '.nav-item[data-page="inspiration"]', openSidebar: true },
-  { title: 'tourThemeTitle', text: 'tourThemeText', page: 'settings', target: '#personalization' },
-  { title: 'tourAccountTitle', text: 'tourAccountText', target: '.account-chip', openSidebar: true }
+  { title: 'tourSettingsTitle', text: 'tourSettingsText', page: 'settings', target: '.settings-nav' },
+  { title: 'tourLaunchTitle', text: 'tourLaunchText', page: 'home', target: '#launch-game', openSidebar: true }
 ];
 
 const tour = { index: -1, layer: null, returnFocus: null };
