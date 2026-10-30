@@ -308,6 +308,17 @@ test('session storage keeps sessions in memory only when the system cannot encry
   assert.deepEqual(await fs.readdir(dir), []);
 });
 
+test('a session saved by another copy or version of the app is not reused', async t => {
+  const dir = await tempDir(t);
+  const fakeCrypto = { isEncryptionAvailable: () => true, encryptString: s => Buffer.from(s), decryptString: b => b.toString() };
+  const old = createSessionStorage({ userDataPath: () => dir, safeStorage: fakeCrypto, installId: 'copy-a' });
+  await old.adapter.setItem('k', 'session');
+  assert.equal(await createSessionStorage({ userDataPath: () => dir, safeStorage: fakeCrypto, installId: 'copy-a' }).adapter.getItem('k'), 'session');
+  const other = createSessionStorage({ userDataPath: () => dir, safeStorage: fakeCrypto, installId: 'copy-b' });
+  assert.equal(await other.adapter.getItem('k'), null);
+  assert.deepEqual(await fs.readdir(dir), [], 'the old session file is deleted');
+});
+
 test('Launch Game starts TS4_x64.exe from the chosen game folder and explains what is missing', async t => {
   const dir = await tempDir(t);
   const opened = [];

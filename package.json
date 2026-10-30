@@ -1,6 +1,6 @@
 {
   "name": "simmerspace",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "private": true,
   "description": "A cozy, bilingual Sims 4 mods and custom content manager for Windows.",
   "main": "electron/main.cjs",

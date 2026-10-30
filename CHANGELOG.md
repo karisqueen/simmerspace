@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.1 cleanup, new icon and per-copy sessions (2026-10-30)
+
+- All sample content is gone: the sample catalog (`demo-data.js`), the sample Discover and Favorites pages, the three sample collections and sample items inside collections, their filters, styles and unused texts. Sample data saved by earlier versions is removed from this PC on start; your own collections and their CurseForge mods are kept.
+- New icon: a plumbob whose facets draw an S, used for the app, the Windows executable (multi-size `build/icon.ico`, so File Explorer shows it) and the in-app brand mark. The old crystal icon and logo files were deleted.
+- The saved session belongs to one copy of the app (its version and the location of its .exe). Deleting the app and downloading a new version asks you to sign in again.
+- Removed unused code: manual Patreon profiles, collection sync helpers and the archived Supabase migration (`supabase/legacy`).
+
 ## 0.11.0 CurseForge without a key on this PC (2026-10-30)
 
 - Explore and Creators work out of the box after signing in: the app asks a Supabase Edge Function (`supabase/functions/curseforge-proxy`) that holds the CurseForge key as a server secret. The key is not in the app, the installer or the repository.

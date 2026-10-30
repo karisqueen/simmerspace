@@ -91,7 +91,10 @@ function cleanText(value, max) {
   return typeof value === 'string' ? value.replace(/\r\n?/g, '\n').trim().slice(0, max) : '';
 }
 
-function createSessionStorage({ userDataPath, safeStorage }) {
+// The saved session belongs to one copy of the app: `installId` names it (in the packaged app, a hash of the
+// app version and where its .exe is). A session saved by another copy or version is discarded, so deleting
+// the app and downloading a new one asks to sign in again instead of reusing the old session.
+function createSessionStorage({ userDataPath, safeStorage, installId = '' }) {
   const memory = new Map();
   const file = () => path.join(userDataPath(), SESSION_FILE);
   const canEncrypt = () => {
@@ -110,6 +113,10 @@ function createSessionStorage({ userDataPath, safeStorage }) {
       try {
         const stored = JSON.parse(await fs.readFile(file(), 'utf8'));
         if (stored?.version !== 1 || typeof stored.data !== 'string') return;
+        if ((stored.install || '') !== installId) {
+          await fs.unlink(file()).catch(() => {});
+          return;
+        }
         const values = JSON.parse(safeStorage.decryptString(Buffer.from(stored.data, 'base64')));
         for (const [key, value] of Object.entries(values || {})) if (typeof value === 'string') memory.set(key, value);
       } catch {}
@@ -126,7 +133,7 @@ function createSessionStorage({ userDataPath, safeStorage }) {
     }
     const data = safeStorage.encryptString(JSON.stringify(Object.fromEntries(memory))).toString('base64');
     const temp = `${target}.${process.pid}.tmp`;
-    await fs.writeFile(temp, JSON.stringify({ version: 1, data }), 'utf8');
+    await fs.writeFile(temp, JSON.stringify({ version: 1, install: installId, data }), 'utf8');
     await fs.rename(temp, target);
   }
   return {
@@ -150,8 +157,8 @@ function createSessionStorage({ userDataPath, safeStorage }) {
   };
 }
 
-function createAccountService({ getConfig, userDataPath, safeStorage, createClient, onChange = () => {} }) {
-  const storage = createSessionStorage({ userDataPath, safeStorage });
+function createAccountService({ getConfig, userDataPath, safeStorage, installId = '', createClient, onChange = () => {} }) {
+  const storage = createSessionStorage({ userDataPath, safeStorage, installId });
   let client = null;
   let clientKey = '';
   let pendingEmail = '';

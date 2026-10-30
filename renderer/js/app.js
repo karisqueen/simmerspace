@@ -1,5 +1,5 @@
 /* SimmerSpace interface: state, pages and local interactions. */
-let APP_VERSION = '0.11.0';
+let APP_VERSION = '0.11.1';
 
 function savedLanguage() {
   const value = safeGet('language');

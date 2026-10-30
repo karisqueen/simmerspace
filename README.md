@@ -2,7 +2,7 @@
 
 **A cozy, bilingual Sims 4 mod manager prototype. / Un prototipo acogedor y bilingüe para gestionar mods de Los Sims 4.**
 
-SimmerSpace is a beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code and synthetic demo content.
+SimmerSpace is a beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code.
 
 SimmerSpace is an independent fan project and is not affiliated with, endorsed by, or sponsored by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc.
 
@@ -96,7 +96,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 - `electron/`: the main process. `main.cjs` creates the window and registers IPC; `mods-service.cjs` holds every file operation; `settings-store.cjs` saves folder locations; `ipc.cjs` validates the sender and the arguments of every request; `preload.cjs` exposes the small `simmerSpace` API to the page. `app-config.cjs` reads integration settings, `curseforge-service.cjs` talks to the CurseForge API, `zip-reader.cjs` unpacks downloads safely, `account-service.cjs` handles SimmerSpace accounts and `game-launcher.cjs` starts the game.
 - `renderer/`: the page. `js/core.js` and `js/i18n.js` hold shared helpers and all English and Spanish text; `js/ui.js` holds dialogs and toasts; `js/appearance.js` applies personalization; `js/icons.js` draws icons and plumbobs; `app.js`, `mods-manager.js`, `library.js`, `organizer.js`, `folders.js`, `curseforge.js`, `creators.js`, `account.js`, `inspiration.js` and `tour.js` render the pages. Styles: `tokens.css` (all colors and sizes), `base.css`, `components.css`, `layout.css`, `pages.css`, `mods-manager.css` and `community.css`. Brand files are in `renderer/brand`. Fonts are bundled in `renderer/fonts` under the SIL Open Font License: DM Sans for text and Fredoka for the logo. No EA fonts or logo artwork are included.
-- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL, the CurseForge proxy function, and `legacy/` (an older migration that must not be applied).
+- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL and the CurseForge proxy function.
 - `tests/`: Node test runner tests (`node --test`).
 
 ## Privacy and file access
@@ -110,7 +110,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 ## Project status
 
-Current version: **0.11.0 beta**: CurseForge works after signing in with no key on your PC (through the project's Supabase proxy); redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.0 beta**: CurseForge funciona al iniciar sesión sin clave en tu PC (a través del proxy de Supabase del proyecto); rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
+Current version: **0.11.1 beta**: no sample content, new plumbob-S icon; CurseForge works after signing in with no key on your PC (through the project's Supabase proxy); redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.1 beta**: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge funciona al iniciar sesión sin clave en tu PC (a través del proxy de Supabase del proyecto); rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
 Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 
