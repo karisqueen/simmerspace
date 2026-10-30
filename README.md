@@ -52,7 +52,7 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 
 ## Get the app
 
-Download the Windows app (portable `.exe`, no installation) from the [SimmerSpace page](https://karisqueen.github.io/simmerspace/) or from [Releases](https://github.com/karisqueen/simmerspace/releases/latest). The source archive from **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run app. / Descarga la app para Windows (`.exe` portable, sin instalación) desde la [página de SimmerSpace](https://karisqueen.github.io/simmerspace/) o desde [Releases](https://github.com/karisqueen/simmerspace/releases/latest).
+Download the Windows installer from the [SimmerSpace page](https://karisqueen.github.io/simmerspace/) or from [Releases](https://github.com/karisqueen/simmerspace/releases/latest). The source archive from **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run app. / Descarga el instalador para Windows desde la [página de SimmerSpace](https://karisqueen.github.io/simmerspace/) o desde [Releases](https://github.com/karisqueen/simmerspace/releases/latest).
 
 To run from source, install Node.js and pnpm, then run:
 
@@ -108,7 +108,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 ## Project status
 
-Current version: **0.11.1 beta**: no sample content, new plumbob-S icon; CurseForge integrated: explore and install mods after signing in; redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.1 beta**: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge integrado: explora e instala mods al iniciar sesión; rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
+Current version: **0.12.0 beta**: Windows installer with automatic updates that ask first, a social-style profile page, username changes confirmed with the password once every 30 days; 0.11.1: no sample content, new plumbob-S icon; CurseForge integrated: explore and install mods after signing in; redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.12.0 beta**: instalador para Windows con actualizaciones automáticas que preguntan antes, perfil con estilo de red social y cambio de nombre confirmado con contraseña una vez cada 30 días; 0.11.1: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge integrado: explora e instala mods al iniciar sesión; rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
 Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 

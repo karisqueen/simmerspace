@@ -1,6 +1,6 @@
 {
   "name": "simmerspace",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "private": true,
   "description": "A cozy, bilingual Sims 4 mods and custom content manager for Windows.",
   "main": "electron/main.cjs",
@@ -8,7 +8,7 @@
     "start": "electron .",
     "test": "node --test",
     "check": "node scripts/check.cjs",
-    "dist": "electron-builder --win nsis",
+    "dist": "electron-builder --win nsis --publish never",
     "dist:dir": "electron-builder --win dir",
     "dist:portable": "electron-builder --win portable"
   },
@@ -41,13 +41,22 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "${productName}-${version}-setup.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "karisqueen",
+        "repo": "simmerspace",
+        "releaseType": "release"
+      }
+    ]
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.117.3"
+    "@supabase/supabase-js": "2.117.3",
+    "electron-updater": "^6.8.11"
   }
 }

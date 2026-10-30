@@ -221,14 +221,6 @@ body.is-locked .app-shell {
   height: 24px;
   font-size: 11px;
 }
-.avatar-xl {
-  width: 88px;
-  height: 88px;
-  font-size: 34px;
-}
-.avatar-edit {
-  position: relative;
-}
 .avatar-busy {
   position: absolute;
   inset: 0;
@@ -239,22 +231,231 @@ body.is-locked .app-shell {
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
 }
-.profile-panel .profile-head {
-  align-items: flex-start;
-}
-.profile-copy {
+
+/* The player's own profile: cover, avatar, name and counts, like a social profile. */
+.profile-page {
   display: grid;
+  gap: var(--sp-4);
+  max-width: 1080px;
+}
+.profile-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+.profile-cover {
+  height: 148px;
+  background:
+    radial-gradient(ellipse at 12% 110%, color-mix(in oklab, var(--accent) 34%, transparent), transparent 55%),
+    radial-gradient(ellipse at 70% -20%, color-mix(in oklab, var(--highlight) 22%, transparent), transparent 50%),
+    radial-gradient(ellipse at 100% 100%, color-mix(in oklab, var(--sun) 24%, transparent), transparent 45%),
+    linear-gradient(120deg, var(--accent-soft-2), var(--accent-soft));
+}
+.profile-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3) var(--sp-5);
+  margin-top: -56px;
+  padding: 0 var(--panel-pad);
+}
+.profile-avatar {
+  position: relative;
+  flex: none;
+}
+.avatar-profile {
+  width: 120px;
+  height: 120px;
+  font-size: 46px;
+  border: 4px solid var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.profile-avatar-btn {
+  position: absolute;
+  right: 2px;
+  bottom: 6px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+.profile-avatar-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.profile-avatar-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+.profile-identity {
+  flex: 1;
+  min-width: 200px;
+  padding-bottom: 6px;
+}
+.profile-name-row {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 .profile-name {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+/* Deliberately quiet: renaming is rare and goes through a dialog. */
+.profile-rename {
+  color: var(--text-3);
+  opacity: 0.7;
+}
+.profile-rename:hover,
+.profile-rename:focus-visible {
+  opacity: 1;
+}
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.profile-meta .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--sun-text);
+}
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding-bottom: 8px;
+}
+.profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--panel-pad) var(--panel-pad);
+  border-top: 1px solid var(--line);
+}
+.profile-stat {
+  display: grid;
+  min-width: 110px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.profile-stat {
+  cursor: pointer;
+}
+button.profile-stat:hover {
+  background: var(--accent-soft);
+}
+.profile-stat b {
   font-family: var(--font-brand);
   font-size: var(--fs-xl);
+  font-weight: 600;
 }
-.profile-panel .inline-form {
+.profile-stat span {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.profile-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
   align-items: start;
+  gap: var(--sp-4);
 }
-.profile-panel .inline-form > button {
-  margin-top: 26px;
+.profile-aside {
+  display: grid;
+  gap: var(--sp-4);
+}
+.profile-side .facts dd {
+  overflow-wrap: anywhere;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-2);
+}
+.profile-tile {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+}
+.profile-tile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.profile-tile-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--dur) var(--ease);
+}
+.profile-tile-caption {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 24px 10px 8px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.62));
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.profile-tile-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.profile-tile:hover .profile-tile-caption,
+.profile-tile:focus-within .profile-tile-caption,
+.profile-tile:hover .profile-tile-delete,
+.profile-tile:focus-within .profile-tile-delete {
+  opacity: 1;
+}
+.profile-tile:hover img {
+  transform: scale(1.04);
+}
+.profile-more {
+  margin-top: var(--sp-3);
+}
+.update-progress {
+  width: 100%;
+  height: 8px;
+  margin: 4px 0 var(--sp-2);
+  accent-color: var(--accent);
+}
+@media (max-width: 860px) {
+  .profile-columns {
+    grid-template-columns: 1fr;
+  }
 }
 .choice-row {
   display: flex;

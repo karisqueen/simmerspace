@@ -286,13 +286,6 @@
 }
 
 /* ---------- Account ---------- */
-.account-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
-  align-items: start;
-  gap: var(--sp-4);
-  max-width: 980px;
-}
 .account-form {
   display: grid;
   gap: var(--sp-3);
@@ -304,19 +297,6 @@
 .account-form > .text-link {
   justify-self: start;
   font-size: var(--fs-sm);
-}
-.inline-form {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  margin-top: var(--sp-4);
-}
-.profile-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.profile-head .section-title {
-  margin-bottom: 2px;
 }
 .account-split {
   display: grid;
@@ -421,7 +401,6 @@
   .setting-row + .setting-help {
     margin-left: 0;
   }
-  .account-layout,
   .board-detail-layout {
     grid-template-columns: 1fr;
   }

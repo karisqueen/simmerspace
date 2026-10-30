@@ -220,6 +220,7 @@
     if (result && result.ok === true) return result.value;
     const error = new Error(result?.error?.message || 'The operation could not be completed.');
     error.code = result?.error?.code || 'UNKNOWN';
+    if (result?.error?.details !== undefined) error.details = result.error.details;
     throw error;
   }
 
