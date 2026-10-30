@@ -175,6 +175,8 @@
 }
 .collection-cover-tile.has-art {
   background: var(--cover-art);
+  /* Sample art backgrounds are pastel in every theme, so text symbols stay dark on them. */
+  color: #3b3040;
 }
 .board-label {
   display: grid;

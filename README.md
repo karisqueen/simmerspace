@@ -10,63 +10,47 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 
 ## Current beta features
 
-- Spanish and English interface. **Personalization (0.10.0):** two themes (Simmer Soft and Sims Blue), light, dark or match Windows, a main accent plus an optional second accent (rose, lavender, sage, Sims blue), comfortable or compact density, and reduced motion. Choices are saved on this PC and carried over from earlier versions.
-- Redesigned interface built on shared design tokens: one button system, one chip filter control, collapsible settings sections, clear empty, loading and error states, a responsive sidebar rail, and a new “Simmer / Space” wordmark.
-- Sidebar: Browse (Discover, CurseForge), Library (My CC, Favorites, Creators, Inspiration), collapsible Collections with color-matched plumbobs, then **Launch The Sims 4**, Settings and your account.
-- **CurseForge (0.10.0, needs your own API key):** search the Sims 4 catalog, see details, screenshots and files, install a file into `Mods\CurseForge - <name>` when the author allows third-party downloads (size and hash checked, ZIPs unpacked safely, nothing overwritten), and check installed mods for updates. Without a key the page says so and nothing pretends to work. See [docs/CURSEFORGE-SETUP.md](docs/CURSEFORGE-SETUP.md).
-- **SimmerSpace accounts (0.10.0, optional, needs your own Supabase project):** sign up with an email code, sign in, reset the password, and sync preferences, favorites and collections. Guest mode keeps everything on this PC. Your SimmerSpace account is separate from CurseForge. See [docs/ACCOUNTS-SETUP.md](docs/ACCOUNTS-SETUP.md).
-- Collections: search, A–Z, recently opened or custom (drag) order, a color for each collection, and cover images. Inspiration boards: recent, A–Z or custom order, and show all boards.
-- Discover filters as chips: Create a Sim parts for Body, Clothing, Accessories and Animals, life stages from newborns to elders, and a compact supernatural filter, with removable active-filter tokens and one reset.
-- Local Sims 4 folder settings: Mods, user Documents, game installation, and optional Sims 4 Studio. Only the Mods folder is used by features in this version.
-- **Read-only scan** of `.package`, `.ts4script`, `.packageoff` and `.ts4scriptoff` files in the Mods folder and all its subfolders, with progress and a Stop button. Scanning never opens, moves or changes files.
-- Tags saved only in SimmerSpace: category, creator, gender and age, for single files or many at once. Tags follow a file when SimmerSpace renames, enables, disables or moves it.
-- Copy supported files or folders into Mods (import never overwrites; a numbered name is used instead).
-- Enable and disable files by changing their extension in place; rename files while keeping their extension; send files to the Windows Recycle Bin.
-- **Organize into folders (new in 0.7.0):** move tagged files, including files deep inside nested folders, into the category folders you choose. Before anything moves you see every file's current and new path. You choose whether to keep subfolders (`Hair\Creator\file.package`) or put files straight into the category folder (`Hair\file.package`), and whether a file whose name is already taken is skipped or moved with a number added. Existing files are never replaced. Script mods are kept within the one-folder depth the game loads. Moving shows progress, can be stopped after the current file, and ends with a per-file list of what moved and what did not, and why. Each file is checked again just before it moves: files that changed, disappeared or are in use since the preview are left where they are.
-- Demo Discover filters, creator profiles, Inspiration boards, and CC collections, clearly labelled as sample data.
-- Manually add public Patreon profile links to a local creator catalog and follow profiles on this device.
+- **A SimmerSpace account is required (0.10.0).** Sign up with a username, email and password (at least 8 characters with letters and numbers, checked as you type), confirm with a 6-digit email code, reset a forgotten password with a code. A session saved on this PC opens again without internet. Accounts use the project's Supabase backend; see [docs/SUPABASE.md](docs/SUPABASE.md).
+- **Eight themes**: pink, purple, green and blue, each in light and dark, with a contrasting accent color. Comfortable or compact density and reduced motion.
+- **New look**: lowercase “simmerspace” wordmark with a crystal symbol, an app icon, and a duotone icon family with category icons.
+- **Navigation**: an icon rail that expands on hover (or with the menu button on touch screens): Home, Explore, My CC, Creators, Collections, Inspiration, Settings. Descriptions appear after a short pause and can be turned off in Settings.
+- **First-launch tutorial** (next, back, skip, progress) that also explains how to choose the Mods folder. It can be replayed from Settings.
+- **My CC**: folder strip with the Mods path and last scan, a “Library” section with list, category or creator views, a collapsible file list, a badge for mods installed by SimmerSpace versus external ones (no invented update info), and an optional one-by-one classifier (category, creator, tags, skip, skip all). Files without a category or creator are grouped under “Uncategorized” / “No creator”; changing the view never deletes tags.
+- **Explore (CurseForge)**: search the Sims 4 catalog, see details and files, install into `Mods\CurseForge - <name>` when the author allows it, and check for updates. Mods by creators you follow come first and are marked.
+- **Creators**: real CurseForge creators ranked by the downloads of their projects among the 100 most popular Sims 4 projects, and a Following list stored on this PC. Patreon is not connected yet; a dismissible notice says so.
+- **Inspiration**: a community feed. Share an image (JPG, PNG, WebP or GIF up to 10 MB; large images are reduced to 1920 px) with a caption and a category, filter by category or person, open profiles, load more, and delete your own posts (the image is deleted too).
+- **Profile**: username and profile photo (reduced to 512 px WebP). **Feedback** form with suggestion, problem, new feature, donations and other.
+- Everything from earlier versions stays: read-only Mods scan, tags, import without overwriting, enable/disable, rename, Recycle Bin, organize into folders with a full preview, collections, Launch The Sims 4.
 
 ### Limitations
 
 - Windows only. The build is not code-signed yet, so Windows SmartScreen shows a warning.
+- The app needs the Supabase project URL and publishable key to start (developers can continue without an account with `--developer`).
 - Tags are linked to file paths. Files moved or renamed outside SimmerSpace lose their tags until they are tagged again.
-- Organize leaves emptied folders in place; delete them in File Explorer if you like.
-- Default category folder names are in Spanish (for example `Cabello`) in both languages, so folders made by earlier versions keep matching. You can rename them in **Categories & folders**.
-- Discover, creators and Inspiration use fictional sample data. Patreon is not connected.
-- CurseForge works only after you add your own approved API key (or the optional proxy). No key is included in the app or this repository. CurseForge API access is an app credential, not a personal CurseForge sign-in.
-- Accounts work only after you connect your own Supabase project. They have not been tested against a live project by the maintainer of this release.
-
-The mod manager makes local file changes only after the user chooses an action and confirms it. The app does not install mods into the game automatically or connect to external content platforms.
-
-Catalog entries and demo creator profiles are synthetic examples used to demonstrate the interface. Manually added Patreon profile links are saved only on this device; they are not sent to Patreon or synchronized. Example links, dates, popularity values, and references do not represent real CurseForge listings or real downloads. The creator names in the sample data are fictional.
+- CurseForge works only with an approved API key (or the optional proxy). No key is included in the app or this repository.
+- Patreon is not connected.
 
 ## Funciones actuales (español)
 
-- Interfaz en español e inglés. **Personalización (0.10.0):** dos temas (Simmer Suave y Azul Sims), claro, oscuro o según Windows, un color principal y un segundo color opcional (rosa, lavanda, salvia, azul Sims), densidad cómoda o compacta y movimiento reducido. Se guarda en este PC y se conserva lo elegido en versiones anteriores.
-- Interfaz rediseñada con tokens de diseño compartidos: un único sistema de botones, un control de filtros con chips, secciones de ajustes plegables, estados claros de vacío, carga y error, barra lateral adaptable y un nuevo logotipo “Simmer / Space”.
-- Barra lateral: Explorar (Descubrir, CurseForge), Biblioteca (Mi CC, Favoritos, Creadores, Inspiración), Colecciones plegables con plumbobs de su color, y después **Iniciar Los Sims 4**, Ajustes y tu cuenta.
-- **CurseForge (0.10.0, necesita tu propia clave API):** busca en el catálogo de Los Sims 4, mira detalles, capturas y archivos, instala un archivo en `Mods\CurseForge - <nombre>` cuando el autor permite descargas de terceros (se comprueban tamaño y hash, los ZIP se descomprimen con seguridad y nunca se reemplaza nada) y busca actualizaciones. Sin clave la página lo dice y nada finge funcionar. Consulta [docs/CURSEFORGE-SETUP.md](docs/CURSEFORGE-SETUP.md).
-- **Cuentas de SimmerSpace (0.10.0, opcionales, necesitan tu propio proyecto de Supabase):** registro con código por correo, inicio de sesión, cambio de contraseña y sincronización de preferencias, favoritos y colecciones. El modo invitado guarda todo en este PC. Tu cuenta de SimmerSpace es independiente de CurseForge. Consulta [docs/ACCOUNTS-SETUP.md](docs/ACCOUNTS-SETUP.md).
-- Colecciones: búsqueda, orden A–Z, abiertas recientemente o personalizado (arrastrando), un color para cada colección e imágenes de portada. Tableros de Inspiración: recientes, A–Z u orden personalizado, y ver todos.
-- Filtros de Descubrir con chips: partes de Crear un Sim para Cuerpo, Ropa, Accesorios y Animales, etapas de vida de recién nacidos a ancianos y un filtro sobrenatural compacto, con filtros activos que se pueden quitar y un único botón para restablecer.
-- Ajustes de carpetas de Los Sims 4: Mods, Documentos del usuario, instalación del juego y, opcionalmente, Sims 4 Studio. En esta versión solo la carpeta Mods se usa en funciones.
-- **Escaneo de solo lectura** de archivos `.package`, `.ts4script`, `.packageoff` y `.ts4scriptoff` en Mods y todas sus subcarpetas, con progreso y botón para detener. El escaneo nunca abre, mueve ni cambia archivos.
-- Etiquetas guardadas solo en SimmerSpace: categoría, creador, género y edad, para uno o muchos archivos. Las etiquetas siguen al archivo cuando SimmerSpace lo renombra, activa, desactiva o mueve.
-- Copiar archivos o carpetas compatibles a Mods (importar nunca reemplaza; se usa un nombre numerado).
-- Activar y desactivar archivos cambiando su extensión; renombrar conservando la extensión; enviar archivos a la Papelera de reciclaje de Windows.
-- **Organizar en carpetas (nuevo en 0.7.0):** mueve archivos etiquetados, también los que están dentro de carpetas anidadas, a las carpetas de categoría que elijas. Antes de mover nada ves la ruta actual y la nueva de cada archivo. Eliges si conservar las subcarpetas (`Cabello\Creador\archivo.package`) o poner los archivos directamente en la carpeta de la categoría (`Cabello\archivo.package`), y si un archivo cuyo nombre ya existe se omite o se mueve con un número añadido. Nunca se reemplaza un archivo existente. Los mods de script se mantienen a una carpeta de profundidad, como exige el juego. El movimiento muestra el progreso, se puede detener después del archivo actual y termina con una lista por archivo de lo que se movió y lo que no, con el motivo. Cada archivo se vuelve a revisar justo antes de moverlo: si cambió, desapareció o está en uso desde la vista previa, se deja donde está.
-- Filtros de Descubrir, perfiles de creadores, tableros de Inspiración y colecciones de demostración, marcados claramente como datos de ejemplo.
-- Añadir manualmente enlaces públicos de perfiles de Patreon a un catálogo local de creadores y seguir perfiles en este dispositivo.
+- **Hace falta una cuenta de SimmerSpace (0.10.0).** Registro con nombre de usuario, correo y contraseña (mínimo 8 caracteres con letras y números, comprobado mientras escribes), confirmación con un código de 6 dígitos y recuperación de contraseña con código. Una sesión guardada en el equipo se abre también sin internet. Consulta [docs/SUPABASE.md](docs/SUPABASE.md).
+- **Ocho temas**: rosa, morado, verde y azul, cada uno claro y oscuro, con un color de acento que contrasta. Densidad cómoda o compacta y movimiento reducido.
+- **Nueva imagen**: logotipo “simmerspace” en minúsculas con un símbolo de cristal, icono de la app y una familia de iconos bicolor con iconos por categoría.
+- **Navegación**: barra de iconos que se despliega al pasar el cursor (o con el botón de menú en pantallas táctiles): Inicio, Explorar, Mi CC, Creadores, Colecciones, Inspiración, Ajustes. Las descripciones aparecen tras una breve pausa y se pueden desactivar en Ajustes.
+- **Tutorial inicial** (siguiente, anterior, omitir, progreso) que explica también cómo elegir la carpeta Mods. Se puede repetir desde Ajustes.
+- **Mi CC**: franja con la ruta de Mods y el último escaneo, sección “Biblioteca” con vista de lista, por categoría o por creador, lista de archivos plegable, insignia para distinguir los mods instalados con SimmerSpace de los externos (sin inventar actualizaciones) y un clasificador opcional uno a uno (categoría, creador, etiquetas, omitir, omitir todos). Lo que no tiene categoría o creador se agrupa en “Sin categoría” / “Sin creador”; cambiar de vista nunca borra etiquetas.
+- **Explorar (CurseForge)**: busca en el catálogo de Los Sims 4, mira detalles y archivos, instala en `Mods\CurseForge - <nombre>` cuando el autor lo permite y busca actualizaciones. Los mods de los creadores que sigues aparecen primero y marcados.
+- **Creadores**: creadores reales de CurseForge ordenados por las descargas de sus proyectos entre los 100 más populares de Los Sims 4, y una lista de seguidos guardada en el equipo. Patreon todavía no está conectado; un aviso descartable lo explica.
+- **Inspiración**: feed de la comunidad. Comparte una imagen (JPG, PNG, WebP o GIF hasta 10 MB; las grandes se reducen a 1920 px) con descripción y categoría, filtra por categoría o persona, abre perfiles, carga más y elimina tus publicaciones (también se borra la imagen).
+- **Perfil**: nombre de usuario y foto (reducida a 512 px en WebP). **Comentarios** con sugerencia, problema, nueva función, donaciones y otro.
+- Se mantiene todo lo anterior: escaneo de solo lectura, etiquetas, importar sin reemplazar, activar/desactivar, renombrar, Papelera, organizar en carpetas con vista previa, colecciones e Iniciar Los Sims 4.
 
 ### Limitaciones
 
 - Solo Windows. La compilación todavía no tiene firma de código, así que Windows SmartScreen muestra una advertencia.
-- Las etiquetas están ligadas a la ruta del archivo. Si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas hasta que los etiquetes de nuevo.
-- Organizar deja en su sitio las carpetas que quedan vacías; puedes borrarlas en el Explorador de archivos.
-- Los nombres predeterminados de las carpetas de categoría están en español (por ejemplo `Cabello`) en ambos idiomas, para que las carpetas creadas por versiones anteriores sigan coincidiendo. Puedes cambiarlos en **Categorías y carpetas**.
-- Descubrir, creadores e Inspiración usan datos ficticios de ejemplo. Patreon no está conectado.
-- CurseForge solo funciona después de añadir tu propia clave API aprobada (o el proxy opcional). La aplicación y este repositorio no incluyen ninguna clave. El acceso API de CurseForge es una credencial de la aplicación, no un inicio de sesión personal de CurseForge.
-- Las cuentas solo funcionan después de conectar tu propio proyecto de Supabase. No se han probado contra un proyecto real en esta versión.
+- La app necesita la URL del proyecto de Supabase y la clave publicable para arrancar (en modo desarrollador, `--developer`, se puede continuar sin cuenta).
+- Las etiquetas están ligadas a la ruta del archivo; si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas.
+- CurseForge solo funciona con una clave API aprobada (o el proxy opcional). La app y este repositorio no incluyen ninguna clave.
+- Patreon no está conectado.
 
 ## Get the app
 
@@ -79,10 +63,12 @@ pnpm install
 pnpm start
 ```
 
+Put development keys in a `.env.local` file next to `package.json` (ignored by git; see `.env.example`). Only copies run from source read it. / Las claves de desarrollo van en `.env.local` junto a `package.json` (ignorado por git; consulta `.env.example`). Solo lo leen las copias ejecutadas desde el código fuente.
+
 To check the code before a build:
 
 ```powershell
-pnpm test    # unit tests: file service, settings, IPC, CurseForge (mocked), accounts (mocked), migration, filters, translations
+pnpm test    # unit tests: file service, settings, IPC, CurseForge (mocked), accounts and Inspiration (mocked), migration, library, filters, translations
 pnpm check   # syntax check of every script, page file references, and no remote fonts or styles
 ```
 
@@ -109,30 +95,24 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 ### Project layout
 
 - `electron/`: the main process. `main.cjs` creates the window and registers IPC; `mods-service.cjs` holds every file operation; `settings-store.cjs` saves folder locations; `ipc.cjs` validates the sender and the arguments of every request; `preload.cjs` exposes the small `simmerSpace` API to the page. `app-config.cjs` reads integration settings, `curseforge-service.cjs` talks to the CurseForge API, `zip-reader.cjs` unpacks downloads safely, `account-service.cjs` handles SimmerSpace accounts and `game-launcher.cjs` starts the game.
-- `renderer/`: the page. `js/core.js` and `js/i18n.js` hold shared helpers and all English and Spanish text; `js/ui.js` holds dialogs and toasts; `js/appearance.js` applies personalization; `js/icons.js` draws icons and plumbobs; `app.js`, `mods-manager.js`, `organizer.js`, `folders.js`, `curseforge.js` and `account.js` render the pages. Styles: `tokens.css` (all colors and sizes), `base.css`, `components.css`, `layout.css`, `pages.css` and `mods-manager.css`. Fonts are bundled in `renderer/fonts` under the SIL Open Font License: DM Sans for text and Fredoka for the logo. No EA fonts or logo artwork are included.
-- `supabase/`: the account database migration (with row level security), an optional CurseForge proxy function, and SQL checks.
+- `renderer/`: the page. `js/core.js` and `js/i18n.js` hold shared helpers and all English and Spanish text; `js/ui.js` holds dialogs and toasts; `js/appearance.js` applies personalization; `js/icons.js` draws icons and plumbobs; `app.js`, `mods-manager.js`, `library.js`, `organizer.js`, `folders.js`, `curseforge.js`, `creators.js`, `account.js`, `inspiration.js` and `tour.js` render the pages. Styles: `tokens.css` (all colors and sizes), `base.css`, `components.css`, `layout.css`, `pages.css`, `mods-manager.css` and `community.css`. Brand files are in `renderer/brand`. Fonts are bundled in `renderer/fonts` under the SIL Open Font License: DM Sans for text and Fredoka for the logo. No EA fonts or logo artwork are included.
+- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL, an optional CurseForge proxy function, and `legacy/` (an older migration that must not be applied).
 - `tests/`: Node test runner tests (`node --test`).
 
 ## Privacy and file access
 
-- SimmerSpace stores selected folder paths and interface preferences locally on this PC.
-- Manually added Patreon profile links and the creator follow list are also stored locally; this beta does not fetch creator posts.
-- The Mods scan reads folder listings and filenames for supported active and disabled extensions; it does not open file contents.
-- This beta does not send folder paths or scanned filenames to a server.
-- CurseForge requests (only once a key is set up) send your searches and the mod and file ids to CurseForge; installed-mod records stay on this PC.
-- With a SimmerSpace account, preferences, favorites and collection names, colors and item ids are stored in your Supabase project. Folder paths, tags, scanned files and cover images are never uploaded.
-- Import, rename, enable/disable, organization, and deletion are explicit local actions. Category/creator tags are stored in this device's SimmerSpace data and keyed to file paths.
-- Accounts and sync are optional; guest mode never contacts a server.
-
-## Current status
-
-Patreon posts are not available in this beta. CurseForge and accounts need the owner's own credentials, described in the setup guides. No API key or user credential is included in this repository. A future Patreon connection would use API v2. Patreon requires the `campaigns.posts` scope to list campaign posts and directs apps seeking access to other creators' campaign data to contact its developers forum. SimmerSpace will not scrape Patreon or put API secrets in the desktop interface.
+- Folder paths, tags, collections, followed creators and interface preferences are stored only on this PC.
+- The Mods scan reads folder listings and filenames; it does not open file contents. Folder paths and filenames are never uploaded.
+- Your account (email, username, profile photo), your Inspiration posts and the feedback you send are stored in SimmerSpace's Supabase project, protected by row level security: everyone signed in can see profiles and posts; only you can change or delete yours.
+- The session is saved encrypted with Windows protection (Electron safeStorage); if that is not available it is kept in memory only.
+- CurseForge requests send your searches and the mod and file ids to CurseForge.
+- Import, rename, enable/disable, organization and deletion are explicit local actions.
 
 ## Project status
 
-Current version: **0.10.0 beta**. A full redesign with a shared design system, the Sims Blue theme, one- or two-accent personalization, CurseForge browsing and installs with your own API key, and optional SimmerSpace accounts. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.10.0 beta**. Rediseño completo con un sistema de diseño compartido, el tema Azul Sims, personalización con uno o dos colores, exploración e instalación desde CurseForge con tu propia clave API y cuentas opcionales de SimmerSpace. Consulta [CHANGELOG.md](CHANGELOG.md).
+Current version: **0.10.0 beta**: redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.10.0 beta**: rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
-Bug reports and suggestions can be opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files in an issue.
+Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 
 ## Licensing
 

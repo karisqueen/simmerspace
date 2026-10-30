@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.10.0 redesign and accounts (2026-10-30)
+
+### Design
+- Eight themes (pink, purple, green, blue; light and dark) built from three accent colors each, with AA-contrast text. Settings from earlier versions are migrated (rose → pink, lavender → purple, sage → green, blue → blue).
+- Lowercase “simmerspace” wordmark with a new crystal symbol (light and dark variants), an app icon (`build/icon.png`) and a duotone icon family with category icons.
+
+### Navigation and help
+- Icon rail sidebar that expands on hover, keyboard focus or the menu button (touch): Home, Explore, My CC, Creators, Collections, Inspiration, Settings.
+- New Home page with real numbers from this PC and quick actions.
+- Descriptions appear after about 2 seconds (sooner for keyboard focus) and can be turned off in **Settings → Help**.
+- First-launch tutorial with 12 steps, progress, skip and keyboard support; it can be replayed from Settings.
+
+### My CC
+- “Your Mods folder” panel replaced by a full-width folder strip; a “Library” heading with list, category and creator views and folder tiles; the file list can be collapsed.
+- Mods installed by SimmerSpace are marked; external mods get a badge and no invented update data.
+- Optional one-by-one classifier for external mods (category, creator, tags, skip, skip all), offered after a scan.
+- “Uncategorized” and “No creator” groups; changing the view never removes tags.
+
+### Creators and Explore
+- Creators lists real CurseForge creators (ranked by downloads among the 100 most popular Sims 4 projects) and the creators you follow. Sample creators and manual Patreon profiles are no longer shown (saved data is kept).
+- Explore lists followed creators' mods first, marks them, and can filter by a followed creator.
+- A dismissible notice explains that the Patreon integration is in development.
+
+### Accounts and community (Supabase)
+- An account is required. Sign-up with username (availability checked live), email and password (8+ characters with letters and numbers, live checklist), 6-digit email code with resend, password reset with code, Spanish and English messages. Saved sessions restore offline.
+- Profile page: username and profile photo (512 px WebP in `avatars/<user id>/`).
+- Inspiration is a community feed: upload (1920 px, GIFs kept), caption, category, profile pages, masonry layout, load more, delete (removes the image too). Pinterest and sample boards were removed.
+- Feedback form: suggestion, bug report, feature request, donation feedback, other.
+- New migration `20261030000000_simmerspace_community.sql` for the existing project: unique usernames, idempotent `handle_new_user`, `ensure_my_profile()`, `username_available()`, categories, owner-only RLS and per-user storage folders. The 2026-10-25 migration was written for another schema and is archived in `supabase/legacy/`.
+- Supabase secret and service_role keys are refused. `SUPABASE_PUBLISHABLE_KEY` is supported.
+
+### Development
+- Copies run from source read keys from the git-ignored `.env.local`; packaged builds never do.
+
 ## 0.10.0 (2026-10-25)
 
 ### Redesign
