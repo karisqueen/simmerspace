@@ -1,0 +1,114 @@
+/* Motion (Settings → Personalization → Animations). Soft, short and purposeful: things fade and rise into place,
+   selections slide, dialogs land. Nothing loops except loading indicators, nothing delays a click, and no animation
+   changes layout (only opacity and transform). "Reduced" sets every duration to 0 in tokens.css, and every rule
+   below only applies to "full". Entrances run only when a page opens (main.js marks .content-wrap with data-entering for a
+   moment), not every time the page redraws after a filter or a click. */
+
+/* ---------- Page and content entrances ---------- */
+@keyframes ss-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+@keyframes ss-fade {
+  from {
+    opacity: 0;
+  }
+}
+[data-motion='full'] .content-wrap[data-entering] > * {
+  animation: ss-fade var(--dur-slow) var(--ease-out) both;
+}
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .profile-tile, .action-card, .theme-card, .settings-section, .board-tile) {
+  animation: ss-rise var(--dur-slow) var(--ease-out) both;
+}
+/* A short stagger for the first cards; the rest arrive together so long lists never feel slow. */
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):nth-child(2) { animation-delay: 30ms; }
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):nth-child(3) { animation-delay: 60ms; }
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):nth-child(4) { animation-delay: 90ms; }
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):nth-child(5) { animation-delay: 120ms; }
+[data-motion='full'] .content-wrap[data-entering] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):nth-child(n + 6) { animation-delay: 150ms; }
+
+/* ---------- Hover and press ---------- */
+[data-motion='full'] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile) {
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+[data-motion='full'] :is(.cc-card, .creator-card, .collection-tile, .post-card, .folder-tile, .board-tile):hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md, var(--shadow-lg));
+}
+[data-motion='full'] :is(.primary-btn, .secondary-btn, .tertiary-btn, .icon-btn, .chip, .segment) {
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+[data-motion='full'] :is(.primary-btn, .secondary-btn, .tertiary-btn, .icon-btn, .chip):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ---------- Selection ---------- */
+[data-motion='full'] :is(.segment, .tab, .chip, .settings-nav-item).is-selected {
+  animation: ss-pop var(--dur) var(--ease-land);
+}
+@keyframes ss-pop {
+  from {
+    transform: scale(0.94);
+  }
+}
+[data-motion='full'] .nav-item.is-active:not(.nav-collection)::before {
+  animation: ss-marker var(--dur) var(--ease-land) both;
+}
+@keyframes ss-marker {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+
+/* ---------- Sidebar: labels follow the rail as it opens ---------- */
+[data-motion='full'] .sidebar .nav-label {
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+[data-motion='full'] .sidebar:not(:hover, :focus-within, .is-open) .nav-label {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+
+/* ---------- Dialogs, menus and tooltips ---------- */
+[data-motion='full'] .dialog {
+  animation: ss-dialog var(--dur-slow) var(--ease-land) both;
+}
+@keyframes ss-dialog {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+[data-motion='full'] :is(.menu-popover, .profile-menu, .tag-suggestions) {
+  animation: ss-drop var(--dur) var(--ease-out) both;
+  transform-origin: top;
+}
+@keyframes ss-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+[data-motion='full'] .tooltip {
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+/* ---------- Feedback ---------- */
+[data-motion='full'] .is-done-check {
+  animation: ss-pop var(--dur-slow) var(--ease-land) both;
+}

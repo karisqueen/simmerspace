@@ -572,3 +572,326 @@
 .followed-row {
   margin-bottom: var(--sp-3);
 }
+
+/* ---------- Settings: list of sections + one section at a time (0.12.1) ---------- */
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--gap);
+  max-width: 1100px;
+}
+.settings-nav {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+}
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.settings-nav-item .icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.settings-nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.settings-nav-item.is-selected {
+  background: var(--accent-soft);
+  color: var(--accent-text, var(--a1));
+  font-weight: var(--fw-semibold);
+}
+/* Feedback is first and gently highlighted so it is noticed, without shouting. */
+.settings-nav-item.is-feedback {
+  margin-bottom: 6px;
+  border: 1px dashed color-mix(in oklab, var(--a1) 35%, var(--line));
+}
+.settings-nav-item.is-feedback.is-selected {
+  border-style: solid;
+}
+.settings-section {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--panel-pad);
+  min-width: 0;
+}
+.settings-section-head h2 {
+  font-size: var(--fs-xl);
+}
+.settings-section-head .setting-help {
+  margin-top: 4px;
+}
+.settings-section .panel-body {
+  display: grid;
+  gap: var(--sp-4);
+  padding: 0;
+}
+.setting-row-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+.feedback-inline {
+  padding: 0;
+  max-width: 640px;
+}
+.about-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.about-brand .brand-mark {
+  width: 52px;
+  height: 52px;
+}
+.about-brand .wordmark {
+  font-size: 26px;
+}
+@media (max-width: 760px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-nav {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+  }
+}
+
+/* Personalization preview: a tiny copy of the app with its own appearance attributes. */
+.appearance-preview {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--gap);
+  max-width: 560px;
+  padding: var(--card-pad);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-md);
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    padding var(--dur) var(--ease),
+    gap var(--dur) var(--ease);
+}
+.pv-rail {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--r-md);
+  background: var(--sidebar-bg);
+}
+.pv-rail i {
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--sidebar-text) 18%, transparent);
+}
+.pv-rail i.is-on {
+  background: var(--a1);
+}
+.pv-main {
+  display: grid;
+  gap: var(--gap);
+  min-width: 0;
+}
+.pv-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+.pv-card {
+  display: grid;
+  gap: 6px;
+  padding: var(--card-pad);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  justify-items: start;
+}
+.pv-thumb {
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(120deg, var(--accent-soft), color-mix(in oklab, var(--a2) 22%, var(--surface)));
+}
+.pv-list {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.pv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(var(--card-pad) * 0.7) var(--card-pad);
+  border-bottom: 1px solid var(--line);
+}
+.pv-row:last-child {
+  border-bottom: 0;
+}
+.pv-row span:nth-child(2) {
+  flex: 1;
+}
+.pv-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--a1);
+}
+.pv-dot[data-i='1'] { background: var(--a2); }
+.pv-dot[data-i='2'] { background: var(--a3); }
+.pv-actions {
+  display: flex;
+  gap: 8px;
+}
+.pv-actions > span {
+  pointer-events: none;
+}
+.appearance-preview[data-motion='full'].is-replaying :is(.pv-card, .pv-row) {
+  animation: ss-rise var(--dur-slow) var(--ease-out) both;
+}
+.appearance-preview[data-motion='full'].is-replaying .pv-card:nth-child(2) { animation-delay: 40ms; }
+.appearance-preview[data-motion='full'].is-replaying .pv-row:nth-child(2) { animation-delay: 70ms; }
+.appearance-preview[data-motion='full'].is-replaying .pv-row:nth-child(3) { animation-delay: 100ms; }
+
+/* ---------- Profile menu (avatar in the top bar) ---------- */
+.profile-menu {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.profile-menu hr {
+  margin: 4px 6px;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.profile-menu-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 10px;
+}
+.profile-menu-head div {
+  display: grid;
+  min-width: 0;
+}
+.profile-menu-head small {
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  text-align: left;
+  cursor: pointer;
+}
+.profile-menu-item .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-2);
+}
+.profile-menu-item:hover,
+.profile-menu-item:focus-visible {
+  background: var(--surface-2);
+}
+.profile-menu-item[data-danger] {
+  color: var(--danger);
+}
+.profile-menu-item[data-danger] .icon {
+  color: var(--danger);
+}
+
+/* ---------- 0.12.1 creators and Explore tags ---------- */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 6px;
+}
+.creator-avatar {
+  position: relative;
+  overflow: hidden;
+}
+.creator-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.creator-avatar:not(.has-image) img {
+  display: none;
+}
+.creator-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.style-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.style-pill.style-maxis {
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.style-pill.style-alpha {
+  background: var(--sun-soft);
+  color: var(--sun-text);
+}
+.style-pill.style-both {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.creator-filters {
+  margin-bottom: var(--sp-4);
+}

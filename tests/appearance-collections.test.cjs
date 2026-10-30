@@ -10,7 +10,17 @@ test('appearance falls back to safe defaults and accepts the eight themes', () =
   for (const family of core.THEME_FAMILIES) {
     for (const mode of ['light', 'dark']) assert.deepEqual(core.normalizeAppearance({ family, mode }), { ...core.DEFAULT_APPEARANCE, family, mode });
   }
-  assert.deepEqual(core.normalizeAppearance({ family: 'green', mode: 'system', density: 'compact', motion: 'reduced' }), { family: 'green', mode: 'system', density: 'compact', motion: 'reduced' });
+  assert.deepEqual(core.normalizeAppearance({ family: 'green', mode: 'dark', density: 'compact', motion: 'reduced' }), { family: 'green', mode: 'dark', density: 'compact', motion: 'reduced' });
+});
+
+test('"Match Windows" (0.10–0.12.0) becomes what Windows asks for, then stays a normal choice', () => {
+  const saved = { family: 'pink', mode: 'system', density: 'compact', motion: 'system' };
+  assert.deepEqual(core.normalizeAppearance(saved, null, {}, { dark: true, reducedMotion: true }), { family: 'pink', mode: 'dark', density: 'compact', motion: 'reduced' });
+  assert.deepEqual(core.normalizeAppearance(saved, null, {}, { dark: false, reducedMotion: false }), { family: 'pink', mode: 'light', density: 'compact', motion: 'full' });
+  assert.deepEqual(core.normalizeAppearance(saved), { family: 'pink', mode: 'light', density: 'compact', motion: 'full' });
+  // A new install follows the Windows "reduce animations" setting until the player chooses.
+  assert.equal(core.normalizeAppearance(null, null, {}, { reducedMotion: true }).motion, 'reduced');
+  assert.ok(!core.MODES.includes('system') && !core.MOTION.includes('system'));
 });
 
 test('appearance settings from 0.7.x, 0.8.x / 0.9.x and 0.10.0 are carried over', () => {

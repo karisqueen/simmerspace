@@ -275,7 +275,8 @@ const n = value => Number(value || 0).toLocaleString(state.lang);
 
 // The page heading is "My CC"; the folder facts sit under it and the library section is titled "Library".
 function renderModsIntro() {
-  return `${libraryFolderStrip()}<div class="library-head"><h2 class="library-title" id="mods-title">${t('libraryTitle')}</h2>${mods.result ? libraryViewSwitch() : ''}</div>`;
+  const organize = mods.result && modsApi ? `<button class="primary-btn" id="open-organizer" data-tip="${esc(t('tipOrganize'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${icon('folderCog')}<span>${t('organizeFolders')}</span></button>` : '';
+  return `${libraryFolderStrip()}<div class="library-head"><h2 class="library-title" id="mods-title">${t('libraryTitle')}</h2><div class="library-head-actions">${mods.result ? libraryViewSwitch() : ''}${organize}</div></div>`;
 }
 function renderModsToolbar() {
   const pendingCount = mods.busy ? 0 : pendingClassification().length;
@@ -324,20 +325,27 @@ function renderFolderSettings() {
   return `<details class="mods-folder-settings" ${mods.folderSettingsOpen ? 'open' : ''}><summary>${mt('configureFolders')} <span class="summary-count">${esc(format(mt('folderReady'), { count: n(mods.catalog.folderCategories.length) }))}</span></summary><p>${mt('noFolders')}</p><div class="mods-folder-choice-list">${rows}</div><div class="detail-actions"><button class="secondary-btn" id="create-mod-category-folders" ${mods.working ? 'disabled' : ''}>${mt('createFolders')}</button><span class="changes-files-note">${mt('createFoldersNote')}</span></div></details>`;
 }
 function renderModsFilters(filtered) {
-  const tabs = [
-    ['all', 'allFiles'],
-    ['enabled', 'enabled'],
-    ['disabled', 'disabled'],
-    ['tooDeep', 'tooDeepFilter']
-  ]
-    .map(([id, key]) => `<button class="small-chip ${mods.stateFilter === id ? 'active' : ''}" data-mod-filter="${id}" aria-pressed="${mods.stateFilter === id}">${mt(key)}</button>`)
-    .join('');
-  const categories = `<label class="mods-category-filter"><span>${mt('category')}</span><select id="mod-category-filter"><option value="">${mt('allCategories')}</option><option value="__none__" ${mods.categoryFilter === '__none__' ? 'selected' : ''}>${mt('noCategory')}</option>${categoryOptions(mods.categoryFilter).replace(/^<option value="" [^>]*>[^<]*<\/option>/, '')}</select></label>`;
-  return `<div class="mods-search-row"><div class="library-search-bar scan-search"><label><span aria-hidden="true">⌕</span><input id="scan-search" type="search" value="${esc(mods.query)}" placeholder="${esc(mt('search'))}" aria-label="${esc(mt('search'))}"></label></div></div><div class="mods-filter-row"><div class="subtabs mods-filter-tabs" role="group" aria-label="${esc(mt('stateFilterLabel'))}">${tabs}</div>${originFilter()}${categories}</div><div class="mods-select-row"><span class="mods-result-count" role="status">${esc(format(mt('resultCount'), { count: n(filtered.length) }))}</span><button class="text-link" id="select-mod-page">${mt('selectPage')}</button><button class="text-link" id="select-mod-results">${esc(format(mt('selectResults'), { count: n(filtered.length) }))}</button>${mods.selected.size ? `<button class="text-link" id="clear-mod-selection">${mt('clearSelection')}</button>` : ''}</div>`;
+  const select = (id, label, options, value) =>
+    `<label class="library-select"><span class="visually-hidden">${esc(label)}</span><select id="${id}" aria-label="${esc(label)}">${options.map(([key, text]) => `<option value="${key}" ${value === key ? 'selected' : ''}>${esc(text)}</option>`).join('')}</select></label>`;
+  const states = select('mod-state-filter', mt('stateFilterLabel'), [['all', mt('allFiles')], ['enabled', mt('enabled')], ['disabled', mt('disabled')], ['tooDeep', mt('tooDeepFilter')]], mods.stateFilter);
+  const origins = select('mod-origin-filter', t('libOrigin'), [['all', t('libOriginAll')], ['simmerspace', t('libFromApp')], ['external', t('libExternal')]], library.origin);
+  const categories = library.view === 'list' ? `<label class="library-select"><span class="visually-hidden">${mt('category')}</span><select id="mod-category-filter" aria-label="${esc(mt('category'))}"><option value="">${mt('allCategories')}</option><option value="__none__" ${mods.categoryFilter === '__none__' ? 'selected' : ''}>${t('libNoCategory')}</option>${categoryOptions(mods.categoryFilter).replace(/^<option value="" [^>]*>[^<]*<\/option>/, '')}</select></label>` : '';
+  const search = `<label class="search-field library-search">${icon('search')}<input id="scan-search" type="search" value="${esc(mods.query)}" placeholder="${esc(mt('search'))}" aria-label="${esc(mt('search'))}" autocomplete="off"></label>`;
+  const active = libraryActiveFolder();
+  return `<div class="library-controls">${search}<div class="library-selects">${states}${origins}${categories}</div></div>${active}<div class="mods-select-row"><span class="mods-result-count" role="status">${esc(format(mt('resultCount'), { count: n(filtered.length) }))}</span><button class="text-link" id="select-mod-page">${mt('selectPage')}</button><button class="text-link" id="select-mod-results">${esc(format(mt('selectResults'), { count: n(filtered.length) }))}</button>${mods.selected.size ? `<button class="text-link" id="clear-mod-selection">${mt('clearSelection')}</button>` : ''}</div>`;
+}
+// In the category or creator view, the folder being shown, with a way back to every folder.
+function libraryActiveFolder() {
+  if (library.view === 'list') return '';
+  const key = library.view === 'creator' ? library.creatorFilter : mods.categoryFilter;
+  if (!key) return '';
+  const group = groupModFiles(mods.result.files, library.view, modLookup()).find(item => item.key === key);
+  const name = !group || group.fallback ? (library.view === 'creator' ? t('libNoCreator') : t('libNoCategory')) : group.name;
+  return `<div class="library-active-folder">${icon('folder')}<span>${esc(format(t('libShowingFolder'), { name }))}</span><button class="text-link" data-library-folder="${esc(key)}">${t('libShowAllFolders')}</button></div>`;
 }
 function renderBulkTools() {
   if (!mods.selected.size) return '';
-  const canOrganize = mods.catalog.folderCategories.length > 0;
+  const canOrganize = true; // Since 0.12.1 every category (and creator) gets a folder; none has to be set up first.
   return `<section class="mods-bulk-tools" aria-labelledby="mods-bulk-title"><div class="mods-bulk-head"><b id="mods-bulk-title">${esc(format(mt('selectedCount'), { count: n(mods.selected.size) }))}</b></div><div class="mods-bulk-section"><span class="mods-group-label"><i class="safe-dot" aria-hidden="true"></i>${mt('tagGroup')}</span><div class="mods-bulk-fields"><label><span>${mt('category')}</span><select id="bulk-mod-category">${categoryOptions('', 'bulk')}</select></label><label><span>${mt('creator')}</span><input id="bulk-mod-creator" list="bulk-mod-creators" placeholder="${esc(mt('unchanged'))}">${creatorsDatalist('bulk-mod-creators')}</label><label><span>${mt('gender')}</span><select id="bulk-mod-gender">${genderOptions('', 'bulk')}</select></label><label><span>${mt('age')}</span><select id="bulk-mod-age">${ageOptions('', 'bulk')}</select></label><label class="mods-clear-creator"><input id="clear-bulk-mod-creator" type="checkbox"><span>${mt('clearCreator')}</span></label><button class="primary-btn" id="apply-mod-tags">${mt('applyTags')}</button></div></div><div class="mods-bulk-section changes-files"><span class="mods-group-label"><i class="change-dot" aria-hidden="true"></i>${mt('changeGroup')}</span><div class="mods-bulk-actions"><button class="secondary-btn" data-bulk-mod-toggle="true" ${mods.working ? 'disabled' : ''}>${mt('enable')}</button><button class="secondary-btn" data-bulk-mod-toggle="false" ${mods.working ? 'disabled' : ''}>${mt('disable')}</button><button class="secondary-btn" id="organize-selected-mods" ${canOrganize && !mods.working ? '' : 'disabled'} title="${esc(canOrganize ? mt('organizeHint') : mt('organizeNeedsFolders'))}">${mt('organize')}</button><button class="danger-btn" id="trash-selected-mods" ${mods.working ? 'disabled' : ''}>${mt('remove')}</button></div><p class="changes-files-note">${canOrganize ? mt('changeGroupNote') : mt('organizeNeedsFolders')}</p></div></section>`;
 }
 function renderModRow(file) {
@@ -350,12 +358,13 @@ function renderModRow(file) {
   const warning = modDepthWarning(file);
   const path = esc(file.relativePath);
   const name = esc(file.name);
-  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}"><span class="scan-file-icon" aria-hidden="true" title="${file.extension === 'ts4script' ? mt('scriptFile') : mt('packageFile')}">${file.extension === 'ts4script' ? '⚙' : '✧'}</span><span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags">${originBadge(file)}<i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="small-chip" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}">${mt('editTags')}</button><button class="small-chip" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${file.enabled ? mt('disable') : mt('enable')}</button><button class="small-chip" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${mt('rename')}</button><button class="small-chip danger-quiet icon-only" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" title="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>🗑</button></span></li>`;
+  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}"><span class="scan-file-icon" aria-hidden="true" title="${file.extension === 'ts4script' ? mt('scriptFile') : mt('packageFile')}">${file.extension === 'ts4script' ? '⚙' : '✧'}</span><span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags">${originBadge(file)}<i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="icon-btn icon-btn-sm" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}" data-tip="${esc(mt('editTags'))}">${icon('tag')}</button><button class="icon-btn icon-btn-sm" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" data-tip="${esc(file.enabled ? mt('disable') : mt('enable'))}" ${mods.working ? 'disabled' : ''}>${icon(file.enabled ? 'eye' : 'eyeOff')}</button><button class="icon-btn icon-btn-sm" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" data-tip="${esc(mt('rename'))}" ${mods.working ? 'disabled' : ''}>${icon('edit')}</button><button class="icon-btn icon-btn-sm danger-quiet" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" data-tip="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>${icon('trash')}</button></span></li>`;
 }
 function renderModsList(filtered) {
   const pages = Math.max(1, Math.ceil(filtered.length / MODS_PAGE_SIZE));
   mods.page = Math.min(mods.page, pages - 1);
-  const pageFiles = filtered.slice(mods.page * MODS_PAGE_SIZE, (mods.page + 1) * MODS_PAGE_SIZE);
+  const grouped = libraryGroupedOrder(filtered);
+  const pageFiles = (grouped ? grouped.files : filtered).slice(mods.page * MODS_PAGE_SIZE, (mods.page + 1) * MODS_PAGE_SIZE);
   if (!pageFiles.length) {
     const noFiles = !mods.result.files.length;
     return `<div class="mods-empty"><b>${noFiles ? mt('noMods') : mt('noMatches')}</b>${noFiles ? '' : `<button class="text-link" id="reset-mod-filters">${mt('resetFilters')}</button>`}</div>`;
@@ -364,13 +373,44 @@ function renderModsList(filtered) {
     pages > 1
       ? `<nav class="scan-pagination" aria-label="${esc(mt('pagination'))}"><button class="small-chip" data-scan-page="first" ${mods.page === 0 ? 'disabled' : ''} aria-label="${esc(mt('firstPage'))}">«</button><button class="small-chip" data-scan-page="-1" ${mods.page === 0 ? 'disabled' : ''} aria-label="${esc(mt('previousPage'))}">←</button><span>${esc(format(mt('pageOf'), { page: n(mods.page + 1), pages: n(pages) }))}</span><button class="small-chip" data-scan-page="1" ${mods.page >= pages - 1 ? 'disabled' : ''} aria-label="${esc(mt('nextPage'))}">→</button><button class="small-chip" data-scan-page="last" ${mods.page >= pages - 1 ? 'disabled' : ''} aria-label="${esc(mt('lastPage'))}">»</button></nav>`
       : '';
-  return `<ul class="scan-file-list managed-mod-list" aria-label="${esc(mt('fileListLabel'))}">${pageFiles.map(renderModRow).join('')}</ul>${pager}`;
+  let lastGroup = null;
+  const rows = pageFiles
+    .map(file => {
+      if (!grouped) return renderModRow(file);
+      const group = grouped.groupOf.get(file);
+      const head = group !== lastGroup ? `<li class="library-group-head" role="presentation">${icon(group.fallback ? 'folder' : library.view === 'creator' ? 'creators' : categoryIcon(group.key))}<b>${esc(group.label)}</b><span class="badge">${n(group.count)}</span></li>` : '';
+      lastGroup = group;
+      return head + renderModRow(file);
+    })
+    .join('');
+  return `<ul class="scan-file-list managed-mod-list" aria-label="${esc(mt('fileListLabel'))}">${rows}</ul>${pager}`;
+}
+// Category and creator views list files under a heading per folder (fallback last) unless one folder is open.
+function libraryGroupedOrder(filtered) {
+  if (library.view === 'list' || (library.view === 'creator' ? library.creatorFilter : mods.categoryFilter)) return null;
+  const lookup = modLookup();
+  const groups = new Map();
+  const order = groupModFiles(filtered, library.view, lookup);
+  const fallbackLabel = library.view === 'creator' ? t('libNoCreator') : t('libNoCategory');
+  for (const group of order) groups.set(group.key, { ...group, label: group.fallback ? fallbackLabel : group.name, files: [] });
+  for (const file of filtered) {
+    let key = library.view === 'creator' ? lookup.creatorKey(file) : lookup.tags(file.relativePath).categoryId || '';
+    if (!groups.has(key) || !key) key = '__none__';
+    groups.get(key).files.push(file);
+  }
+  const groupOf = new Map();
+  const files = [];
+  for (const group of groups.values()) for (const file of group.files) {
+    groupOf.set(file, group);
+    files.push(file);
+  }
+  return { files, groupOf };
 }
 function renderManagedModsPanel() {
   const files = mods.result?.files || [];
   const filtered = mods.result ? filteredModFiles() : [];
   const body = mods.result
-    ? `${renderModsSummary(summarizeModFiles(files))}${libraryFolders()}<section class="library-list ${library.listOpen ? 'is-open' : ''}"><button class="library-list-toggle" id="toggle-library-list" aria-expanded="${library.listOpen}" aria-controls="library-list-body">${icon('chevron', 'disclosure-icon')}<b>${t('libFileList')}</b><span class="badge">${n(filtered.length)}</span>${filtered.length !== files.length ? `<small>${esc(format(t('libOfTotal'), { total: n(files.length) }))}</small>` : ''}</button><div class="library-list-body" id="library-list-body" ${library.listOpen ? '' : 'hidden'}>${renderFolderSettings()}${renderModsFilters(filtered)}${renderBulkTools()}${renderModsList(filtered)}</div></section>`
+    ? `${renderModsSummary(summarizeModFiles(files))}${libraryFolders()}<section class="library-list" aria-labelledby="library-list-title"><h3 class="visually-hidden" id="library-list-title">${t('libFileList')}</h3>${renderModsFilters(filtered)}${renderBulkTools()}${renderModsList(filtered)}</section>${renderFolderSettings()}`
     : renderModsEmptyState();
   const errorBox = mods.error
     ? `<div class="scan-error" role="alert"><b>${mt('scanError')}</b> <span>${esc(errorMessage(mods.error))}</span>${
@@ -654,6 +694,7 @@ const MOD_CLICK_ACTIONS = {
   },
   'apply-mod-tags': applyBulkTags,
   'organize-selected-mods': () => organizeSelected(),
+  'open-organizer': () => openOrganizer(),
   'trash-selected-mods': trashSelected,
   'save-mod-tags': button => {
     const relativePath = button.dataset.modPath;
@@ -775,6 +816,13 @@ document.addEventListener('change', event => {
   if (target.matches('[data-mod-select]')) {
     if (target.checked) mods.selected.add(target.dataset.modSelect);
     else mods.selected.delete(target.dataset.modSelect);
+    renderModsPanel();
+    return;
+  }
+  if (target.id === 'mod-state-filter' || target.id === 'mod-origin-filter') {
+    if (target.id === 'mod-state-filter') mods.stateFilter = target.value;
+    else library.origin = target.value;
+    mods.page = 0;
     renderModsPanel();
     return;
   }

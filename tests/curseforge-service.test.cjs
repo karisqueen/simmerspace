@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const zlib = require('node:zlib');
-const { createCurseForgeService, summarizeMod, htmlToText, folderNameForMod } = require('../electron/curseforge-service.cjs');
+const { createCurseForgeService, summarizeMod, htmlToText, folderNameForMod, creatorStyle } = require('../electron/curseforge-service.cjs');
 const { moveNoOverwrite } = require('../electron/mods-service.cjs');
 const { readZip, safeEntryPath } = require('../electron/zip-reader.cjs');
 
@@ -357,4 +357,21 @@ test('with a proxy, sends the signed-in token instead of the key, and needs a se
   }
   const signedOut = await setup(t, { routes, config: { apiKey: '', proxyUrl: PROXY }, proxyToken: async () => null });
   await assert.rejects(signedOut.service.search({ query: 'kitchen' }), error => error.code === 'CF_NOT_CONFIGURED');
+});
+
+test('creator pictures, content types and style come only from what CurseForge returns', async t => {
+  const projects = [
+    modRecord({ id: 1, name: 'A', downloadCount: 100, categories: [{ id: 1, name: 'Hair' }, { id: 2, name: 'Maxis Match' }], authors: [{ id: 5, name: 'mossyhome', avatarUrl: 'https://media.forgecdn.net/avatars/5.png' }] }),
+    modRecord({ id: 2, name: 'B', downloadCount: 90, categories: [{ id: 3, name: 'Furniture' }], authors: [{ id: 6, name: 'pixelpine', avatarUrl: 'https://evil.example/a.png' }] }),
+    modRecord({ id: 3, name: 'C', downloadCount: 50, categories: [{ id: 1, name: 'Hair' }], authors: [{ id: 5, name: 'mossyhome' }] })
+  ];
+  const f = await setup(t, { routes: { [`${API}/v1/mods/search`]: url => json({ data: new URL(url).searchParams.get('index') === '0' ? projects : [], pagination: { index: 0, pageSize: 50, resultCount: 3, totalCount: 3 } }) } });
+  const [moss, pine] = await f.service.popularCreators({ limit: 12 });
+  assert.equal(moss.avatarUrl, 'https://media.forgecdn.net/avatars/5.png');
+  assert.equal(pine.avatarUrl, '', 'pictures from other hosts are dropped, never replaced with a made-up one');
+  assert.deepEqual(moss.categories, ['Hair', 'Maxis Match']);
+  assert.equal(moss.style, 'maxis');
+  assert.equal(pine.style, 'unknown');
+  assert.equal(creatorStyle(['Alpha CC']), 'alpha');
+  assert.equal(creatorStyle(['Maxis-Match', 'Alpha']), 'both');
 });

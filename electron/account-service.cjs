@@ -4,25 +4,20 @@
    Passwords go straight to Supabase and are never stored by SimmerSpace. The session is kept in the user-data
    folder, encrypted with the operating system's protection (Electron safeStorage); when that is not available
    it is kept in memory only and the player signs in again next time. */
-const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { AppError } = require('./errors.cjs');
+const { createCommunityService } = require('./community-service.cjs');
 
 const SESSION_FILE = 'account-session.json';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[a-z0-9_.]{3,24}$/;
 const MIN_PASSWORD = 8;
 const AVATAR_BUCKET = 'avatars';
-const POST_BUCKET = 'inspiration';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-const POST_MAX_BYTES = 10 * 1024 * 1024;
 const AVATAR_TYPES = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' };
-const POST_TYPES = { ...AVATAR_TYPES, 'image/gif': 'gif' };
 const POST_CATEGORIES = ['cas', 'build', 'gameplay', 'story', 'other'];
 const FEEDBACK_CATEGORIES = ['suggestion', 'bug_report', 'feature_request', 'donation_feedback', 'other'];
-const PAGE_SIZE = 24;
-const SIGNED_URL_SECONDS = 60 * 60;
 const USERNAME_CHANGE_DAYS = 30;
 
 // Supabase error codes (https://supabase.com/docs/guides/auth/debugging/error-codes) mapped to our own.
@@ -161,13 +156,17 @@ function createSessionStorage({ userDataPath, safeStorage, installId = '' }) {
   };
 }
 
+// Where the confirmation link in the sign-up email lands: a page on the project site that says the account is ready and
+// the player can go back to the app. It must be listed under Authentication > URL Configuration in Supabase.
+const EMAIL_CONFIRMED_URL = 'https://karisqueen.github.io/simmerspace/cuenta-confirmada.html';
+
 function createAccountService({ getConfig, userDataPath, safeStorage, installId = '', createClient, onChange = () => {} }) {
   const storage = createSessionStorage({ userDataPath, safeStorage, installId });
   let client = null;
   let clientKey = '';
   let pendingEmail = '';
-  // Password of the sign-up waiting for its email code, kept only in memory. If the email was already confirmed
-  // (for example through the link in the email), it lets the app sign in instead of asking for a code again.
+  // Password of the sign-up waiting for its confirmation link, kept only in memory, so that once the link was opened
+  // the app can sign in without asking for it again.
   let pendingPassword = '';
   let profileCache = null; // { id, username, avatar_url } of the signed-in user
 
@@ -287,7 +286,7 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     return run(async sb => {
       const free = await sb.rpc('username_available', { name });
       if (!free.error && free.data === false) throw new AppError('ACCOUNT_USERNAME_TAKEN', 'That username is taken.');
-      const { data, error } = await sb.auth.signUp({ email: address, password: secret, options: { data: { username: name } } });
+      const { data, error } = await sb.auth.signUp({ email: address, password: secret, options: { data: { username: name }, emailRedirectTo: EMAIL_CONFIRMED_URL } });
       if (error) throw error;
       // With "confirm email" on, Supabase answers an existing address with a user that has no identities.
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new AppError('ACCOUNT_EXISTS', 'There is already an account with this email.');
@@ -307,31 +306,15 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     return publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true }));
   }
 
-  async function verifyEmail({ email, code } = {}) {
-    const address = checkEmail(email || pendingEmail);
-    const token = checkCode(code);
-    return run(async sb => {
-      const { data, error } = await sb.auth.verifyOtp({ email: address, token, type: 'email' });
-      if (error) {
-        const user = await signInIfConfirmed(sb, address);
-        if (user) return { user, alreadyConfirmed: true };
-        throw error;
-      }
-      pendingEmail = '';
-      pendingPassword = '';
-      return { user: data.user ? publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true })) : null };
-    });
-  }
-
-  // Supabase answers a resend for an address that is already confirmed without sending anything, so check first.
-  async function resendConfirmation({ email } = {}) {
+  // Supabase confirms the email through the link in the message, in the browser; the app cannot see that happen.
+  // "I confirmed my email" asks again: it signs in with the sign-up typed in this session, or, when the app was
+  // closed in between (the password is never stored), it asks for a normal sign-in.
+  async function checkConfirmation({ email } = {}) {
     const address = checkEmail(email || pendingEmail);
     return run(async sb => {
+      if (!pendingPassword || address !== pendingEmail) return { confirmed: false, needsSignIn: true };
       const user = await signInIfConfirmed(sb, address);
-      if (user) return { sent: false, alreadyConfirmed: true, user };
-      const { error } = await sb.auth.resend({ type: 'signup', email: address });
-      if (error) throw error;
-      return { sent: true };
+      return user ? { confirmed: true, user } : { confirmed: false, needsSignIn: false };
     });
   }
 
@@ -439,97 +422,8 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     });
   }
 
-  /* ---------- Inspiration ---------- */
-  async function signedUrls(sb, paths) {
-    if (!paths.length) return new Map();
-    const { data, error } = await sb.storage.from(POST_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
-    if (error) throw error;
-    return new Map((data || []).filter(item => item.signedUrl && !item.error).map(item => [item.path, item.signedUrl]));
-  }
-
-  // One page of the community feed, newest first. `before` is the created_at of the last post already shown.
-  async function listPosts({ before, category, userId, limit } = {}) {
-    const size = Number.isInteger(limit) && limit > 0 && limit <= 48 ? limit : PAGE_SIZE;
-    return run(async sb => {
-      const me = await requireUser(sb);
-      let query = sb.from('inspiration_posts').select('id, user_id, image_path, caption, category, created_at').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(size + 1);
-      if (POST_CATEGORIES.includes(category)) query = query.eq('category', category);
-      if (typeof userId === 'string' && /^[0-9a-f-]{36}$/i.test(userId)) query = query.eq('user_id', userId);
-      if (typeof before === 'string' && !Number.isNaN(Date.parse(before))) query = query.lt('created_at', before);
-      const { data, error } = await query;
-      if (error) throw error;
-      const rows = (data || []).slice(0, size);
-      const ids = [...new Set(rows.map(row => row.user_id))];
-      const [authors, urls] = await Promise.all([
-        ids.length ? sb.from('profiles').select('id, username, avatar_url').in('id', ids) : Promise.resolve({ data: [] }),
-        signedUrls(sb, rows.map(row => row.image_path))
-      ]);
-      if (authors.error) throw authors.error;
-      const byId = new Map((authors.data || []).map(row => [row.id, row]));
-      return {
-        posts: rows.map(row => ({
-          id: row.id,
-          userId: row.user_id,
-          author: { username: byId.get(row.user_id)?.username || '', avatarUrl: avatarUrl(sb, byId.get(row.user_id)?.avatar_url) },
-          imageUrl: urls.get(row.image_path) || '',
-          caption: row.caption || '',
-          category: POST_CATEGORIES.includes(row.category) ? row.category : 'other',
-          createdAt: row.created_at,
-          own: row.user_id === me.id
-        })),
-        nextBefore: (data || []).length > size ? rows.at(-1).created_at : null
-      };
-    });
-  }
-
-  async function getProfile({ userId } = {}) {
-    if (typeof userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(userId)) throw new AppError('INVALID_INPUT', 'A profile id was expected.');
-    return run(async sb => {
-      await requireUser(sb);
-      const [profile, posts] = await Promise.all([
-        sb.from('profiles').select('id, username, avatar_url, created_at').eq('id', userId).maybeSingle(),
-        sb.from('inspiration_posts').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-      ]);
-      if (profile.error) throw profile.error;
-      if (!profile.data) throw new AppError('NOT_FOUND', 'This profile does not exist.');
-      return { id: profile.data.id, username: profile.data.username || '', avatarUrl: avatarUrl(sb, profile.data.avatar_url), createdAt: profile.data.created_at, postCount: posts.count || 0 };
-    });
-  }
-
-  // Images go to inspiration/<user id>/<random id>.<ext>. If saving the post fails, the image is removed again.
-  async function createPost(input = {}) {
-    const image = checkImage(input, POST_TYPES, POST_MAX_BYTES);
-    const caption = cleanText(input.caption, 500);
-    const category = POST_CATEGORIES.includes(input.category) ? input.category : 'other';
-    return run(async sb => {
-      const user = await requireUser(sb);
-      const objectPath = `${user.id}/${crypto.randomUUID()}.${image.ext}`;
-      const bucket = sb.storage.from(POST_BUCKET);
-      const uploaded = await bucket.upload(objectPath, image.body, { contentType: image.type, upsert: false, cacheControl: '86400' });
-      if (uploaded.error) throw uploaded.error;
-      const saved = await sb.from('inspiration_posts').insert({ user_id: user.id, image_path: objectPath, caption, category }).select('id').single();
-      if (saved.error) {
-        await bucket.remove([objectPath]);
-        throw saved.error;
-      }
-      return { id: saved.data.id };
-    });
-  }
-
-  // Deletes the post and its image. Row-level security only lets the author do this.
-  async function deletePost({ id } = {}) {
-    if (typeof id !== 'string' && !Number.isInteger(id)) throw new AppError('INVALID_INPUT', 'A post id was expected.');
-    return run(async sb => {
-      const user = await requireUser(sb);
-      const found = await sb.from('inspiration_posts').select('id, image_path').eq('id', id).eq('user_id', user.id).maybeSingle();
-      if (found.error) throw found.error;
-      if (!found.data) throw new AppError('ACCOUNT_FORBIDDEN', 'Only the author can delete this post.');
-      const removed = await sb.from('inspiration_posts').delete().eq('id', id).eq('user_id', user.id);
-      if (removed.error) throw removed.error;
-      const image = await sb.storage.from(POST_BUCKET).remove([found.data.image_path]);
-      return { deleted: true, imageRemoved: !image.error };
-    });
-  }
+  /* ---------- Inspiration (community-service.cjs) ---------- */
+  const community = createCommunityService({ run, requireUser, avatarUrl });
 
   /* ---------- Feedback ---------- */
   async function sendFeedback({ category, message, email } = {}) {
@@ -562,8 +456,7 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     status,
     checkUsername,
     signUp,
-    verifyEmail,
-    resendConfirmation,
+    checkConfirmation,
     signIn,
     signOut,
     requestPasswordReset,
@@ -571,13 +464,10 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     updateProfile,
     uploadAvatar,
     removeAvatar,
-    listPosts,
-    getProfile,
-    createPost,
-    deletePost,
+    ...community,
     sendFeedback,
     proxyToken
   };
 }
 
-module.exports = { createAccountService, createSessionStorage, accountError, passwordProblems, MIN_PASSWORD, POST_CATEGORIES, FEEDBACK_CATEGORIES };
+module.exports = { createAccountService, EMAIL_CONFIRMED_URL, createSessionStorage, accountError, passwordProblems, MIN_PASSWORD, POST_CATEGORIES, FEEDBACK_CATEGORIES };

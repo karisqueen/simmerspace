@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Cuenta confirmada · simmerspace</title>
+  <link rel="icon" type="image/png" href="assets/icon.png">
+  <style>
+    /* Landing page for the sign-up confirmation link (emailRedirectTo in electron/account-service.cjs).
+       Supabase has already confirmed the email when this page opens; it only tells the player to go back. */
+    @font-face { font-family: 'DM Sans'; font-display: swap; font-weight: 100 1000; src: url('assets/fonts/dm-sans-latin-wght-normal.woff2') format('woff2-variations'); }
+    @font-face { font-family: 'Fredoka'; font-display: swap; font-weight: 300 700; src: url('assets/fonts/fredoka-latin-wght-normal.woff2') format('woff2-variations'); }
+    :root { --a1: #3a62c8; --bg: #f1f4fb; --surface: #fff; --text: #1e2740; --text-2: #4f5872; --line: #dde3f1; color-scheme: light; }
+    @media (prefers-color-scheme: dark) { :root { --a1: #8eabf5; --bg: #12151f; --surface: #1b2030; --text: #eef1fa; --text-2: #b4bbd0; --line: #2c3348; color-scheme: dark; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--text); font: 16px/1.55 'DM Sans', 'Segoe UI', system-ui, sans-serif; }
+    main { width: min(460px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 32px 28px; text-align: center; box-shadow: 0 18px 50px -30px rgb(30 39 64 / 0.45); animation: rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+    img { width: 64px; height: 64px; border-radius: 16px; }
+    .brand { font: 600 22px 'Fredoka', 'DM Sans', sans-serif; margin: 10px 0 18px; }
+    .brand span { color: var(--a1); }
+    h1 { font-size: 22px; margin: 0 0 10px; }
+    p { margin: 0 0 12px; color: var(--text-2); }
+    .en { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; }
+    .error h1 { color: #c0392b; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) { main { animation: none; } }
+  </style>
+</head>
+<body>
+  <main id="ok">
+    <img src="assets/icon.png" alt="">
+    <div class="brand">simmer<span>space</span></div>
+    <h1>¡Tu cuenta está confirmada!</h1>
+    <p>Ya puedes cerrar esta pestaña y volver a simmerspace. Pulsa «Ya confirmé mi correo» o inicia sesión con tu correo y contraseña.</p>
+    <p class="en" lang="en">Your account is confirmed. You can close this tab and go back to simmerspace: press “I’ve confirmed my email” or sign in with your email and password.</p>
+  </main>
+  <script>
+    // Supabase adds error details to the address when the link is not valid any more (for example, already used
+    // or expired). Show that instead of a success message. Nothing is sent anywhere from this page.
+    (function () {
+      var params = new URLSearchParams((location.hash || '').replace(/^#/, '') + '&' + location.search.replace(/^\?/, ''));
+      if (!params.get('error') && !params.get('error_code')) return;
+      var main = document.getElementById('ok');
+      main.className = 'error';
+      main.querySelector('h1').textContent = 'Este enlace ya no es válido';
+      main.querySelectorAll('p')[0].textContent = 'Puede que ya lo hayas usado o que haya caducado. Si tu cuenta ya estaba confirmada, vuelve a simmerspace e inicia sesión. Si no, crea la cuenta de nuevo con el mismo correo.';
+      main.querySelectorAll('p')[1].textContent = 'This link is no longer valid. It may have been used already or expired. If your account was already confirmed, go back to simmerspace and sign in.';
+      // The access token in the address is not needed here: remove it from the history.
+      history.replaceState(null, '', location.pathname);
+    })();
+    if (location.hash.indexOf('access_token') !== -1) history.replaceState(null, '', location.pathname);
+  </script>
+</body>
+</html>

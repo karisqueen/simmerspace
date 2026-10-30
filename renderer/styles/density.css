@@ -1,0 +1,92 @@
+/* Density (Settings → Personalization). Comfortable gives everything room to breathe; Compact shows clearly more
+   on screen. tokens.css swaps the shared sizes and spacing scale; the rules below tighten the places that use fixed
+   sizes so the difference shows across the whole app, not in one component. Text never goes below 12px. */
+
+/* ---------- Comfortable ---------- */
+[data-density='comfortable'] .content-wrap {
+  padding: 28px 36px 48px;
+}
+[data-density='comfortable'] .managed-mod-row,
+[data-density='comfortable'] .list-row {
+  padding-block: 12px;
+}
+[data-density='comfortable'] .setting-row {
+  padding-block: 6px;
+}
+
+/* ---------- Compact ---------- */
+[data-density='compact'] .content-wrap {
+  padding: 14px 18px 24px;
+}
+[data-density='compact'] .page-header {
+  margin-bottom: 10px;
+}
+[data-density='compact'] .page-title {
+  font-size: var(--fs-xl);
+}
+[data-density='compact'] .card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+[data-density='compact'] .collection-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+[data-density='compact'] .creator-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+[data-density='compact'] .folder-grid,
+[data-density='compact'] .profile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+[data-density='compact'] .managed-mod-row,
+[data-density='compact'] .list-row {
+  gap: 8px;
+  padding: 5px 10px;
+}
+[data-density='compact'] .managed-mod-row .file-icon,
+[data-density='compact'] .managed-mod-row .mod-thumb {
+  width: 28px;
+  height: 28px;
+}
+[data-density='compact'] .setting-row,
+[data-density='compact'] .switch-row {
+  gap: 8px;
+  padding-block: 2px;
+}
+[data-density='compact'] .panel-summary {
+  padding-block: 10px;
+}
+[data-density='compact'] .panel-body {
+  gap: 10px;
+}
+[data-density='compact'] .toolbar-row,
+[data-density='compact'] .mods-filter-row,
+[data-density='compact'] .mods-search-row {
+  gap: 6px;
+  margin-block: 6px;
+}
+[data-density='compact'] .library-strip {
+  padding: 10px 12px;
+  gap: 10px;
+}
+[data-density='compact'] .strip-fact {
+  padding: 2px 8px;
+}
+[data-density='compact'] .creator-card,
+[data-density='compact'] .cc-card .card-body,
+[data-density='compact'] .collection-tile-info {
+  gap: 4px;
+}
+[data-density='compact'] .cf-summary {
+  -webkit-line-clamp: 2;
+}
+[data-density='compact'] .form-dialog {
+  gap: 10px;
+  padding: 18px;
+}
+[data-density='compact'] .nav-item {
+  min-height: 36px;
+}
+[data-density='compact'] .settings-nav-item {
+  padding-block: 6px;
+}

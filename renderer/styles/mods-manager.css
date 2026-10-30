@@ -1152,3 +1152,155 @@
   gap: 10px;
   margin-top: 10px;
 }
+
+/* ---------- 0.12.1 library: one search bar, compact filters, grouped list ---------- */
+.library-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.library-list {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+}
+.library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+/* The same field as the search at the top of the window, just wider. */
+.library-search {
+  flex: 1 1 320px;
+  background: var(--surface-2);
+}
+.library-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mods-manager .library-select select {
+  min-width: 150px;
+  min-height: var(--control-h);
+}
+.library-active-folder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.library-active-folder .text-link {
+  margin-left: auto;
+}
+.library-group-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+.library-group-head .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-3);
+}
+.managed-mod-actions .icon-btn {
+  color: var(--text-3);
+}
+.managed-mod-actions .icon-btn:hover {
+  color: var(--accent-text);
+}
+.managed-mod-actions .danger-quiet:hover {
+  color: var(--danger-fg);
+}
+.mods-folder-settings {
+  margin-top: var(--sp-4);
+}
+
+/* ---------- Organize folders ---------- */
+.organize-options-main {
+  margin-bottom: var(--sp-2);
+}
+.organize-unsorted {
+  margin-top: 4px;
+}
+.organize-more {
+  margin: var(--sp-2) 0;
+}
+.organize-more > summary {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.organize-more[open] > summary {
+  margin-bottom: var(--sp-2);
+}
+.organize-folders {
+  display: grid;
+  gap: 8px;
+  margin: var(--sp-3) 0;
+}
+.organize-folders ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  max-height: 200px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.organize-folders li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.organize-folders li.is-fallback {
+  border-style: dashed;
+}
+.organize-folders li .icon {
+  flex: none;
+  color: var(--highlight-text);
+}
+.organize-folders li span {
+  display: grid;
+  min-width: 0;
+}
+.organize-folders li b {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.organize-folders li small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.mods-manager .library-search input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}

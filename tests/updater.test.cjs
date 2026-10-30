@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { createUpdater } = require('../electron/updater.cjs');
+const { createUpdater, classifyUpdateError } = require('../electron/updater.cjs');
 
 // A stand-in for electron-updater's autoUpdater: no network, it only emits the events a real check would.
 function fakeAutoUpdater({ latest = '0.12.1', failDownload = false } = {}) {
@@ -62,4 +62,25 @@ test('updates: up to date and failures are reported without the updater’s own 
   assert.equal(failed.error, 'UPDATE_FAILED');
   assert.doesNotMatch(JSON.stringify(failed), /example|Users/);
   assert.equal(failed.version, '0.12.1', 'the download can be tried again');
+});
+
+test('updates: failures say what kind of problem it was, so the page can explain it', async () => {
+  assert.equal(classifyUpdateError(new Error('getaddrinfo ENOTFOUND github.com'), 'check'), 'offline');
+  assert.equal(classifyUpdateError(new Error('net::ERR_INTERNET_DISCONNECTED'), 'download'), 'offline');
+  // Only a pre-release (or no release) on GitHub: what 0.12.0 and older copies hit with the "beta" tag.
+  assert.equal(classifyUpdateError(new Error('Unable to find latest version on GitHub (https://github.com/x/y/releases/latest), please ensure a production release exists: HttpError: 404'), 'check'), 'no-release');
+  assert.equal(classifyUpdateError(new Error('Cannot find latest.yml in the latest release artifacts'), 'check'), 'no-release');
+  assert.equal(classifyUpdateError(new Error('sha512 checksum mismatch, expected abc'), 'download'), 'verify');
+  assert.equal(classifyUpdateError(new Error('EPERM: operation not permitted'), 'download'), 'download');
+  assert.equal(classifyUpdateError(new Error('something odd'), 'check'), 'unknown');
+
+  const fake = fakeAutoUpdater();
+  fake.checkForUpdates = async () => {
+    throw new Error('Unable to find latest version on GitHub: HttpError: 404 https://github.com/C:/Users/x');
+  };
+  const updater = createUpdater({ supported: true, currentVersion: '0.12.1', loadUpdater: () => fake });
+  const failed = await updater.check();
+  assert.equal(failed.status, 'error');
+  assert.equal(failed.errorKind, 'no-release');
+  assert.doesNotMatch(JSON.stringify(failed), /github|Users/);
 });

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.1 community, library and clearer updates (2026-10-31)
+
+- Sign-up confirms with the link in the email. After signing up, a "You're almost in!" screen explains the three steps and checks the confirmation when you come back; there is no code screen and no resend button. The link opens `docs/cuenta-confirmada.html`.
+- Inspiration: tags on posts (up to 8, with suggestions), search by one or several tags or by clicking a tag, Discover / Following / Boards tabs, editing a post's caption, category and tags (the date stays), comments with one level of replies that can be edited and deleted, private boards that save posts by reference, and following simlings with follower and following lists. Database: `supabase/migrations/20261031000000_inspiration_social.sql` (additive, row level security on every table).
+- Profiles show "In the simmerspace since…", followers and following.
+- My CC: below the folder header, one search bar like the window's search, compact filters, and a list grouped by category or creator with "No Category" / "No Creator" last. Row actions are icon buttons with tooltips.
+- Organize folders: the whole library or a selection, by category or by creator, with a folder preview, an option for files without one, the existing subfolder and name-clash choices, progress and Stop. It warns when The Sims 4 is running and rescans afterwards. Nothing is ever deleted or overwritten.
+- Creators: the CurseForge picture when CurseForge provides one (else the top project's image, else the initial), content types and the Maxis Match / Alpha style taken from their real categories, with a style filter. Explore cards show up to three tags.
+- Settings: Feedback first, then Personalization and General, one section at a time. The account section moved to the avatar menu (profile and sign out). About is always open. Tooltips appear after one second, including Mode, Density, Animations and Preview; density and animations are clearly different, and the preview reacts as you point at each option. "Match Windows" was removed; saved choices move to what Windows was using.
+- The tutorial follows the sidebar: Home, Explore, My CC, Creators, Collections, Inspiration, Settings, then Launch The Sims 4.
+- Updates explain what went wrong (no connection, no published release, failed download or safety check) and offer to try again; when up to date they say "Your version of simmerspace is up to date." Copies before 0.12.1 reported "Couldn't check for or download the update" because the only GitHub release was a pre-release, which the updater ignores.
+- User-facing brand name in lowercase: simmerspace.
+
 ## 0.12.0 automatic updates and a new profile (2026-10-30)
 
 - SimmerSpace now ships as a Windows installer (`SimmerSpace-Setup-<version>.exe`) and updates itself from the GitHub releases: it checks when it opens (can be turned off in Settings > Updates), asks before downloading, and asks again before restarting to install. Nothing is installed without the player's OK. Portable copies point to the download page instead.

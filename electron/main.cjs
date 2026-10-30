@@ -117,7 +117,7 @@ async function existingDefault(value) {
 async function chooseFolder(id) {
   const routes = await settings.loadRoutes();
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Choose a folder for SimmerSpace',
+    title: 'Choose a folder for simmerspace',
     properties: ['openDirectory'],
     defaultPath: routes[id]?.path || (await existingDefault(defaultFolders[id]))
   });
@@ -142,6 +142,7 @@ ipc.handle('integrations:open-config-folder', validators.none, async () => {
   return !(await shell.openPath(app.getPath('userData')));
 });
 ipc.handle('game:launch', validators.none, () => gameLauncher.launch());
+ipc.handle('game:is-running', validators.none, () => gameLauncher.isRunning());
 // Collection cover (added in 0.7.1): the chosen image is shrunk to a JPEG thumbnail before it reaches the page.
 const COVER_TYPES = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 ipc.handle('collections:choose-cover', validators.none, async () => {
@@ -170,13 +171,12 @@ ipc.handle('cf:installs', validators.none, () => curseforge.installs());
 ipc.handle('cf:check-updates', validators.none, () => curseforge.checkUpdates());
 ipc.handle('account:status', validators.none, () => account.status());
 ipc.handle('account:sign-up', validators.object, input => account.signUp(input));
-ipc.handle('account:verify-email', validators.object, input => account.verifyEmail(input));
 ipc.handle('account:sign-in', validators.object, input => account.signIn(input));
 ipc.handle('account:sign-out', validators.none, () => account.signOut());
 ipc.handle('account:request-reset', validators.object, input => account.requestPasswordReset(input));
 ipc.handle('account:complete-reset', validators.object, input => account.completePasswordReset(input));
 ipc.handle('account:check-username', validators.object, input => account.checkUsername(input));
-ipc.handle('account:resend-confirmation', validators.object, input => account.resendConfirmation(input));
+ipc.handle('account:check-confirmation', validators.object, input => account.checkConfirmation(input));
 ipc.handle('account:update-profile', validators.object, input => account.updateProfile(input));
 ipc.handle('account:upload-avatar', validators.object, input => account.uploadAvatar(input));
 ipc.handle('account:remove-avatar', validators.none, () => account.removeAvatar());
@@ -185,6 +185,23 @@ ipc.handle('inspiration:list', validators.optionalObject, input => account.listP
 ipc.handle('inspiration:profile', validators.object, input => account.getProfile(input));
 ipc.handle('inspiration:create', validators.object, input => account.createPost(input));
 ipc.handle('inspiration:delete', validators.object, input => account.deletePost(input));
+ipc.handle('inspiration:get', validators.object, input => account.getPost(input));
+ipc.handle('inspiration:update', validators.object, input => account.updatePost(input));
+ipc.handle('inspiration:suggest-tags', validators.optionalObject, input => account.suggestTags(input));
+ipc.handle('community:follow', validators.object, input => account.follow(input));
+ipc.handle('community:unfollow', validators.object, input => account.unfollow(input));
+ipc.handle('community:follows', validators.object, input => account.listFollows(input));
+ipc.handle('boards:list', validators.optionalObject, input => account.listBoards(input));
+ipc.handle('boards:create', validators.object, input => account.createBoard(input));
+ipc.handle('boards:update', validators.object, input => account.updateBoard(input));
+ipc.handle('boards:delete', validators.object, input => account.deleteBoard(input));
+ipc.handle('boards:posts', validators.object, input => account.boardPosts(input));
+ipc.handle('boards:save', validators.object, input => account.savePost(input));
+ipc.handle('boards:unsave', validators.object, input => account.unsavePost(input));
+ipc.handle('comments:list', validators.object, input => account.listComments(input));
+ipc.handle('comments:add', validators.object, input => account.addComment(input));
+ipc.handle('comments:edit', validators.object, input => account.editComment(input));
+ipc.handle('comments:delete', validators.object, input => account.deleteComment(input));
 ipc.handle('settings:load-routes', validators.none, () => settings.loadRoutes());
 ipc.handle('folders:choose', validators.oneOf(ROUTE_IDS), chooseFolder);
 ipc.handle('mods:scan', validators.none, () => modsService.scan());
@@ -216,7 +233,7 @@ async function createWindow() {
     height: 940,
     minWidth: 760,
     minHeight: 620,
-    title: `SimmerSpace ${APP_VERSION}`,
+    title: `simmerspace ${APP_VERSION}`,
     icon: path.join(__dirname, '..', 'renderer', 'brand', 'simmerspace-icon.png'),
     // The last theme's background, so dark themes do not flash light while the page loads.
     backgroundColor: /^#[0-9a-f]{6}$/i.test(saved.windowBackground || '') ? saved.windowBackground : '#f6f5fa',

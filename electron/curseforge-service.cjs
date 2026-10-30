@@ -99,7 +99,9 @@ function summarizeMod(mod) {
     authors: (Array.isArray(mod.authors) ? mod.authors : []).slice(0, 8).map(author => ({
       id: Number(author?.id) || 0,
       name: text(author?.name, 120),
-      url: isCurseForgePage(author?.url) ? author.url : ''
+      url: isCurseForgePage(author?.url) ? author.url : '',
+      // Not part of the documented ModAuthor schema; kept only when CurseForge sends one on its own image CDN.
+      avatarUrl: isImageUrl(author?.avatarUrl) ? author.avatarUrl : ''
     })),
     logo: isImageUrl(mod.logo?.thumbnailUrl) ? mod.logo.thumbnailUrl : '',
     screenshots: (Array.isArray(mod.screenshots) ? mod.screenshots : [])
@@ -119,6 +121,15 @@ function summarizeMod(mod) {
 }
 
 // Newest release file (falls back to newest of any kind) from a mod's latestFiles.
+// Maxis Match or Alpha, only when the creator's own CurseForge categories say so; otherwise "unknown".
+function creatorStyle(categoryNames) {
+  const names = categoryNames.map(name => String(name).toLowerCase());
+  const maxis = names.some(name => /maxis[\s-]*match/.test(name));
+  const alpha = names.some(name => /\balpha\b/.test(name));
+  if (maxis && alpha) return 'both';
+  return maxis ? 'maxis' : alpha ? 'alpha' : 'unknown';
+}
+
 function newestFile(mod) {
   const files = (Array.isArray(mod?.latestFiles) ? mod.latestFiles : []).filter(file => file && file.isAvailable !== false);
   const pool = files.some(file => file.releaseType === 1) ? files.filter(file => file.releaseType === 1) : files;
@@ -359,8 +370,9 @@ function createCurseForgeService({
   }
 
   // Popular creators: CurseForge has no creator ranking, so this groups the authors of the most popular Sims 4
-  // projects and ranks them by those projects' downloads. Only data the API returns is used (no avatars exist
-  // in the API, so the card shows the creator's most downloaded project image).
+  // projects and ranks them by those projects' downloads. Only data the API returns is used: the picture is the
+  // author's avatar when CurseForge sends one, otherwise their most downloaded project's image; content types
+  // and the Maxis Match / Alpha style come from their projects' real CurseForge categories (never guessed).
   async function popularCreators({ limit = 12 } = {}) {
     const wanted = int(limit, 12, 1, 24);
     const pages = await Promise.all([0, MAX_PAGE_SIZE].map(index => search({ sortField: 2, pageSize: MAX_PAGE_SIZE, index })));
@@ -369,14 +381,22 @@ function createCurseForgeService({
       for (const author of project.authors.slice(0, 2)) {
         if (!author.name) continue;
         const key = author.id ? `id:${author.id}` : `name:${author.name.toLowerCase()}`;
-        const entry = byAuthor.get(key) || { id: author.id, name: author.name, url: author.url, downloads: 0, projectCount: 0, projects: [] };
+        const entry = byAuthor.get(key) || { id: author.id, name: author.name, url: author.url, avatarUrl: '', downloads: 0, projectCount: 0, projects: [], categoryCounts: new Map() };
+        if (!entry.avatarUrl && author.avatarUrl) entry.avatarUrl = author.avatarUrl;
         entry.downloads += project.downloadCount;
         entry.projectCount++;
-        if (entry.projects.length < 3) entry.projects.push({ id: project.id, name: project.name, logo: project.logo, summary: project.summary, downloadCount: project.downloadCount, websiteUrl: project.websiteUrl });
+        for (const category of project.categories) if (category.name) entry.categoryCounts.set(category.name, (entry.categoryCounts.get(category.name) || 0) + 1);
+        if (entry.projects.length < 3) entry.projects.push({ id: project.id, name: project.name, logo: project.logo, summary: project.summary, downloadCount: project.downloadCount, websiteUrl: project.websiteUrl, categories: project.categories.map(c => c.name).filter(Boolean).slice(0, 3) });
         byAuthor.set(key, entry);
       }
     }
-    return [...byAuthor.values()].sort((a, b) => b.downloads - a.downloads).slice(0, wanted);
+    return [...byAuthor.values()]
+      .sort((a, b) => b.downloads - a.downloads)
+      .slice(0, wanted)
+      .map(({ categoryCounts, ...entry }) => {
+        const names = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+        return { ...entry, categories: names.slice(0, 12), style: creatorStyle(names) };
+      });
   }
 
   async function mod(modId) {
@@ -704,4 +724,4 @@ function createCurseForgeService({
   return { isConfigured, searchMods, getModFiles, getDownloadUrl, request, sims4GameId, classes, categories, search, popularCreators, details, files, install, installs, checkUpdates, testConnection, diagnostics, clearCache: () => cache.clear() };
 }
 
-module.exports = { createCurseForgeService, summarizeMod, summarizeFile, newestFile, htmlToText, folderNameForMod, isDownloadUrl, isImageUrl, isCurseForgePage };
+module.exports = { createCurseForgeService, summarizeMod, summarizeFile, newestFile, htmlToText, folderNameForMod, isDownloadUrl, isImageUrl, isCurseForgePage, creatorStyle };

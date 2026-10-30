@@ -69,3 +69,27 @@ test('following keeps only real CurseForge creators and ranks their mods first',
   assert.deepEqual(core.rankByFollowing(mods, following).map(m => m.id), [2, 4, 1, 3]);
   assert.equal(core.rankByFollowing(mods, []), mods);
 });
+
+test('folder names are safe for Windows and never "Mods"', () => {
+  assert.equal(core.safeFolderName('Cabello: largo/corto?'), 'Cabello largo corto');
+  assert.equal(core.safeFolderName('  Pix...  '), 'Pix');
+  assert.equal(core.safeFolderName('CON'), 'CON CC');
+  assert.equal(core.safeFolderName('mods'), 'Mods CC');
+  assert.equal(core.safeFolderName('x'.repeat(80)).length, 60);
+  assert.equal(core.safeFolderName('???'), '');
+});
+
+test('organizing the whole library by category or creator puts unsorted files in the fallback folder', () => {
+  const byCategory = core.organizeFolderEntries(files, 'category', lookup, { fallbackName: 'Sin Categoría' });
+  assert.deepEqual(byCategory.entries.map(e => e.folderName), ['Hair', 'Sin Categoría', 'Sin Categoría', 'Sin Categoría']);
+  assert.deepEqual(byCategory.folders.map(f => [f.name, f.count, f.fallback]), [['Hair', 1, false], ['Sin Categoría', 3, true]]);
+  const byCreator = core.organizeFolderEntries(files, 'creator', lookup, { fallbackName: 'Sin Creador' });
+  assert.deepEqual(byCreator.entries.map(e => e.folderName), ['Simstrouble', 'Sin Creador', 'Pix', 'Sin Creador']);
+  // Leaving unsorted files alone moves only the sorted ones and says how many stay.
+  const keep = core.organizeFolderEntries(files, 'creator', lookup, { fallbackName: 'Sin Creador', includeUnsorted: false });
+  assert.equal(keep.entries.length, 2);
+  assert.equal(keep.left, 2);
+  // A custom folder name for a category wins over the category's display name.
+  const custom = core.organizeFolderEntries(files, 'category', lookup, { fallbackName: 'Sin Categoría', folderFor: id => (id === 'cas-hair' ? 'Pelo' : '') });
+  assert.equal(custom.entries[0].folderName, 'Pelo');
+});

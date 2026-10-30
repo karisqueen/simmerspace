@@ -1,15 +1,21 @@
 /* Personalization: color family, light/dark mode, density and motion.
    Saved with the other local preferences; applied as data attributes on <html> that the design tokens in
    styles/tokens.css read. */
-const darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+// Windows' own preferences are read only to carry over the removed "Match Windows" option and to pick the
+// first motion setting of a new install (see normalizeAppearance in core.js).
+function systemAppearancePrefs() {
+  return { dark: !!window.matchMedia?.('(prefers-color-scheme: dark)').matches, reducedMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
+}
 
 function loadAppearance() {
-  return normalizeAppearance(safeRead('appearance', null), safeGet('theme'), { primary: safeGet('primary-hue'), secondary: safeGet('secondary-hue') });
+  const saved = safeRead('appearance', null);
+  const appearance = normalizeAppearance(saved, safeGet('theme'), { primary: safeGet('primary-hue'), secondary: safeGet('secondary-hue') }, systemAppearancePrefs());
+  if (saved && (saved.mode === 'system' || saved.motion === 'system')) safeWrite('appearance', appearance);
+  return appearance;
 }
 
 function resolvedMode(appearance) {
-  if (appearance.mode === 'system') return darkQuery?.matches ? 'dark' : 'light';
-  return appearance.mode;
+  return appearance.mode === 'dark' ? 'dark' : 'light';
 }
 
 function applyAppearance(appearance) {
@@ -32,6 +38,3 @@ function setAppearance(changes) {
   render();
 }
 
-darkQuery?.addEventListener?.('change', () => {
-  if (state.appearance.mode === 'system') render();
-});

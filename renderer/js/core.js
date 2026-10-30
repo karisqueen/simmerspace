@@ -127,6 +127,53 @@
     const sorted = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     return [...sorted, none];
   }
+  // A name Windows accepts as a folder inside Mods: no reserved characters or device names, no trailing dot or
+  // space, at most 60 characters, and never "Mods" itself. Returns '' when nothing usable is left.
+  const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+  function safeFolderName(raw) {
+    let name = String(raw || '')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60)
+      .replace(/[. ]+$/, '');
+    if (WINDOWS_RESERVED.test(name)) name = `${name} CC`;
+    if (name.toLowerCase() === 'mods') name = 'Mods CC';
+    return name;
+  }
+  // "Organize folders" for the whole library or a selection: one destination folder per file, by category
+  // or by creator. Files without one go to the fallback folder ("No category" / "No creator") unless the player
+  // chose to leave them where they are. Folder names that differ only in case share one folder.
+  function organizeFolderEntries(files, mode, lookup, { fallbackName, includeUnsorted = true, folderFor = null } = {}) {
+    const entries = [];
+    const folders = new Map(); // lower-case name -> { name, count, fallback }
+    let left = 0;
+    for (const file of files) {
+      let name = '';
+      if (mode === 'creator') name = lookup.creatorKey(file) ? lookup.creatorLabel(file) : '';
+      else {
+        const categoryId = lookup.tags(file.relativePath).categoryId || '';
+        name = categoryId && lookup.categoryName(categoryId) ? (folderFor ? folderFor(categoryId) : lookup.categoryName(categoryId)) : '';
+      }
+      let folderName = safeFolderName(name);
+      const fallback = !folderName;
+      if (fallback) {
+        if (!includeUnsorted) {
+          left++;
+          continue;
+        }
+        folderName = safeFolderName(fallbackName);
+      }
+      const key = folderName.toLowerCase();
+      const folder = folders.get(key) || { name: folderName, count: 0, fallback };
+      folder.count++;
+      folders.set(key, folder);
+      entries.push({ relativePath: file.relativePath, folderName: folder.name });
+    }
+    const list = [...folders.values()].sort((a, b) => (a.fallback - b.fallback) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return { entries, folders: list, left };
+  }
+
   // External files the player has not classified yet (no category and no creator) and has not skipped.
   function unclassifiedExternal(files, lookup, skipped = new Set()) {
     return files.filter(file => lookup.origin(file) === 'external' && !skipped.has(modPathKey(file.relativePath)) && !lookup.tags(file.relativePath).categoryId && !lookup.tags(file.relativePath).creatorId);
@@ -147,16 +194,18 @@
   // "sims-blue" family plus a chosen accent; those accents map onto the family with the same color.
   const THEME_FAMILIES = ['pink', 'purple', 'green', 'blue'];
   const LEGACY_ACCENT_FAMILY = Object.freeze({ rose: 'pink', lavender: 'purple', sage: 'green', blue: 'blue' });
-  const MODES = ['light', 'dark', 'system'];
+  // 0.12.1 removed "Match Windows" from mode and motion. A saved "system" becomes what Windows asked for when the
+  // setting is read (systemPrefs), so nobody's appearance changes on update; after that it is a normal choice.
+  const MODES = ['light', 'dark'];
   const DENSITIES = ['comfortable', 'compact'];
-  const MOTION = ['system', 'reduced', 'full'];
-  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'system' });
+  const MOTION = ['reduced', 'full'];
+  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'full' });
 
   // Reads saved appearance settings. Anything missing or unknown falls back to a default. Carried over:
   // the single theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark"), the main color
   // saved by 0.8.x and 0.9.x ("primary-hue") and the family + accent saved by 0.10.0.
-  function normalizeAppearance(raw, legacyTheme, legacyHues = {}) {
-    const result = { ...DEFAULT_APPEARANCE };
+  function normalizeAppearance(raw, legacyTheme, legacyHues = {}, systemPrefs = {}) {
+    const result = { ...DEFAULT_APPEARANCE, ...(systemPrefs.reducedMotion ? { motion: 'reduced' } : {}) };
     if (typeof legacyTheme === 'string') {
       const [tone, hue] = legacyTheme === 'dark' ? ['dark', 'lavender'] : legacyTheme.split('-');
       if (['soft', 'dark'].includes(tone) && LEGACY_ACCENT_FAMILY[hue]) Object.assign(result, { mode: tone === 'dark' ? 'dark' : 'light', family: LEGACY_ACCENT_FAMILY[hue] });
@@ -167,8 +216,10 @@
     else if (source.family === 'sims-blue') result.family = 'blue';
     else if (LEGACY_ACCENT_FAMILY[source.primary]) result.family = LEGACY_ACCENT_FAMILY[source.primary];
     if (MODES.includes(source.mode)) result.mode = source.mode;
+    else if (source.mode === 'system') result.mode = systemPrefs.dark ? 'dark' : 'light';
     if (DENSITIES.includes(source.density)) result.density = source.density;
     if (MOTION.includes(source.motion)) result.motion = source.motion;
+    else if (source.motion === 'system') result.motion = systemPrefs.reducedMotion ? 'reduced' : 'full';
     return result;
   }
 
@@ -239,6 +290,8 @@
     LEGACY_ACCENT_FAMILY,
     THEME_FAMILIES,
     DEFAULT_APPEARANCE,
+    MODES,
+    MOTION,
     normalizeAppearance,
     COLLECTION_COLORS,
     COLLECTION_PASTELS,
@@ -247,6 +300,8 @@
     modPathKey,
     modOrigin,
     groupModFiles,
+    safeFolderName,
+    organizeFolderEntries,
     unclassifiedExternal,
     normalizeFollowing,
     rankByFollowing

@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { loadAppConfig, describeConfig } = require('../electron/app-config.cjs');
-const { createAccountService, createSessionStorage, passwordProblems } = require('../electron/account-service.cjs');
+const { createAccountService, createSessionStorage, passwordProblems, EMAIL_CONFIRMED_URL } = require('../electron/account-service.cjs');
 const { createGameLauncher } = require('../electron/game-launcher.cjs');
 
 async function tempDir(t) {
@@ -68,6 +68,8 @@ test('config: a development .env.local fills unset variables, and Supabase secre
 });
 
 // A stand-in for supabase-js that records calls. No network, no real project.
+// Social tables (0.12.1 migration) answer "not found" unless `social` is true, like a project without the migration.
+const SOCIAL_TABLES = ['inspiration_tags', 'inspiration_post_tags', 'inspiration_boards', 'inspiration_board_posts', 'inspiration_comments', 'user_follows'];
 function fakeSupabase({ signUpSession = null, taken = [], identities = null, verifyError = null } = {}) {
   const calls = [];
   let session = null;
@@ -81,6 +83,7 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null, ver
     let values = null;
     const run = () => {
       calls.push([op, name, values, filters.slice()]);
+      if (SOCIAL_TABLES.includes(name)) return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}'` } };
       if (name === 'profiles' && op === 'update') {
         const id = filters.find(f => f[0] === 'id')[1];
         if (values.username && [...profiles.values()].some(p => p.id !== id && p.username === values.username)) return { error: { code: '23505' } };
@@ -116,6 +119,8 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null, ver
       eq: (k, v) => (filters.push([k, v]), chain),
       in: (k, v) => (filters.push([k, v, 'in']), chain),
       lt: (k, v) => (filters.push([k, v, 'lt']), chain),
+      is: (k, v) => (filters.push([k, v]), chain),
+      range: () => chain,
       order: () => chain,
       limit: () => chain,
       single: () => Promise.resolve(run()),
@@ -193,33 +198,35 @@ test('accounts: sign-up checks email, password rules and username before contact
   assert.equal(result.needsConfirmation, true);
   assert.deepEqual(fake.calls.find(c => c[0] === 'signUp')[1].options.data, { username: 'bea_sims' });
   assert.equal((await service.status()).pendingEmail, 'b@example.com');
-  await service.resendConfirmation({});
-  assert.deepEqual(fake.calls.at(-1), ['resend', { type: 'signup', email: 'b@example.com' }]);
-  await service.verifyEmail({ code: '123 456' });
-  assert.deepEqual(fake.calls.find(c => c[0] === 'verifyOtp')[1], { email: 'b@example.com', token: '123456', type: 'email' });
+  // The email carries a confirmation link that lands on the project page; the app never asks for a code.
+  assert.equal(fake.calls.find(c => c[0] === 'signUp')[1].options.emailRedirectTo, EMAIL_CONFIRMED_URL);
+  assert.equal(service.verifyEmail, undefined);
+  assert.equal(service.resendConfirmation, undefined);
   await assert.rejects(accountWith(t, dir, fakeSupabase({ identities: [] })).signUp({ email: 'c@example.com', password: 'long enough 1', username: 'cee' }), { code: 'ACCOUNT_EXISTS' });
 });
 
-test('accounts: an email confirmed through its link signs in instead of resending or failing the code', async t => {
+test('accounts: after opening the confirmation link, "I confirmed it" signs in without asking again', async t => {
   const dir = await tempDir(t);
   const fake = fakeSupabase();
   const service = accountWith(t, dir, fake);
   await service.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
-  const resent = await service.resendConfirmation({});
-  assert.equal(resent.alreadyConfirmed, true);
-  assert.equal(resent.user.username, 'ana');
-  assert.ok(!fake.calls.some(c => c[0] === 'resend'));
+  const checked = await service.checkConfirmation({});
+  assert.equal(checked.confirmed, true);
+  assert.equal(checked.user.username, 'ana');
+  assert.ok(!fake.calls.some(c => c[0] === 'resend' || c[0] === 'verifyOtp'));
   assert.equal((await service.status()).pendingEmail, '');
 
-  const expired = fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } });
-  const second = accountWith(t, await tempDir(t), expired);
-  await second.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
-  const verified = await second.verifyEmail({ code: '123456' });
-  assert.equal(verified.alreadyConfirmed, true);
-  // A wrong code for an address that is not confirmed yet still fails.
-  const third = accountWith(t, await tempDir(t), fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } }));
-  await third.signUp({ email: 'bea@example.com', password: 'long enough 1', username: 'bea' });
-  await assert.rejects(third.verifyEmail({ code: '123456' }));
+  // Not confirmed yet: no session, and the sign-up stays pending so the player can try again.
+  const pending = fakeSupabase();
+  const second = accountWith(t, await tempDir(t), pending);
+  await second.signUp({ email: 'bea@example.com', password: 'long enough 1', username: 'bea' });
+  assert.deepEqual(await second.checkConfirmation({}), { confirmed: false, needsSignIn: false });
+  assert.equal((await second.status()).user, null);
+  assert.equal((await second.status()).pendingEmail, 'bea@example.com');
+
+  // After a restart the password is gone (it is never stored), so the player signs in normally.
+  const third = accountWith(t, await tempDir(t), fakeSupabase());
+  assert.deepEqual(await third.checkConfirmation({ email: 'ana@example.com' }), { confirmed: false, needsSignIn: true });
 });
 
 test('accounts: sign-in loads (or recovers) the profile; reset uses a code then sets the new password', async t => {
@@ -295,6 +302,40 @@ test('inspiration: posts upload into the author folder, list with authors and si
   await assert.rejects(service.deletePost({ id: 'p999' }), { code: 'ACCOUNT_FORBIDDEN' });
 });
 
+test('inspiration before the 0.12.1 migration: the feed still works and social actions say so clearly', async t => {
+  const fake = fakeSupabase();
+  const service = accountWith(t, await tempDir(t), fake);
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  await service.createPost({ ...webp(8), caption: 'Hi', tags: ['Maxis Match'] }).then(result => assert.equal(result.tagsSaved, false));
+  const page = await service.listPosts();
+  assert.equal(page.social, false);
+  assert.deepEqual(page.posts[0].tags, []);
+  assert.equal(page.posts[0].commentCount, 0);
+  assert.deepEqual(await service.listBoards(), { boards: [], social: false });
+  assert.deepEqual(await service.listComments({ postId: '00000000-0000-0000-0000-0000000000f1' }), { comments: [], social: false });
+  await assert.rejects(service.follow({ userId: '00000000-0000-0000-0000-0000000000b2' }), { code: 'COMMUNITY_NOT_READY' });
+  await assert.rejects(service.createBoard({ name: 'Cocinas' }), { code: 'COMMUNITY_NOT_READY' });
+  await assert.rejects(service.listPosts({ tags: ['maxis-match'] }), { code: 'COMMUNITY_NOT_READY' });
+  const profile = await service.getProfile({ userId: '00000000-0000-0000-0000-00000000000a' });
+  assert.equal(profile.social, false);
+  assert.equal(profile.followers, null);
+});
+
+test('inspiration input checks happen before contacting the server', async t => {
+  const fake = fakeSupabase();
+  const service = accountWith(t, await tempDir(t), fake);
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  const before = fake.calls.length;
+  await assert.rejects(service.follow({ userId: '00000000-0000-0000-0000-00000000000a' }), { code: 'INVALID_INPUT' });
+  await assert.rejects(service.addComment({ postId: '00000000-0000-0000-0000-0000000000f1', body: '   ' }), { code: 'COMMENT_EMPTY' });
+  await assert.rejects(service.addComment({ postId: '00000000-0000-0000-0000-0000000000f1', body: 'x'.repeat(1001) }), { code: 'COMMENT_TOO_LONG' });
+  await assert.rejects(service.createBoard({ name: '  ' }), { code: 'BOARD_NAME_REQUIRED' });
+  await assert.rejects(service.updatePost({ id: 'not-a-uuid', caption: 'x' }), { code: 'INVALID_INPUT' });
+  await assert.rejects(service.updatePost({ id: '00000000-0000-0000-0000-0000000000f1', tags: Array.from({ length: 9 }, (_, i) => `tag ${i}`) }), { code: 'TOO_MANY_TAGS' });
+  await assert.rejects(service.createPost({ ...webp(8), tags: ['x'.repeat(33)] }), { code: 'TAG_TOO_LONG' });
+  assert.equal(fake.calls.slice(before).filter(c => c[0] !== 'signIn').length, 0);
+});
+
 test('feedback: only known categories, a message is required, and the sender is the signed-in user', async t => {
   const dir = await tempDir(t);
   const fake = fakeSupabase();
@@ -350,4 +391,23 @@ test('Launch Game starts TS4_x64.exe from the chosen game folder and explains wh
   assert.deepEqual(opened, [path.join(dir, 'Game', 'Bin', 'TS4_x64.exe')]);
   const failing = createGameLauncher({ getGameFolder: async () => dir, openPath: async () => 'Access denied' });
   await assert.rejects(failing.launch(), { code: 'GAME_LAUNCH_FAILED' });
+});
+
+test('tags: one readable name per search form, accents and # ignored', () => {
+  const { tagSlug, cleanTags } = require('../electron/community-service.cjs');
+  assert.equal(tagSlug('  Long Curly HAIR '), 'long-curly-hair');
+  assert.equal(tagSlug('Vestido victoriano ñandú'), 'vestido-victoriano-nandu');
+  assert.equal(tagSlug('Build/Buy'), 'build-buy');
+  assert.deepEqual(cleanTags(['Maxis Match', 'maxis-match', '#Cottagecore', ' ', 'x', 'Pelo  rizado']), ['Maxis Match', 'Cottagecore', 'Pelo rizado']);
+  assert.deepEqual(cleanTags(undefined), []);
+  assert.throws(() => cleanTags('hair'), { code: 'INVALID_INPUT' });
+});
+
+test('Organize warns when The Sims 4 is running and says so when it could not check', async () => {
+  const make = names => createGameLauncher({ getGameFolder: async () => '', openPath: async () => '', listProcesses: async () => names });
+  assert.deepEqual(await make(['explorer.exe', 'TS4_x64.exe']).isRunning(), { running: true, checked: true });
+  assert.deepEqual(await make(['explorer.exe']).isRunning(), { running: false, checked: true });
+  assert.deepEqual(await make(null).isRunning(), { running: false, checked: false });
+  const broken = createGameLauncher({ getGameFolder: async () => '', openPath: async () => '', listProcesses: async () => { throw new Error('no'); } });
+  assert.deepEqual(await broken.isRunning(), { running: false, checked: false });
 });

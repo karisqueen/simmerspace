@@ -12,7 +12,6 @@ const account = {
   notice: '',
   email: '',
   username: { value: '', state: 'idle' }, // idle | checking | invalid | taken | free | error
-  resendAt: 0,
   devBypass: false,
   tourOffered: false,
   avatarBusy: false,
@@ -20,7 +19,7 @@ const account = {
 };
 // The player's own posts and counts on the profile page, loaded when it opens.
 function freshProfile(userId) {
-  return { userId, posts: [], postCount: null, more: false, loaded: false, loading: false, error: null };
+  return { userId, posts: [], postCount: null, followers: null, following: null, more: false, loaded: false, loading: false, error: null };
 }
 
 function accountUser() {
@@ -120,9 +119,9 @@ function authField(name, label, { type = 'text', autocomplete = '', value = '', 
 function authForm(id, title, lead, body, submit, footer = '') {
   return `<form class="account-form" id="${id}" novalidate><h1 class="auth-title">${title}</h1>${lead ? `<p class="auth-lead">${lead}</p>` : ''}${account.notice ? `<p class="field-notice" role="status">${esc(account.notice)}</p>` : ''}${account.error ? `<p class="field-error" role="alert">${esc(account.error)}</p>` : ''}${body}<button class="primary-btn auth-submit" type="submit" ${account.busy ? 'disabled' : ''}>${account.busy ? t('working') : submit}</button>${footer ? `<div class="auth-footer">${footer}</div>` : ''}</form>`;
 }
-function resendButton() {
-  const wait = Math.max(0, Math.ceil((account.resendAt - Date.now()) / 1000));
-  return `<button class="text-link" type="button" id="auth-resend" ${wait ? 'disabled' : ''}>${wait ? esc(format(t('resendIn'), { seconds: wait })) : t('resendCode')}</button>`;
+// After sign-up Supabase emails a confirmation LINK (not a code). These steps say what to do with it.
+function verifySteps() {
+  return `<ol class="verify-steps">${['verifyStepOpen', 'verifyStepClick', 'verifyStepReturn'].map(key => `<li>${esc(t(key))}</li>`).join('')}</ol>`;
 }
 
 const AUTH_VIEWS = {
@@ -148,10 +147,10 @@ const AUTH_VIEWS = {
     authForm(
       'auth-verify',
       t('verifyTitle'),
-      esc(format(t('verifyText'), { email: account.email })),
-      authField('code', t('emailCode'), { autocomplete: 'one-time-code', attrs: 'inputmode="numeric" maxlength="12" required class="code-input"' }),
+      `${esc(t('verifyText'))} <b class="verify-email">${esc(account.email)}</b>`,
+      `<div class="verify-mail" aria-hidden="true">${icon('mail')}</div>${verifySteps()}<p class="setting-help">${esc(t('verifySpamNote'))}</p>`,
       t('verifyButton'),
-      `${resendButton()}<button class="text-link" type="button" data-auth-view="signup">${t('changeEmail')}</button><button class="text-link" type="button" data-auth-view="signin">${t('backToSignIn')}</button>`
+      `<button class="text-link" type="button" data-auth-view="signup">${t('changeEmail')}</button><button class="text-link" type="button" data-auth-view="signin">${t('backToSignIn')}</button>`
     ),
   reset: () =>
     authForm(
@@ -209,10 +208,10 @@ function renderAuthGate() {
   }
   applyAppearance(state.appearance);
   document.documentElement.lang = state.lang;
-  document.title = `${t('signIn')} · SimmerSpace`;
+  document.title = `${t('signIn')} · simmerspace`;
   if (!screen) return true;
   const focusedId = document.activeElement?.id;
-  screen.innerHTML = `<div class="auth-layout">${authAside()}<main class="auth-main"><div class="auth-card">${authCard()}</div><p class="auth-legal">SimmerSpace ${esc(APP_VERSION)} · ${t('preBeta')}</p></main></div>`;
+  screen.innerHTML = `<div class="auth-layout">${authAside()}<main class="auth-main"><div class="auth-card">${authCard()}</div><p class="auth-legal">simmerspace ${esc(APP_VERSION)} · ${t('preBeta')}</p></main></div>`;
   const again = focusedId && document.getElementById(focusedId);
   (again || screen.querySelector('.field-error ~ .field input, .account-form input, .auth-message button'))?.focus({ preventScroll: true });
   refreshSubmit();
@@ -228,7 +227,9 @@ async function loadOwnProfile() {
   profile.loading = true;
   try {
     const [page, info] = await Promise.all([callDesktop(inspirationApi.list, { userId: user.id, limit: PROFILE_POSTS }), callDesktop(inspirationApi.profile, { userId: user.id })]);
-    Object.assign(profile, { posts: page.posts, more: !!page.nextBefore, postCount: info.postCount, error: null });
+    // The viewer and the edit dialog look posts up by id, so own posts join the shared cache.
+    rememberPosts(page.posts);
+    Object.assign(profile, { posts: page.posts, more: !!page.nextBefore, postCount: info.postCount, followers: info.followers ?? null, following: info.following ?? null, error: null });
   } catch (error) {
     profile.error = error;
   } finally {
@@ -245,8 +246,9 @@ function profileTile(post) {
   const label = post.caption || t('postNoCaption');
   return `<div class="profile-tile"><button class="profile-tile-image" data-post-view="${esc(post.id)}" aria-label="${esc(label)}">${post.imageUrl ? `<img src="${esc(post.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="post-missing">${icon('inspiration')}</span>`}<span class="profile-tile-caption">${esc(post.caption || t(`inspCat_${post.category}`))}</span></button><button class="icon-btn icon-btn-sm profile-tile-delete" data-post-delete="${esc(post.id)}" aria-label="${esc(t('postDelete'))}" data-tip="${esc(t('postDelete'))}">${icon('trash')}</button></div>`;
 }
-function profileStat(value, label, page = '') {
+function profileStat(value, label, page = '', attrs = '') {
   const inner = `<b>${esc(value)}</b><span>${esc(label)}</span>`;
+  if (attrs) return `<button class="profile-stat" ${attrs}>${inner}</button>`;
   return page ? `<button class="profile-stat" data-page="${page}">${inner}</button>` : `<div class="profile-stat">${inner}</div>`;
 }
 function renderAccount() {
@@ -261,7 +263,9 @@ function renderAccount() {
   const busy = account.avatarBusy;
   const count = value => (value === null ? '—' : Number(value).toLocaleString(state.lang));
   const since = user.memberSince ? format(t('profileMemberSince'), { date: longDate(user.memberSince) }) : '';
-  const hero = `<section class="profile-hero panel"><div class="profile-cover" aria-hidden="true"></div><div class="profile-main"><div class="profile-avatar">${avatarMarkup(user, 'avatar-profile')}${busy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}<button class="profile-avatar-btn" id="avatar-change" aria-label="${esc(t('avatarChange'))}" data-tip="${esc(t('avatarChange'))}" ${busy ? 'disabled' : ''}>${icon('upload')}</button><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="profile-identity"><div class="profile-name-row"><h1 class="profile-name">@${esc(user.username)}</h1><button class="icon-btn icon-btn-sm profile-rename" id="username-change" aria-label="${esc(t('usernameChange'))}" data-tip="${esc(t('usernameChange'))}">${icon('edit')}</button></div>${since ? `<p class="profile-meta">${icon('sparkle')}<span>${esc(since)}</span></p>` : ''}</div><div class="profile-actions"><button class="primary-btn" id="post-new">${icon('upload')}<span>${t('postNew')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn" id="avatar-remove" ${busy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}</div></div><div class="profile-stats">${profileStat(count(p.postCount), t('profilePosts'))}${profileStat(count(state.collections.length), t('collectionsTitle'), 'collections')}${profileStat(count(state.followingCreators.length), t('profileFollowing'), 'creators')}</div></section>`;
+  const hero = `<section class="profile-hero panel"><div class="profile-cover" aria-hidden="true"></div><div class="profile-main"><div class="profile-avatar">${avatarMarkup(user, 'avatar-profile')}${busy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}<button class="profile-avatar-btn" id="avatar-change" aria-label="${esc(t('avatarChange'))}" data-tip="${esc(t('avatarChange'))}" ${busy ? 'disabled' : ''}>${icon('upload')}</button><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="profile-identity"><div class="profile-name-row"><h1 class="profile-name">@${esc(user.username)}</h1><button class="icon-btn icon-btn-sm profile-rename" id="username-change" aria-label="${esc(t('usernameChange'))}" data-tip="${esc(t('usernameChange'))}">${icon('edit')}</button></div>${since ? `<p class="profile-meta">${icon('sparkle')}<span>${esc(since)}</span></p>` : ''}</div><div class="profile-actions"><button class="primary-btn" id="post-new">${icon('upload')}<span>${t('postNew')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn" id="avatar-remove" ${busy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}</div></div><div class="profile-stats">${profileStat(count(p.postCount), t('profilePosts'))}${
+    p.followers === null ? '' : `${profileStat(count(p.followers), t('followersLabelTitle'), '', `data-follow-list="followers" data-follow-user="${esc(user.id)}"`)}${profileStat(count(p.following), t('followingLabelTitle'), '', `data-follow-list="following" data-follow-user="${esc(user.id)}"`)}`
+  }${profileStat(count(state.collections.length), t('collectionsTitle'), 'collections')}${profileStat(count(state.followingCreators.length), t('profileFollowing'), 'creators')}</div></section>`;
   let posts;
   if (!p.loaded) posts = `<div class="profile-grid">${'<span class="profile-tile skeleton"></span>'.repeat(6)}</div>`;
   else if (p.error) posts = `<div class="empty-state"><b>${t('profilePostsError')}</b><p>${esc(errorMessage(p.error))}</p><button class="secondary-btn" id="profile-retry">${mt('tryAgain')}</button></div>`;
@@ -304,21 +308,65 @@ async function changeUsername(form) {
   }
 }
 
-function accountSettingsSection() {
-  const user = accountUser();
-  if (!user) return `<p class="setting-help">${t('accountsRequiredText')}</p>`;
-  return `<div class="setting-row"><span class="setting-label">${t('status')}</span><div class="inline-row">${avatarMarkup(user)}<span class="status-pill status-installed">${esc(format(t('signedInAs'), { name: `@${user.username}` }))}</span></div></div><div class="button-row"><button class="secondary-btn" data-page="account">${t('manageAccount')}</button><button class="tertiary-btn" data-open-feedback>${t('feedbackOpen')}</button></div>`;
+/* ---------- Profile menu (the avatar in the top bar) ----------
+   Everything about the account is here and on the profile page: there is no separate Account section in Settings. */
+let profileMenu = null;
+function closeProfileMenu() {
+  if (!profileMenu) return;
+  profileMenu.remove();
+  profileMenu = null;
+  document.getElementById('profile-button')?.setAttribute('aria-expanded', 'false');
 }
+function toggleProfileMenu() {
+  if (profileMenu) return closeProfileMenu();
+  const user = accountUser();
+  const button = document.getElementById('profile-button');
+  if (!user || !button) return goTo('account');
+  profileMenu = document.createElement('div');
+  profileMenu.className = 'profile-menu';
+  profileMenu.setAttribute('role', 'menu');
+  profileMenu.setAttribute('aria-label', t('profileMenu'));
+  const item = (id, iconName, label, attrs = '') => `<button class="profile-menu-item" role="menuitem" ${id ? `id="${id}"` : ''} ${attrs}>${icon(iconName)}<span>${esc(label)}</span></button>`;
+  profileMenu.innerHTML = `<div class="profile-menu-head">${avatarMarkup(user)}<div><b>@${esc(user.username)}</b><small>${esc(user.email)}</small></div></div>${item('', 'user', t('profileView'), 'data-page="account"')}${item('username-change', 'edit', t('usernameChange'))}${item('menu-avatar-change', 'upload', t('avatarChange'))}${item('', 'comment', t('feedbackNav'), 'data-settings-section="feedback"')}<hr>${item('account-sign-out', 'logout', t('signOut'), 'data-danger')}`;
+  document.body.append(profileMenu);
+  const box = button.getBoundingClientRect();
+  profileMenu.style.top = `${Math.round(box.bottom + 8)}px`;
+  profileMenu.style.right = `${Math.round(window.innerWidth - box.right)}px`;
+  button.setAttribute('aria-expanded', 'true');
+  profileMenu.querySelector('button')?.focus();
+}
+document.addEventListener('pointerdown', event => {
+  if (profileMenu && !profileMenu.contains(event.target) && !event.target.closest('#profile-button')) closeProfileMenu();
+});
+document.addEventListener('click', event => {
+  if (profileMenu && event.target.closest('.profile-menu [data-page], .profile-menu [data-settings-section]')) setTimeout(closeProfileMenu, 0);
+});
+document.addEventListener('keydown', event => {
+  if (!profileMenu) return;
+  if (event.key === 'Escape') {
+    closeProfileMenu();
+    document.getElementById('profile-button')?.focus();
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const items = [...profileMenu.querySelectorAll('button')];
+    const index = items.indexOf(document.activeElement);
+    items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+  }
+});
 
 /* ---------- Feedback ---------- */
 const FEEDBACK_CATEGORIES = ['suggestion', 'bug_report', 'feature_request', 'donation_feedback', 'other'];
-function openFeedbackDialog(category = 'suggestion') {
+// The same form inside Settings → Feedback (inline) and in a dialog (from the profile or About).
+function feedbackFormMarkup({ category = 'suggestion', inline = false } = {}) {
   const user = accountUser();
-  openDialog(
-    `${closeButton()}<form class="form-dialog" id="feedback-form" novalidate><div class="eyebrow">${t('feedbackTitle')}</div><h2 id="dialog-title">${t('feedbackOpen')}</h2><p>${t('feedbackDialogText')}</p><fieldset class="choice-row"><legend>${t('feedbackCategory')}</legend>${FEEDBACK_CATEGORIES.map(
-      value => `<label class="choice-chip"><input type="radio" name="feedback-category" value="${value}" ${value === category ? 'checked' : ''}><span>${t(`feedbackCat_${value}`)}</span></label>`
-    ).join('')}</fieldset><label class="field" for="feedback-message">${t('feedbackMessage')}<textarea id="feedback-message" maxlength="4000" rows="6" required></textarea></label><label class="field" for="feedback-email">${t('feedbackEmail')}<input id="feedback-email" type="email" autocomplete="email" value="${esc(user?.email || '')}"><small class="field-hint">${t('feedbackEmailHint')}</small></label><p class="field-error" id="feedback-error" role="alert" hidden></p><div class="detail-actions"><button class="primary-btn" type="submit">${t('feedbackSend')}</button><button class="secondary-btn" type="button" data-close>${t('cancel')}</button></div></form>`
-  );
+  const head = inline ? `<p class="setting-help">${t('feedbackDialogText')}</p>` : `<div class="eyebrow">${t('feedbackTitle')}</div><h2 id="dialog-title">${t('feedbackOpen')}</h2><p>${t('feedbackDialogText')}</p>`;
+  const actions = inline ? `<button class="primary-btn" type="submit">${icon('comment')}<span>${t('feedbackSend')}</span></button>` : `<button class="primary-btn" type="submit">${t('feedbackSend')}</button><button class="secondary-btn" type="button" data-close>${t('cancel')}</button>`;
+  return `<form class="form-dialog ${inline ? 'feedback-inline' : ''}" id="feedback-form" novalidate>${head}<fieldset class="choice-row"><legend>${t('feedbackCategory')}</legend>${FEEDBACK_CATEGORIES.map(
+    value => `<label class="choice-chip"><input type="radio" name="feedback-category" value="${value}" ${value === category ? 'checked' : ''}><span>${t(`feedbackCat_${value}`)}</span></label>`
+  ).join('')}</fieldset><label class="field" for="feedback-message">${t('feedbackMessage')}<textarea id="feedback-message" maxlength="4000" rows="6" required></textarea></label><label class="field" for="feedback-email">${t('feedbackEmail')}<input id="feedback-email" type="email" autocomplete="email" value="${esc(user?.email || '')}"><small class="field-hint">${t('feedbackEmailHint')}</small></label><p class="field-error" id="feedback-error" role="alert" hidden></p><div class="detail-actions">${actions}</div></form>`;
+}
+function openFeedbackDialog(category = 'suggestion') {
+  openDialog(`${closeButton()}${feedbackFormMarkup({ category })}`);
   document.getElementById('feedback-message')?.focus();
 }
 async function sendFeedback(form) {
@@ -333,7 +381,10 @@ async function sendFeedback(form) {
   submit.disabled = true;
   try {
     await callDesktop(accountApi.sendFeedback, { category: form.querySelector('[name="feedback-category"]:checked')?.value || 'other', message, email: document.getElementById('feedback-email').value.trim() });
-    closeDialog();
+    if (form.classList.contains('feedback-inline')) {
+      form.reset();
+      submit.disabled = false;
+    } else closeDialog();
     toast(t('feedbackSent'));
   } catch (failure) {
     error.hidden = false;
@@ -424,20 +475,17 @@ const ACCOUNT_FORMS = {
       const result = await callDesktop(accountApi.signUp, { email: account.email, password: formValue(form, 'password'), username: formValue(form, 'username') });
       if (result.needsConfirmation) {
         account.view = 'verify';
-        account.resendAt = Date.now() + 60000;
-        account.notice = t('accountCreatedCheckEmail');
+        account.notice = '';
       } else if (result.user) signedIn(result.user);
     }),
   'auth-verify': form =>
     accountAction(async () => {
-      const result = await callDesktop(accountApi.verifyEmail, { email: account.email, code: formValue(form, 'code') });
-      await loadAccountStatus();
-      if (result.alreadyConfirmed) toast(t('alreadyConfirmed'));
-      if (accountUser()) signedIn(accountUser());
-      else {
+      const result = await callDesktop(accountApi.checkConfirmation, { email: account.email });
+      if (result.user) return signedIn(result.user);
+      if (result.needsSignIn) {
         account.view = 'signin';
-        account.notice = result.user ? '' : t('emailConfirmed');
-      }
+        account.notice = t('verifySignInNow');
+      } else account.notice = t('verifyNotYet');
     }),
   'auth-reset': form =>
     accountAction(async () => {
@@ -484,7 +532,6 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   if (event.target.id === 'avatar-file') changeAvatar(event.target.files?.[0]);
 });
-let resendTimer = 0;
 document.addEventListener('click', async event => {
   const target = event.target.closest('button');
   if (!target) return;
@@ -513,22 +560,6 @@ document.addEventListener('click', async event => {
     case 'auth-dev-bypass':
       account.devBypass = true;
       return render();
-    case 'auth-resend':
-      return accountAction(async () => {
-        const result = await callDesktop(accountApi.resendConfirmation, { email: account.email });
-        if (result.user) {
-          signedIn(result.user);
-          return toast(t('alreadyConfirmed'));
-        }
-        account.resendAt = Date.now() + 60000;
-        account.notice = t('codeResent');
-        clearInterval(resendTimer);
-        resendTimer = setInterval(() => {
-          const button = document.getElementById('auth-resend');
-          if (!button || Date.now() >= account.resendAt) clearInterval(resendTimer);
-          if (button) button.outerHTML = resendButton();
-        }, 1000);
-      });
     case 'auth-reset-again':
       return accountAction(async () => {
         await callDesktop(accountApi.requestReset, { email: account.email });
@@ -536,7 +567,12 @@ document.addEventListener('click', async event => {
       });
     case 'avatar-change':
       return document.getElementById('avatar-file')?.click();
+    case 'menu-avatar-change':
+      closeProfileMenu();
+      if (state.page !== 'account') goTo('account');
+      return document.getElementById('avatar-file')?.click();
     case 'username-change':
+      closeProfileMenu();
       return openUsernameDialog();
     case 'profile-retry':
       account.profile = freshProfile('');
@@ -559,8 +595,12 @@ document.addEventListener('click', async event => {
     case 'account-sign-out': {
       const ok = await confirmAction({ title: t('signOut'), body: t('signOutText'), confirmLabel: t('signOut') });
       if (!ok) return;
+      closeProfileMenu();
       return accountAction(async () => {
         await callDesktop(accountApi.signOut);
+        // Nothing from the account stays on screen or in memory for the next person at this computer.
+        account.profile = freshProfile('');
+        if (typeof resetCommunityCache === 'function') resetCommunityCache();
         await loadAccountStatus();
         account.view = 'signin';
         account.notice = t('signedOut');
