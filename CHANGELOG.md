@@ -6,6 +6,8 @@
 - New icon: a plumbob whose facets draw an S, used for the app, the Windows executable (multi-size `build/icon.ico`, so File Explorer shows it) and the in-app brand mark. The old crystal icon and logo files were deleted.
 - The saved session belongs to one copy of the app (its version and the location of its .exe). Deleting the app and downloading a new version asks you to sign in again.
 - Removed unused code: manual Patreon profiles, collection sync helpers and the archived Supabase migration (`supabase/legacy`).
+- New project page (`docs/index.html`) in the app's current style, focused on the CurseForge integration, with a direct download button for the Windows .exe, light and dark mode and English/Spanish.
+- App texts no longer talk about keys or internal services: the CurseForge and account messages now point to downloading the latest version or signing in again.
 
 ## 0.11.0 CurseForge without a key on this PC (2026-10-30)
 

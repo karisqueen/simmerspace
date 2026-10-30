@@ -25,9 +25,8 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 ### Limitations
 
 - Windows only. The build is not code-signed yet, so Windows SmartScreen shows a warning.
-- The app needs the Supabase project URL and publishable key to start (developers can continue without an account with `--developer`).
 - Tags are linked to file paths. Files moved or renamed outside SimmerSpace lose their tags until they are tagged again.
-- CurseForge goes through the project's Supabase proxy, which holds the key on the server and only answers signed-in users. No key is included in the app or this repository. A local key still works for development.
+- CurseForge is integrated but still in beta: some things are still being polished.
 - Patreon is not connected.
 
 ## Funciones actuales (español)
@@ -47,14 +46,13 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 ### Limitaciones
 
 - Solo Windows. La compilación todavía no tiene firma de código, así que Windows SmartScreen muestra una advertencia.
-- La app necesita la URL del proyecto de Supabase y la clave publicable para arrancar (en modo desarrollador, `--developer`, se puede continuar sin cuenta).
 - Las etiquetas están ligadas a la ruta del archivo; si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas.
-- CurseForge pasa por el proxy de Supabase del proyecto, que guarda la clave en el servidor y solo responde a usuarios con sesión. La app y este repositorio no incluyen ninguna clave. Una clave local sigue sirviendo para desarrollo.
+- CurseForge ya está integrado, pero sigue en beta: aún hay cosas por pulir.
 - Patreon no está conectado.
 
 ## Get the app
 
-The source archive from GitHub's **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run Windows app. Any Windows build published by the project owner will be listed separately in **Releases**.
+Download the Windows app (portable `.exe`, no installation) from the [SimmerSpace page](https://karisqueen.github.io/simmerspace/) or from [Releases](https://github.com/karisqueen/simmerspace/releases/latest). The source archive from **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run app. / Descarga la app para Windows (`.exe` portable, sin instalación) desde la [página de SimmerSpace](https://karisqueen.github.io/simmerspace/) o desde [Releases](https://github.com/karisqueen/simmerspace/releases/latest).
 
 To run from source, install Node.js and pnpm, then run:
 
@@ -110,7 +108,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 ## Project status
 
-Current version: **0.11.1 beta**: no sample content, new plumbob-S icon; CurseForge works after signing in with no key on your PC (through the project's Supabase proxy); redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.1 beta**: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge funciona al iniciar sesión sin clave en tu PC (a través del proxy de Supabase del proyecto); rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
+Current version: **0.11.1 beta**: no sample content, new plumbob-S icon; CurseForge integrated: explore and install mods after signing in; redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.1 beta**: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge integrado: explora e instala mods al iniciar sesión; rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
 Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 
