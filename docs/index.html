@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f3f0f8">
+  <meta name="theme-color" content="#f3f6fd">
   <meta name="description" content="SimmerSpace is a free Sims 4 mod manager for Windows with CurseForge built in: explore, install and organize your mods and CC in one place. Beta.">
   <title>SimmerSpace · Sims 4 mod manager with CurseForge</title>
   <link rel="icon" type="image/png" href="assets/icon.png">
@@ -15,7 +15,7 @@
 
     /* The app's purple theme (renderer/styles/tokens.css). */
     :root {
-      --a1: #6a45b0; --a2: #b2442f; --a3: #237458; --green: #1e9f45;
+      --a1: #3a62c8; --a2: #1f7a50; --a3: #6a4fc4; --green: #1e9f45;
       --font-ui: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
       --font-brand: 'Fredoka', 'DM Sans', system-ui, sans-serif;
       --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-pill: 999px;
@@ -32,12 +32,12 @@
       --text: color-mix(in oklab, var(--a1) 10%, #1d1a21);
       --text-2: color-mix(in oklab, var(--a1) 10%, #514b58);
       --text-3: color-mix(in oklab, var(--a1) 8%, #67606f);
-      --shadow: 0 1px 2px #1d1a210d, 0 18px 50px -18px #3b237033;
+      --shadow: 0 1px 2px #1d1a210d, 0 18px 50px -18px #1e3a8a33;
       --on-accent: #ffffff;
     }
     [data-mode='dark'] {
       color-scheme: dark;
-      --a1: #c6b0f3; --a2: #ff9e8c; --a3: #86d8b6;
+      --a1: #9cc0ff; --a2: #8ee3b8; --a3: #cbb8ff;
       --bg: color-mix(in oklab, var(--a1) 5%, #111014);
       --surface: color-mix(in oklab, var(--a1) 6%, #1a181e);
       --surface-2: color-mix(in oklab, var(--a1) 7%, #211f26);
@@ -48,7 +48,7 @@
       --text-2: color-mix(in oklab, var(--a1) 8%, #c4bfca);
       --text-3: color-mix(in oklab, var(--a1) 8%, #a29ca9);
       --shadow: 0 1px 2px #0006, 0 18px 50px -18px #000a;
-      --on-accent: #1a1424;
+      --on-accent: #0f1626;
     }
     :root {
       --accent: var(--a1);
@@ -74,16 +74,13 @@
     .icon { width: 18px; height: 18px; flex: none; }
     .icon .d { fill: currentColor; fill-opacity: 0.16; stroke: none; }
     .brand-mark { width: 30px; height: 30px; flex: none; overflow: visible; }
-    .brand-mark .bm-a { fill: var(--accent); }
-    .brand-mark .bm-edge { fill: none; stroke: var(--text); stroke-opacity: 0.22; stroke-width: 0.7; stroke-linejoin: round; }
-    .brand-mark .bm-s { fill: none; stroke: #fff; stroke-width: 2.9; stroke-linecap: round; stroke-linejoin: round; }
-    [data-mode='dark'] .brand-mark .bm-s { stroke: #1a1424; }
 
     /* Header */
     .top { position: sticky; top: 0; z-index: 10; background: color-mix(in oklab, var(--bg) 82%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
     .top .wrap { display: flex; align-items: center; gap: 16px; height: 64px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
     .wordmark { font-family: var(--font-brand); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; }
+    .wordmark .wm-space { color: var(--accent-text); }
     .nav { display: flex; gap: 4px; margin-left: auto; }
     .nav a { color: var(--text-2); text-decoration: none; font-weight: 540; font-size: 14px; padding: 8px 12px; border-radius: var(--r-md); }
     .nav a:hover { background: var(--accent-soft); color: var(--accent-text); }
@@ -234,7 +231,7 @@
 <body>
   <header class="top">
     <div class="wrap">
-      <a class="brand" href="#top" aria-label="SimmerSpace"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bm-a" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path d="M16 .9 6.75 14.75H16z" fill="#fff" fill-opacity=".34"/><path d="M16 .9 25.25 14.75H16z" fill="#fff" fill-opacity=".12"/><path d="M25.25 14.75H16v16.35z" fill="#000" fill-opacity=".18"/><path class="bm-edge" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path class="bm-s" d="M19.88 10.13 16 7l-3.75 3.63 7.5 8.25L16 22.75l-3.87-3.12"/></svg><span class="wordmark">simmerspace</span></a>
+      <a class="brand" href="#top" aria-label="SimmerSpace"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><linearGradient id="bm1l" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#A9CBFF"/><stop offset=".9" stop-color="#B0EDCF"/></linearGradient><linearGradient id="bm1r" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#5F8FEC"/><stop offset=".9" stop-color="#43B381"/></linearGradient></defs><path d="M43 15 L45.6 10.7 L29 0.5 L30 7Z" fill="#A9CBFF"/><path d="M43 15 L40.4 19.3 L31 13.5 L30 7Z" fill="#5F8FEC"/><path d="M30 7 L29 0.5 L12 20.6 L19 20Z" fill="#A9CBFF"/><path d="M30 7 L31 13.5 L26 19.4 L19 20Z" fill="#5F8FEC"/><path d="M19 20 L12 20.6 L38.1 42.7 L45 42Z" fill="url(#bm1l)"/><path d="M19 20 L26 19.4 L51.9 41.3 L45 42Z" fill="url(#bm1r)"/><path d="M45 42 L38.1 42.7 L32.7 49.6 L34 56Z" fill="#B0EDCF"/><path d="M45 42 L51.9 41.3 L35.3 62.4 L34 56Z" fill="#43B381"/><path d="M34 56 L32.7 49.6 L23.4 44.6 L21 49Z" fill="#B0EDCF"/><path d="M34 56 L35.3 62.4 L18.6 53.4 L21 49Z" fill="#43B381"/><path d="M43 15 L45.6 10.7 L45.6 16.6Z" fill="#A9CBFF"/><path d="M43 15 L40.4 19.3 L45.6 16.6Z" fill="#5F8FEC"/><path d="M21 49 L23.4 44.6 L18.4 47.6Z" fill="#B0EDCF"/><path d="M21 49 L18.6 53.4 L18.4 47.6Z" fill="#43B381"/><path d="M52.00 5.00 L53.06 8.94 L57.00 10.00 L53.06 11.06 L52.00 15.00 L50.94 11.06 L47.00 10.00 L50.94 8.94Z" fill="#B7A3F3"/></svg><span class="wordmark">simmer<span class="wm-space">space</span></span></a>
       <nav class="nav" aria-label="Page">
         <a href="#curseforge" data-copy="navCurseForge">CurseForge</a>
         <a href="#features" data-copy="navFeatures">Features</a>
@@ -253,19 +250,19 @@
     <div class="hero">
       <div class="wrap">
         <div>
-          <span class="pill"><span class="dot"><svg class="icon icon-curseforge " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v7"/></svg></span><span data-copy="heroBadge">New in 0.11.1 · CurseForge is built in</span></span>
+          <span class="pill"><span class="dot"><svg class="icon icon-curseforge " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v7"/></svg></span><span data-copy="heroBadge">New in 0.12.0 · Updates itself, always asking first</span></span>
           <h1><span data-copy="heroTitleA">Find, install and organize your Sims 4 mods</span> <em data-copy="heroTitleB">in one place.</em></h1>
           <p class="lead" data-copy="heroText">SimmerSpace now comes with CurseForge built in: explore the Sims 4 catalog, install mods straight into your Mods folder and check for updates without leaving the app. It’s still a beta and some things are being polished, but you can already use it as your mod manager.</p>
           <div class="cta">
-            <a class="btn btn-primary dl-link" href="https://github.com/karisqueen/simmerspace/releases/download/v0.11.1/SimmerSpace-0.11.1-portable.exe"><svg class="icon icon-download " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3z"/><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg><span data-copy="dlButton">Download for Windows</span></a>
+            <a class="btn btn-primary dl-link" href="https://github.com/karisqueen/simmerspace/releases/download/v0.12.0/SimmerSpace-Setup-0.12.0.exe"><svg class="icon icon-download " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3z"/><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg><span data-copy="dlButton">Download for Windows</span></a>
             <a class="btn btn-secondary" href="#curseforge" data-copy="seeHow">See how it works</a>
           </div>
-          <p class="meta"><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span class="dl-version">v0.11.1 beta</span></span><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="metaPortable">Portable .exe, no installer</span></span><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="metaFree">Free</span></span></p>
+          <p class="meta"><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span class="dl-version">v0.12.0 beta</span></span><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="metaPortable">Windows installer</span></span><span><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="metaFree">Free</span></span></p>
         </div>
         <figure style="margin:0">
           <div class="window" role="img" data-aria="mockAria" aria-label="Illustration of the Explore page in SimmerSpace">
             <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
-            <div class="rail" aria-hidden="true"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bm-a" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path d="M16 .9 6.75 14.75H16z" fill="#fff" fill-opacity=".34"/><path d="M16 .9 25.25 14.75H16z" fill="#fff" fill-opacity=".12"/><path d="M25.25 14.75H16v16.35z" fill="#000" fill-opacity=".18"/><path class="bm-edge" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path class="bm-s" d="M19.88 10.13 16 7l-3.75 3.63 7.5 8.25L16 22.75l-3.87-3.12"/></svg><span><svg class="icon icon-home " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 10.5 12 5l7 5.5V19a1 1 0 0 1-1 1h-3.5v-5h-5v5H6a1 1 0 0 1-1-1z"/><path d="M3.5 11.5 12 4.8l8.5 6.7"/><path d="M5.5 10v9a1 1 0 0 0 1 1h3.5v-5h4v5h3.5a1 1 0 0 0 1-1v-9"/></svg></span><span class="on"><svg class="icon icon-discover " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="d" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span><span><svg class="icon icon-library " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="d" x="4" y="4" width="7" height="7" rx="2"/><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M16.5 13.5v6M13.5 16.5h6"/></svg></span><span><svg class="icon icon-creators " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="d" cx="9.5" cy="8.5" r="3.5"/><circle cx="9.5" cy="8.5" r="3.5"/><path d="M3.5 19.5c.7-3.3 3-5 6-5s5.3 1.7 6 5"/><path d="M17.8 3.8c.25 1.3.7 1.75 2 2-1.3.25-1.75.7-2 2-.25-1.3-.7-1.75-2-2 1.3-.25 1.75-.7 2-2z"/><path d="M16 12.6c2.2.4 3.8 2.3 4.4 5.4"/></svg></span><span><svg class="icon icon-collections " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M6.5 5.5h11M8.5 3h7"/></svg></span><span><svg class="icon icon-inspiration " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="d" x="3.5" y="4.5" width="17" height="15" rx="3"/><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m4.5 17 4.6-4.3 3.3 3 2.6-2.3 4.7 4"/><path d="M15.5 7.2c.2 1 .55 1.35 1.55 1.55-1 .2-1.35.55-1.55 1.55-.2-1-.55-1.35-1.55-1.55 1-.2 1.35-.55 1.55-1.55z"/></svg></span></div>
+            <div class="rail" aria-hidden="true"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><linearGradient id="bm1l" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#A9CBFF"/><stop offset=".9" stop-color="#B0EDCF"/></linearGradient><linearGradient id="bm1r" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#5F8FEC"/><stop offset=".9" stop-color="#43B381"/></linearGradient></defs><path d="M43 15 L45.6 10.7 L29 0.5 L30 7Z" fill="#A9CBFF"/><path d="M43 15 L40.4 19.3 L31 13.5 L30 7Z" fill="#5F8FEC"/><path d="M30 7 L29 0.5 L12 20.6 L19 20Z" fill="#A9CBFF"/><path d="M30 7 L31 13.5 L26 19.4 L19 20Z" fill="#5F8FEC"/><path d="M19 20 L12 20.6 L38.1 42.7 L45 42Z" fill="url(#bm1l)"/><path d="M19 20 L26 19.4 L51.9 41.3 L45 42Z" fill="url(#bm1r)"/><path d="M45 42 L38.1 42.7 L32.7 49.6 L34 56Z" fill="#B0EDCF"/><path d="M45 42 L51.9 41.3 L35.3 62.4 L34 56Z" fill="#43B381"/><path d="M34 56 L32.7 49.6 L23.4 44.6 L21 49Z" fill="#B0EDCF"/><path d="M34 56 L35.3 62.4 L18.6 53.4 L21 49Z" fill="#43B381"/><path d="M43 15 L45.6 10.7 L45.6 16.6Z" fill="#A9CBFF"/><path d="M43 15 L40.4 19.3 L45.6 16.6Z" fill="#5F8FEC"/><path d="M21 49 L23.4 44.6 L18.4 47.6Z" fill="#B0EDCF"/><path d="M21 49 L18.6 53.4 L18.4 47.6Z" fill="#43B381"/><path d="M52.00 5.00 L53.06 8.94 L57.00 10.00 L53.06 11.06 L52.00 15.00 L50.94 11.06 L47.00 10.00 L50.94 8.94Z" fill="#B7A3F3"/></svg><span><svg class="icon icon-home " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 10.5 12 5l7 5.5V19a1 1 0 0 1-1 1h-3.5v-5h-5v5H6a1 1 0 0 1-1-1z"/><path d="M3.5 11.5 12 4.8l8.5 6.7"/><path d="M5.5 10v9a1 1 0 0 0 1 1h3.5v-5h4v5h3.5a1 1 0 0 0 1-1v-9"/></svg></span><span class="on"><svg class="icon icon-discover " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="d" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z"/></svg></span><span><svg class="icon icon-library " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="d" x="4" y="4" width="7" height="7" rx="2"/><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M16.5 13.5v6M13.5 16.5h6"/></svg></span><span><svg class="icon icon-creators " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="d" cx="9.5" cy="8.5" r="3.5"/><circle cx="9.5" cy="8.5" r="3.5"/><path d="M3.5 19.5c.7-3.3 3-5 6-5s5.3 1.7 6 5"/><path d="M17.8 3.8c.25 1.3.7 1.75 2 2-1.3.25-1.75.7-2 2-.25-1.3-.7-1.75-2-2 1.3-.25 1.75-.7 2-2z"/><path d="M16 12.6c2.2.4 3.8 2.3 4.4 5.4"/></svg></span><span><svg class="icon icon-collections " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M6.5 5.5h11M8.5 3h7"/></svg></span><span><svg class="icon icon-inspiration " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="d" x="3.5" y="4.5" width="17" height="15" rx="3"/><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m4.5 17 4.6-4.3 3.3 3 2.6-2.3 4.7 4"/><path d="M15.5 7.2c.2 1 .55 1.35 1.55 1.55-1 .2-1.35.55-1.55 1.55-.2-1-.55-1.35-1.55-1.55 1-.2 1.35-.55 1.55-1.55z"/></svg></span></div>
             <div class="pane" aria-hidden="true">
               <div class="pane-head"><b data-copy="mockTitle">Explore</b><small data-copy="mockAttribution">Mods and files provided by CurseForge</small></div>
               <div class="search"><svg class="icon icon-search " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="d" cx="11" cy="11" r="6.5"/><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span data-copy="mockSearch">Search CurseForge…</span></div>
@@ -332,6 +329,7 @@
               <li><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="w3">Scan, tag and organize your Mods folder</span></li>
               <li><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="w4">Creators, collections and the Inspiration feed</span></li>
               <li><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="w5">SimmerSpace accounts with an email code</span></li>
+              <li><svg class="icon icon-check " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span data-copy="w6">Automatic updates that ask before installing</span></li>
             </ul>
           </div>
           <div class="list-card todo">
@@ -340,8 +338,7 @@
               <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t1">Some screens and texts still need finishing touches</span></li>
               <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t2">Patreon isn’t connected yet</span></li>
               <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t3">The .exe isn’t code-signed yet, so Windows may show a warning</span></li>
-              <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t4">New versions are downloaded from this page for now</span></li>
-              <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t5">Windows only</span></li>
+                            <li><svg class="icon icon-sparkle " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z"/><path d="M18.5 16.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z"/></svg><span data-copy="t5">Windows only</span></li>
             </ul>
           </div>
         </div>
@@ -355,11 +352,11 @@
           <img src="assets/icon.png" alt="" width="84" height="84">
           <h2 data-copy="dlTitle">Get SimmerSpace</h2>
           <p class="lead" data-copy="dlText">Free for Windows 10 and 11 (64-bit). You need The Sims 4 installed.</p>
-          <a class="btn btn-primary dl-link" href="https://github.com/karisqueen/simmerspace/releases/download/v0.11.1/SimmerSpace-0.11.1-portable.exe"><svg class="icon icon-download " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3z"/><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg><span data-copy="dlButton">Download for Windows</span></a>
-          <p class="meta" style="justify-content:center"><span class="dl-file">SimmerSpace-0.11.1-portable.exe</span><a href="https://github.com/karisqueen/simmerspace/releases" data-copy="allReleases">All versions</a></p>
+          <a class="btn btn-primary dl-link" href="https://github.com/karisqueen/simmerspace/releases/download/v0.12.0/SimmerSpace-Setup-0.12.0.exe"><svg class="icon icon-download " viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="d" d="M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3z"/><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg><span data-copy="dlButton">Download for Windows</span></a>
+          <p class="meta" style="justify-content:center"><span class="dl-file">SimmerSpace-Setup-0.12.0.exe</span><a href="https://github.com/karisqueen/simmerspace/releases" data-copy="allReleases">All versions</a></p>
         </div>
         <div class="dl-steps">
-          <div class="dl-step"><span class="n">1</span><div><b data-copy="d1Title">Download and open it</b><p data-copy="d1Text">It’s a portable app: no installer, just open the .exe. Keep it in a folder you like.</p></div></div>
+          <div class="dl-step"><span class="n">1</span><div><b data-copy="d1Title">Download and install it</b><p data-copy="d1Text">Run the installer and choose where to install SimmerSpace. From then on it updates itself, always asking first.</p></div></div>
           <div class="dl-step"><span class="n">2</span><div><b data-copy="d2Title">If Windows shows a warning</b><p data-copy="d2Text">Choose “More info” and then “Run anyway”. It appears because the beta isn’t code-signed yet.</p></div></div>
           <div class="dl-step"><span class="n">3</span><div><b data-copy="d3Title">Create your account</b><p data-copy="d3Text">Sign up with your email, enter the 6-digit code we send you, and choose your Mods folder.</p></div></div>
         </div>
@@ -369,7 +366,7 @@
 
   <footer>
     <div class="wrap">
-      <div class="row"><span data-copy="footerMade">Made with care for the Sims community.</span><span><a href="https://github.com/karisqueen/simmerspace" data-copy="footerGitHub">SimmerSpace on GitHub</a> · <span class="dl-version">v0.11.1 beta</span></span></div>
+      <div class="row"><span data-copy="footerMade">Made with care for the Sims community.</span><span><a href="https://github.com/karisqueen/simmerspace" data-copy="footerGitHub">SimmerSpace on GitHub</a> · <a href="brand/" data-copy="footerBrand">Brand</a> · <span class="dl-version">v0.12.0 beta</span></span></div>
       <p data-copy="legal">SimmerSpace is an independent fan project. It is not affiliated with or endorsed by Electronic Arts, Maxis or CurseForge. The Sims and The Sims 4 are trademarks of Electronic Arts Inc. CurseForge is a trademark of Overwolf Ltd.</p>
     </div>
   </footer>
@@ -381,10 +378,10 @@
         pageDescription: "SimmerSpace is a free Sims 4 mod manager for Windows with CurseForge built in: explore, install and organize your mods and CC in one place. Beta.",
         navCurseForge: "CurseForge", navFeatures: "Features", navBeta: "Beta", navGitHub: "GitHub", navDownload: "Download",
         modeDark: "Dark mode", modeLight: "Light mode", languageLabel: "Español",
-        heroBadge: "New in 0.11.1 · CurseForge is built in",
+        heroBadge: "New in 0.12.0 · Updates itself, always asking first",
         heroTitleA: "Find, install and organize your Sims 4 mods", heroTitleB: "in one place.",
         heroText: "SimmerSpace now comes with CurseForge built in: explore the Sims 4 catalog, install mods straight into your Mods folder and check for updates without leaving the app. It’s still a beta and some things are being polished, but you can already use it as your mod manager.",
-        dlButton: "Download for Windows", seeHow: "See how it works", metaPortable: "Portable .exe, no installer", metaFree: "Free",
+        dlButton: "Download for Windows", seeHow: "See how it works", metaPortable: "Windows installer", metaFree: "Free",
         mockAria: "Illustration of the Explore page in SimmerSpace", mockTitle: "Explore", mockAttribution: "Mods and files provided by CurseForge", mockSearch: "Search CurseForge…", mockBrowse: "Browse", mockInstalled: "Installed",
         mockMod1: "Cozy kitchen set", mockMod2: "Everyday hairstyles", mockMod3: "Livelier neighborhoods", mockDone: "Installed", mockInstall: "Install", mockToast: "Installed in Mods\\CurseForge - Cozy kitchen set", mockCaption: "Illustration of the Explore page",
         cfEyebrow: "CurseForge, inside SimmerSpace", cfTitle: "From finding a mod to playing with it, without leaving the app.", cfIntro: "Sign in to your SimmerSpace account and the whole Sims 4 catalog on CurseForge is ready in Explore. There’s nothing else to set up.",
@@ -401,14 +398,14 @@
         f6Title: "Ready to play", f6Text: "Launch The Sims 4 straight from SimmerSpace when your Mods are ready.",
         betaEyebrow: "An honest beta", betaTitle: "Ready to use, still being polished",
         betaText: "The CurseForge integration and the manager already work, so you can use SimmerSpace day to day. Some details are still rough and new things arrive with each version. If something goes wrong, the Feedback button in Settings sends it straight to us.",
-        worksTitle: "Works today", w1: "Explore and install CurseForge mods", w2: "Update checks for the mods you installed", w3: "Scan, tag and organize your Mods folder", w4: "Creators, collections and the Inspiration feed", w5: "SimmerSpace accounts with an email code",
-        todoTitle: "Still to polish", t1: "Some screens and texts still need finishing touches", t2: "Patreon isn’t connected yet", t3: "The .exe isn’t code-signed yet, so Windows may show a warning", t4: "New versions are downloaded from this page for now", t5: "Windows only",
+        worksTitle: "Works today", w1: "Explore and install CurseForge mods", w2: "Update checks for the mods you installed", w3: "Scan, tag and organize your Mods folder", w4: "Creators, collections and the Inspiration feed", w5: "SimmerSpace accounts with an email code", w6: "Automatic updates that ask before installing",
+        todoTitle: "Still to polish", t1: "Some screens and texts still need finishing touches", t2: "Patreon isn’t connected yet", t3: "The .exe isn’t code-signed yet, so Windows may show a warning", t5: "Windows only",
         backup: "As with any mod manager, back up your Mods folder before big changes.",
         dlTitle: "Get SimmerSpace", dlText: "Free for Windows 10 and 11 (64-bit). You need The Sims 4 installed.", allReleases: "All versions",
-        d1Title: "Download and open it", d1Text: "It’s a portable app: no installer, just open the .exe. Keep it in a folder you like.",
+        d1Title: "Download and install it", d1Text: "Run the installer and choose where to install SimmerSpace. From then on it updates itself, always asking first.",
         d2Title: "If Windows shows a warning", d2Text: "Choose “More info” and then “Run anyway”. It appears because the beta isn’t code-signed yet.",
         d3Title: "Create your account", d3Text: "Sign up with your email, enter the 6-digit code we send you, and choose your Mods folder.",
-        footerMade: "Made with care for the Sims community.", footerGitHub: "SimmerSpace on GitHub", versionLabel: "beta",
+        footerMade: "Made with care for the Sims community.", footerGitHub: "SimmerSpace on GitHub", footerBrand: "Brand", versionLabel: "beta",
         legal: "SimmerSpace is an independent fan project. It is not affiliated with or endorsed by Electronic Arts, Maxis or CurseForge. The Sims and The Sims 4 are trademarks of Electronic Arts Inc. CurseForge is a trademark of Overwolf Ltd."
       },
       es: {
@@ -416,10 +413,10 @@
         pageDescription: "SimmerSpace es un gestor de mods gratuito para Los Sims 4 en Windows con CurseForge integrado: explora, instala y organiza tus mods y CC en un solo lugar. Beta.",
         navCurseForge: "CurseForge", navFeatures: "Funciones", navBeta: "Beta", navGitHub: "GitHub", navDownload: "Descargar",
         modeDark: "Modo oscuro", modeLight: "Modo claro", languageLabel: "English",
-        heroBadge: "Nuevo en 0.11.1 · CurseForge ya está integrado",
+        heroBadge: "Nuevo en 0.12.0 · Se actualiza sola, siempre preguntando antes",
         heroTitleA: "Busca, instala y organiza tus mods de Los Sims 4", heroTitleB: "en un solo lugar.",
         heroText: "SimmerSpace ya trae CurseForge integrado: explora el catálogo de Los Sims 4, instala mods directamente en tu carpeta Mods y busca actualizaciones sin salir de la app. Sigue en beta y hay cosas por pulir, pero ya puedes usarla como tu gestor de mods.",
-        dlButton: "Descargar para Windows", seeHow: "Ver cómo funciona", metaPortable: ".exe portable, sin instalación", metaFree: "Gratis",
+        dlButton: "Descargar para Windows", seeHow: "Ver cómo funciona", metaPortable: "Instalador para Windows", metaFree: "Gratis",
         mockAria: "Ilustración de la página Explorar de SimmerSpace", mockTitle: "Explorar", mockAttribution: "Mods y archivos de CurseForge", mockSearch: "Buscar en CurseForge…", mockBrowse: "Explorar", mockInstalled: "Instalados",
         mockMod1: "Cocina acogedora", mockMod2: "Peinados para cada día", mockMod3: "Vecindarios con más vida", mockDone: "Instalado", mockInstall: "Instalar", mockToast: "Instalado en Mods\\CurseForge - Cocina acogedora", mockCaption: "Ilustración de la página Explorar",
         cfEyebrow: "CurseForge, dentro de SimmerSpace", cfTitle: "De encontrar un mod a jugar con él, sin salir de la app.", cfIntro: "Inicia sesión con tu cuenta de SimmerSpace y todo el catálogo de Los Sims 4 en CurseForge te espera en Explorar. No hay nada más que configurar.",
@@ -436,14 +433,14 @@
         f6Title: "Lista para jugar", f6Text: "Inicia Los Sims 4 directamente desde SimmerSpace cuando tus Mods estén listos.",
         betaEyebrow: "Una beta honesta", betaTitle: "Lista para usar, todavía en pulido",
         betaText: "La integración con CurseForge y el gestor ya funcionan, así que puedes usar SimmerSpace en tu día a día. Algunos detalles aún están verdes y cada versión trae cosas nuevas. Si algo falla, el botón Comentarios en Ajustes nos lo hace llegar directamente.",
-        worksTitle: "Ya funciona", w1: "Explorar e instalar mods de CurseForge", w2: "Buscar actualizaciones de los mods que instalaste", w3: "Escanear, etiquetar y organizar tu carpeta Mods", w4: "Creadores, colecciones y el muro de Inspiración", w5: "Cuentas de SimmerSpace con código por correo",
-        todoTitle: "Por pulir", t1: "Algunas pantallas y textos necesitan retoques", t2: "Patreon todavía no está conectado", t3: "El .exe aún no tiene firma de código, así que Windows puede mostrar un aviso", t4: "Por ahora, las versiones nuevas se descargan desde esta página", t5: "Solo Windows",
+        worksTitle: "Ya funciona", w1: "Explorar e instalar mods de CurseForge", w2: "Buscar actualizaciones de los mods que instalaste", w3: "Escanear, etiquetar y organizar tu carpeta Mods", w4: "Creadores, colecciones y el muro de Inspiración", w5: "Cuentas de SimmerSpace con código por correo", w6: "Actualizaciones automáticas que preguntan antes de instalar",
+        todoTitle: "Por pulir", t1: "Algunas pantallas y textos necesitan retoques", t2: "Patreon todavía no está conectado", t3: "El .exe aún no tiene firma de código, así que Windows puede mostrar un aviso", t5: "Solo Windows",
         backup: "Como con cualquier gestor de mods, haz una copia de tu carpeta Mods antes de cambios grandes.",
         dlTitle: "Descarga SimmerSpace", dlText: "Gratis para Windows 10 y 11 (64 bits). Necesitas tener Los Sims 4 instalado.", allReleases: "Todas las versiones",
-        d1Title: "Descárgalo y ábrelo", d1Text: "Es una app portable: sin instalador, solo abre el .exe. Guárdalo en la carpeta que prefieras.",
+        d1Title: "Descárgala e instálala", d1Text: "Abre el instalador y elige dónde instalar SimmerSpace. Desde entonces se actualiza sola, siempre preguntando antes.",
         d2Title: "Si Windows muestra un aviso", d2Text: "Elige «Más información» y después «Ejecutar de todas formas». Aparece porque la beta aún no tiene firma de código.",
         d3Title: "Crea tu cuenta", d3Text: "Regístrate con tu correo, escribe el código de 6 dígitos que te enviamos y elige tu carpeta Mods.",
-        footerMade: "Hecho con cariño para la comunidad simmer.", footerGitHub: "SimmerSpace en GitHub", versionLabel: "beta",
+        footerMade: "Hecho con cariño para la comunidad simmer.", footerGitHub: "SimmerSpace en GitHub", footerBrand: "Identidad", versionLabel: "beta",
         legal: "SimmerSpace es un proyecto independiente de fans. No está afiliado ni cuenta con el respaldo de Electronic Arts, Maxis ni CurseForge. The Sims y Los Sims 4 son marcas comerciales de Electronic Arts Inc. CurseForge es una marca comercial de Overwolf Ltd."
       }
     };
@@ -476,11 +473,11 @@
     document.getElementById('language-toggle').addEventListener('click', () => { lang = lang === 'en' ? 'es' : 'en'; store.set('simmerspace-site-language', lang); applyLanguage(); });
     applyLanguage();
 
-    // The buttons point at the 0.11.1 download. If a newer release with a portable .exe exists, use it instead.
+    // The buttons point at the 0.12.0 installer. If a newer release with an installer exists, use it instead.
     fetch('https://api.github.com/repos/karisqueen/simmerspace/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
       .then(r => (r.ok ? r.json() : null))
       .then(release => {
-        const asset = release?.assets?.find(a => /portable\.exe$/i.test(a.name));
+        const asset = release?.assets?.find(a => /-Setup-.*\.exe$/i.test(a.name));
         if (!asset) return;
         const version = String(release.tag_name || '').replace(/^v/, '');
         document.querySelectorAll('.dl-link').forEach(a => { a.href = asset.browser_download_url; });

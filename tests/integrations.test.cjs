@@ -84,7 +84,15 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null, ver
       if (name === 'profiles' && op === 'update') {
         const id = filters.find(f => f[0] === 'id')[1];
         if (values.username && [...profiles.values()].some(p => p.id !== id && p.username === values.username)) return { error: { code: '23505' } };
-        profiles.set(id, { ...profiles.get(id), ...values });
+        // Like the profiles trigger: one username change every 30 days.
+        const before = profiles.get(id);
+        const extra = {};
+        if (values.username && values.username !== before.username) {
+          const last = Date.parse(before.username_changed_at || '');
+          if (last && last > Date.now() - 30 * 86400000) return { error: { code: 'SS030', hint: new Date(last + 30 * 86400000).toISOString() } };
+          extra.username_changed_at = new Date().toISOString();
+        }
+        profiles.set(id, { ...before, ...values, ...extra });
         return { error: null };
       }
       if (name === 'inspiration_posts' && op === 'insert') {
@@ -237,8 +245,17 @@ test('accounts: profile changes, avatars in the user folder, and a taken usernam
   await assert.rejects(service.uploadAvatar(webp(10)), { code: 'ACCOUNT_SIGNED_OUT' });
   await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
   fake.profiles.set('other', { id: 'other', username: 'taken' });
-  await assert.rejects(service.updateProfile({ username: 'taken' }), { code: 'ACCOUNT_USERNAME_TAKEN' });
-  assert.equal((await service.updateProfile({ username: 'Ana.B' })).user.username, 'ana.b');
+  await assert.rejects(service.updateProfile({ username: 'Ana.B' }), { code: 'ACCOUNT_PASSWORD_REQUIRED' });
+  await assert.rejects(service.updateProfile({ username: 'Ana.B', password: 'wrong' }), { code: 'ACCOUNT_WRONG_PASSWORD' });
+  await assert.rejects(service.updateProfile({ username: 'ana', password: 'correct horse 1' }), { code: 'ACCOUNT_USERNAME_SAME' });
+  await assert.rejects(service.updateProfile({ username: 'taken', password: 'correct horse 1' }), { code: 'ACCOUNT_USERNAME_TAKEN' });
+  const renamed = (await service.updateProfile({ username: 'Ana.B', password: 'correct horse 1' })).user;
+  assert.equal(renamed.username, 'ana.b');
+  assert.ok(Date.parse(renamed.usernameChangeAvailableAt) > Date.now() + 29 * 86400000, 'the next change is 30 days away');
+  await assert.rejects(service.updateProfile({ username: 'ana.c', password: 'correct horse 1' }), { code: 'ACCOUNT_USERNAME_TOO_SOON' });
+  // After 30 days another change is allowed.
+  fake.profiles.get('00000000-0000-0000-0000-00000000000a').username_changed_at = new Date(Date.now() - 31 * 86400000).toISOString();
+  assert.equal((await service.updateProfile({ username: 'ana.c', password: 'correct horse 1' })).user.usernameChangeAvailableAt !== null, true);
   await assert.rejects(service.uploadAvatar({ data: new Uint8Array(4), type: 'image/svg+xml' }), { code: 'IMAGE_TYPE' });
   await assert.rejects(service.uploadAvatar(webp(2 * 1024 * 1024 + 1)), { code: 'IMAGE_TOO_LARGE' });
   await service.uploadAvatar(webp(10));

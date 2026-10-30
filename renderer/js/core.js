@@ -150,7 +150,7 @@
   const MODES = ['light', 'dark', 'system'];
   const DENSITIES = ['comfortable', 'compact'];
   const MOTION = ['system', 'reduced', 'full'];
-  const DEFAULT_APPEARANCE = Object.freeze({ family: 'purple', mode: 'light', density: 'comfortable', motion: 'system' });
+  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'system' });
 
   // Reads saved appearance settings. Anything missing or unknown falls back to a default. Carried over:
   // the single theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark"), the main color
@@ -220,6 +220,7 @@
     if (result && result.ok === true) return result.value;
     const error = new Error(result?.error?.message || 'The operation could not be completed.');
     error.code = result?.error?.code || 'UNKNOWN';
+    if (result?.error?.details !== undefined) error.details = result.error.details;
     throw error;
   }
 

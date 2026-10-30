@@ -1,0 +1,71 @@
+# Builds the Windows installer when a release is published on GitHub and attaches it to that release, together
+# with latest.yml and the .blockmap file that SimmerSpace's automatic updates read.
+#
+# One-time setup (Settings > Secrets and variables > Actions > Variables):
+#   SUPABASE_URL              the project URL, https://<ref>.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY  the publishable (public) key, sb_publishable_...
+# Never add a secret key or the CurseForge key here: the CurseForge key lives only in the Supabase function.
+name: Release build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of an existing release to build again (for example v0.12.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check that the tag matches the app version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:TAG -ne "v$version") { throw "The release tag $env:TAG does not match package.json version $version (expected v$version)." }
+
+      - name: Write the public app config
+        shell: pwsh
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if (-not $env:SUPABASE_URL -or -not $env:SUPABASE_PUBLISHABLE_KEY) { throw "Add the SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY repository variables first." }
+          if (-not $env:SUPABASE_PUBLISHABLE_KEY.StartsWith('sb_publishable_')) { throw "SUPABASE_PUBLISHABLE_KEY must be the publishable key (sb_publishable_...), never a secret key." }
+          $url = $env:SUPABASE_URL.TrimEnd('/')
+          $config = @{ supabase = @{ url = $url; publishableKey = $env:SUPABASE_PUBLISHABLE_KEY }; curseforge = @{ proxyUrl = "$url/functions/v1/curseforge-proxy" } }
+          $config | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 electron/public-config.json
+
+      - name: Build the installer
+        run: pnpm exec electron-builder --win nsis --x64 --publish never
+
+      - name: Attach the files to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem dist -File | Where-Object { $_.Name -like '*-Setup-*.exe' -or $_.Name -like '*.exe.blockmap' -or $_.Name -eq 'latest.yml' }
+          if ($files.Count -lt 3) { throw "Expected the installer, its .blockmap and latest.yml in dist." }
+          gh release upload $env:TAG $files.FullName --clobber --repo $env:GITHUB_REPOSITORY

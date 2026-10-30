@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.0 automatic updates and a new profile (2026-10-30)
+
+- SimmerSpace now ships as a Windows installer (`SimmerSpace-Setup-<version>.exe`) and updates itself from the GitHub releases: it checks when it opens (can be turned off in Settings > Updates), asks before downloading, and asks again before restarting to install. Nothing is installed without the player's OK. Portable copies point to the download page instead.
+- The saved session survives updates; uninstalling SimmerSpace deletes it (`build/installer.nsh`). Portable copies still ask to sign in again when a new copy is downloaded.
+- New GitHub Action (`.github/workflows/release.yml`): publishing a release builds the installer and attaches it with `latest.yml` and the `.blockmap` the updater needs. It needs the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` repository variables.
+- The account page is now a profile: cover, large avatar with a photo button, member-since date, counts for posts, collections and followed creators, and a grid of your Inspiration posts.
+- Changing the username moved to a small button that opens a dialog, asks for the password and is allowed once every 30 days. The limit is enforced by the database (`supabase/migrations/20261030120000_username_changes.sql`).
+- Fixed the on/off switches in Settings, which were drawn as a small circle.
+- New visual identity, "the fold": a ribbon folded into an S, each stretch split into a light and a deep face that runs from sky blue to mint, with a small lavender spark. It replaces the plumbob-style symbol and the old icon files everywhere (app icon, `build/icon.ico`, in-app brand mark, installer, project page). The wordmark keeps Fredoka in lowercase, now in two tones ("simmer" + "space").
+- Blue is now the default theme, retuned to the new palette (Simmer blue, sky, mint, lavender spark). Saved theme choices are kept.
+- Brand guide at `docs/brand/` (story, construction, logotype, palette, type, variations, app icon and misuse).
+
 ## 0.11.1 cleanup, new icon and per-copy sessions (2026-10-30)
 
 - All sample content is gone: the sample catalog (`demo-data.js`), the sample Discover and Favorites pages, the three sample collections and sample items inside collections, their filters, styles and unused texts. Sample data saved by earlier versions is removed from this PC on start; your own collections and their CurseForge mods are kept.

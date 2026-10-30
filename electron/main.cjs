@@ -11,6 +11,7 @@ const { loadAppConfig, describeConfig } = require('./app-config.cjs');
 const { createCurseForgeService } = require('./curseforge-service.cjs');
 const { createAccountService } = require('./account-service.cjs');
 const { createGameLauncher } = require('./game-launcher.cjs');
+const { createUpdater } = require('./updater.cjs');
 const { moveNoOverwrite } = require('./mods-service.cjs');
 
 const APP_VERSION = app.getVersion();
@@ -46,9 +47,12 @@ const modsService = createModsService({
 const DEV_MODE = process.env.SIMMERSPACE_DEV === '1' || process.argv.includes('--developer');
 // A copy run from source may keep its development keys in the git-ignored .env.local; packaged builds never read it.
 const getConfig = () => loadAppConfig({ userDataPath: app.getPath('userData'), devEnvFile: app.isPackaged ? '' : path.join(__dirname, '..', '.env.local') });
-// Which copy of the app this is: the version plus the location of the .exe (the portable build runs from a
-// temporary folder and reports its own file in PORTABLE_EXECUTABLE_FILE). Only a hash is stored.
-const installId = app.isPackaged ? crypto.createHash('sha256').update(`${APP_VERSION}|${process.env.PORTABLE_EXECUTABLE_FILE || process.execPath}`).digest('hex') : 'development';
+// The portable build runs from a temporary folder and reports its own file in PORTABLE_EXECUTABLE_FILE.
+const PORTABLE_FILE = process.env.PORTABLE_EXECUTABLE_FILE || '';
+// Which copy of the app this is. Installed copies keep their session across updates (the uninstaller deletes it,
+// see build/installer.nsh); a portable copy is tied to its version and .exe location, so a newly downloaded
+// copy asks to sign in again. Only a hash is stored.
+const installId = !app.isPackaged ? 'development' : crypto.createHash('sha256').update(PORTABLE_FILE ? `${APP_VERSION}|${PORTABLE_FILE}` : `installed|${process.execPath}`).digest('hex');
 const account = createAccountService({
   getConfig,
   userDataPath: () => app.getPath('userData'),
@@ -63,6 +67,11 @@ const curseforge = createCurseForgeService({
   getModsRoot: () => modsService.selectedRoot(),
   moveNoOverwrite,
   trashItem: file => shell.trashItem(file)
+});
+const updater = createUpdater({
+  supported: app.isPackaged && !PORTABLE_FILE && process.platform === 'win32',
+  currentVersion: APP_VERSION,
+  send: state => sendToPage('update:changed', state)
 });
 const gameLauncher = createGameLauncher({
   getGameFolder: async () => (await settings.loadRoutes()).game?.path,
@@ -118,6 +127,10 @@ async function chooseFolder(id) {
 
 const ipc = createIpc({ ipcMain, isTrustedSender: isAppPage });
 ipc.handle('app:info', validators.none, () => ({ version: APP_VERSION, platform: process.platform, developer: DEV_MODE }));
+ipc.handle('update:state', validators.none, () => updater.state());
+ipc.handle('update:check', validators.none, () => updater.check());
+ipc.handle('update:download', validators.none, () => updater.download());
+ipc.handle('update:install', validators.none, () => updater.install());
 ipc.handle('app:set-window-background', validators.string, async color => {
   if (/^#[0-9a-f]{6}$/i.test(color)) await settings.update({ windowBackground: color });
   return true;
@@ -204,7 +217,7 @@ async function createWindow() {
     minWidth: 760,
     minHeight: 620,
     title: `SimmerSpace ${APP_VERSION}`,
-    icon: path.join(__dirname, '..', 'renderer', 'brand', 'app-icon.png'),
+    icon: path.join(__dirname, '..', 'renderer', 'brand', 'simmerspace-icon.png'),
     // The last theme's background, so dark themes do not flash light while the page loads.
     backgroundColor: /^#[0-9a-f]{6}$/i.test(saved.windowBackground || '') ? saved.windowBackground : '#f6f5fa',
     show: false,

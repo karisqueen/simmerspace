@@ -23,6 +23,7 @@ const POST_CATEGORIES = ['cas', 'build', 'gameplay', 'story', 'other'];
 const FEEDBACK_CATEGORIES = ['suggestion', 'bug_report', 'feature_request', 'donation_feedback', 'other'];
 const PAGE_SIZE = 24;
 const SIGNED_URL_SECONDS = 60 * 60;
+const USERNAME_CHANGE_DAYS = 30;
 
 // Supabase error codes (https://supabase.com/docs/guides/auth/debugging/error-codes) mapped to our own.
 const AUTH_CODES = {
@@ -45,6 +46,9 @@ const AUTH_CODES = {
 
 function accountError(error) {
   if (error instanceof AppError) return error;
+  // Raised by the profiles trigger (supabase/migrations/20261030120000_username_changes.sql); the hint is when a
+  // new change is allowed.
+  if (error?.code === 'SS030') return new AppError('ACCOUNT_USERNAME_TOO_SOON', 'The username was changed less than 30 days ago.', { availableAt: Date.parse(error.hint) ? error.hint : null });
   const status = Number(error?.status || error?.statusCode);
   const code = AUTH_CODES[error?.code] || (status === 429 ? 'ACCOUNT_RATE_LIMITED' : status === 413 ? 'IMAGE_TOO_LARGE' : status === 415 ? 'IMAGE_TYPE' : '');
   if (code) return new AppError(code, 'The account request was not accepted.');
@@ -209,6 +213,14 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     return sb.storage.from(AVATAR_BUCKET).getPublicUrl(value).data?.publicUrl || '';
   }
 
+  // When the next username change is allowed, or null when it is allowed now.
+  function usernameChangeAvailableAt(profile) {
+    const changed = Date.parse(profile?.username_changed_at || '');
+    if (!changed) return null;
+    const next = changed + USERNAME_CHANGE_DAYS * 24 * 60 * 60 * 1000;
+    return next > Date.now() ? new Date(next).toISOString() : null;
+  }
+
   function publicUser(sb, user, profile) {
     if (!user) return null;
     return {
@@ -217,6 +229,8 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
       emailConfirmed: !!(user.email_confirmed_at || user.confirmed_at),
       username: profile?.username || user.user_metadata?.username || (user.email || '').split('@')[0],
       avatarUrl: avatarUrl(sb, profile?.avatar_url),
+      memberSince: profile?.created_at || user.created_at || null,
+      usernameChangeAvailableAt: usernameChangeAvailableAt(profile),
       profileMissing: !profile
     };
   }
@@ -229,7 +243,11 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
       const { data, error } = await sb.rpc('ensure_my_profile');
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
-      if (row) profileCache = { id: row.id, username: row.username, avatar_url: row.avatar_url || '' };
+      if (row) {
+        // Older databases have no username_changed_at yet; then there is simply no limit to show.
+        const extra = await sb.from('profiles').select('username_changed_at').eq('id', user.id).maybeSingle();
+        profileCache = { id: row.id, username: row.username, avatar_url: row.avatar_url || '', created_at: row.created_at || null, username_changed_at: extra.error ? null : extra.data?.username_changed_at || null };
+      }
     } catch {
       if (profileCache?.id !== user.id) profileCache = null;
     }
@@ -367,11 +385,19 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     });
   }
 
-  async function updateProfile({ username } = {}) {
+  // Changing the username asks for the password again and is allowed once every 30 days (the database trigger
+  // enforces the limit too).
+  async function updateProfile({ username, password } = {}) {
     const name = checkUsernameFormat(username);
+    if (typeof password !== 'string' || !password) throw new AppError('ACCOUNT_PASSWORD_REQUIRED', 'Enter your password to change the username.');
     return run(async sb => {
       const user = await requireUser(sb);
-      await loadProfile(sb, user);
+      const profile = await loadProfile(sb, user, { refresh: true });
+      if (profile?.username === name) throw new AppError('ACCOUNT_USERNAME_SAME', 'That is already your username.');
+      const availableAt = usernameChangeAvailableAt(profile);
+      if (availableAt) throw new AppError('ACCOUNT_USERNAME_TOO_SOON', 'The username was changed less than 30 days ago.', { availableAt });
+      const confirmed = await sb.auth.signInWithPassword({ email: user.email, password });
+      if (confirmed.error) throw confirmed.error.code === 'invalid_credentials' ? new AppError('ACCOUNT_WRONG_PASSWORD', 'The password is not correct.') : confirmed.error;
       const { error } = await sb.from('profiles').update({ username: name }).eq('id', user.id);
       if (error) throw error;
       return { user: publicUser(sb, user, await loadProfile(sb, user, { refresh: true })) };

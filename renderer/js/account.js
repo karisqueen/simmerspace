@@ -15,8 +15,13 @@ const account = {
   resendAt: 0,
   devBypass: false,
   tourOffered: false,
-  avatarBusy: false
+  avatarBusy: false,
+  profile: freshProfile('')
 };
+// The player's own posts and counts on the profile page, loaded when it opens.
+function freshProfile(userId) {
+  return { userId, posts: [], postCount: null, more: false, loaded: false, loading: false, error: null };
+}
 
 function accountUser() {
   return account.status?.user || null;
@@ -214,17 +219,89 @@ function renderAuthGate() {
   return true;
 }
 
-/* ---------- Account page ---------- */
+/* ---------- Account page: the player's own profile ---------- */
+const PROFILE_POSTS = 12;
+async function loadOwnProfile() {
+  const user = accountUser();
+  const profile = account.profile;
+  if (!user || typeof inspirationApi === 'undefined' || !inspirationApi || profile.loading) return;
+  profile.loading = true;
+  try {
+    const [page, info] = await Promise.all([callDesktop(inspirationApi.list, { userId: user.id, limit: PROFILE_POSTS }), callDesktop(inspirationApi.profile, { userId: user.id })]);
+    Object.assign(profile, { posts: page.posts, more: !!page.nextBefore, postCount: info.postCount, error: null });
+  } catch (error) {
+    profile.error = error;
+  } finally {
+    profile.loading = false;
+    profile.loaded = true;
+    if (state.page === 'account') render();
+  }
+}
+function longDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(state.lang, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+function profileTile(post) {
+  const label = post.caption || t('postNoCaption');
+  return `<div class="profile-tile"><button class="profile-tile-image" data-post-view="${esc(post.id)}" aria-label="${esc(label)}">${post.imageUrl ? `<img src="${esc(post.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="post-missing">${icon('inspiration')}</span>`}<span class="profile-tile-caption">${esc(post.caption || t(`inspCat_${post.category}`))}</span></button><button class="icon-btn icon-btn-sm profile-tile-delete" data-post-delete="${esc(post.id)}" aria-label="${esc(t('postDelete'))}" data-tip="${esc(t('postDelete'))}">${icon('trash')}</button></div>`;
+}
+function profileStat(value, label, page = '') {
+  const inner = `<b>${esc(value)}</b><span>${esc(label)}</span>`;
+  return page ? `<button class="profile-stat" data-page="${page}">${inner}</button>` : `<div class="profile-stat">${inner}</div>`;
+}
 function renderAccount() {
   const user = accountUser();
-  const header = pageHeader(t('accountTitle'));
   if (!user) {
-    content.innerHTML = `${header}${empty(t('accountsUnavailableTitle'), t('accountsRequiredText'))}`;
+    content.innerHTML = `${pageHeader(t('accountTitle'))}${empty(t('accountsUnavailableTitle'), t('accountsRequiredText'))}`;
     return;
   }
-  const profile = `<section class="panel panel-pad profile-panel"><div class="profile-head"><div class="avatar-edit">${avatarMarkup(user, 'avatar-xl')}${account.avatarBusy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}</div><div class="profile-copy"><h2 class="profile-name">@${esc(user.username)}</h2><p class="setting-help">${esc(user.email)}</p><div class="button-row"><button class="secondary-btn small-chip" id="avatar-change" ${account.avatarBusy ? 'disabled' : ''}>${icon('upload')}<span>${t('avatarChange')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn small-chip" id="avatar-remove" ${account.avatarBusy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}<button class="tertiary-btn small-chip" data-inspiration-user="${esc(user.id)}">${icon('inspiration')}<span>${t('myPosts')}</span></button></div><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div></div><form class="account-form inline-form" id="account-profile" novalidate>${authField('profile-username', t('username'), { value: user.username, autocomplete: 'username', attrs: 'maxlength="24" autocapitalize="none" spellcheck="false"', hint: `<small class="field-hint">${t('usernameHint')}</small>` })}<button class="secondary-btn" type="submit" ${account.busy ? 'disabled' : ''}>${t('saveUsername')}</button></form>${account.error ? `<p class="field-error" role="alert">${esc(account.error)}</p>` : ''}${account.status.persistent ? '' : `<p class="setting-help">${t('sessionNotKept')}</p>`}<div class="button-row"><button class="tertiary-btn" id="account-sign-out">${icon('logout')}<span>${t('signOut')}</span></button></div></section>`;
-  const feedback = `<section class="panel panel-pad"><h2 class="section-title">${icon('help')} ${t('feedbackTitle')}</h2><p class="setting-help">${t('feedbackText')}</p><div class="button-row"><button class="primary-btn" data-open-feedback>${icon('edit')}<span>${t('feedbackOpen')}</span></button></div></section>`;
-  content.innerHTML = `${header}<div class="account-layout">${profile}${feedback}</div>`;
+  if (account.profile.userId !== user.id) account.profile = freshProfile(user.id);
+  const p = account.profile;
+  if (!p.loaded && !p.loading) loadOwnProfile();
+  const busy = account.avatarBusy;
+  const count = value => (value === null ? '—' : Number(value).toLocaleString(state.lang));
+  const since = user.memberSince ? format(t('profileMemberSince'), { date: longDate(user.memberSince) }) : '';
+  const hero = `<section class="profile-hero panel"><div class="profile-cover" aria-hidden="true"></div><div class="profile-main"><div class="profile-avatar">${avatarMarkup(user, 'avatar-profile')}${busy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}<button class="profile-avatar-btn" id="avatar-change" aria-label="${esc(t('avatarChange'))}" data-tip="${esc(t('avatarChange'))}" ${busy ? 'disabled' : ''}>${icon('upload')}</button><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="profile-identity"><div class="profile-name-row"><h1 class="profile-name">@${esc(user.username)}</h1><button class="icon-btn icon-btn-sm profile-rename" id="username-change" aria-label="${esc(t('usernameChange'))}" data-tip="${esc(t('usernameChange'))}">${icon('edit')}</button></div>${since ? `<p class="profile-meta">${icon('sparkle')}<span>${esc(since)}</span></p>` : ''}</div><div class="profile-actions"><button class="primary-btn" id="post-new">${icon('upload')}<span>${t('postNew')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn" id="avatar-remove" ${busy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}</div></div><div class="profile-stats">${profileStat(count(p.postCount), t('profilePosts'))}${profileStat(count(state.collections.length), t('collectionsTitle'), 'collections')}${profileStat(count(state.followingCreators.length), t('profileFollowing'), 'creators')}</div></section>`;
+  let posts;
+  if (!p.loaded) posts = `<div class="profile-grid">${'<span class="profile-tile skeleton"></span>'.repeat(6)}</div>`;
+  else if (p.error) posts = `<div class="empty-state"><b>${t('profilePostsError')}</b><p>${esc(errorMessage(p.error))}</p><button class="secondary-btn" id="profile-retry">${mt('tryAgain')}</button></div>`;
+  else if (!p.posts.length) posts = `<div class="empty-state profile-empty">${icon('inspiration', 'empty-icon')}<b>${t('profileNoPosts')}</b><p>${t('profileNoPostsText')}</p></div>`;
+  else posts = `<div class="profile-grid">${p.posts.map(profileTile).join('')}</div>${p.more ? `<div class="button-row profile-more"><button class="secondary-btn" data-inspiration-user="${esc(user.id)}">${t('profileSeeAll')}</button></div>` : ''}`;
+  const postsPanel = `<section class="panel panel-pad profile-posts"><h2 class="section-title">${icon('inspiration')} ${t('profilePosts')}</h2>${posts}</section>`;
+  const accountPanel = `<section class="panel panel-pad profile-side"><h2 class="section-title">${icon('user')} ${t('profileAccount')}</h2><dl class="facts"><div><dt>${t('email')}</dt><dd>${esc(user.email)}</dd></div></dl>${account.status.persistent ? '' : `<p class="setting-help">${t('sessionNotKept')}</p>`}<div class="button-row"><button class="tertiary-btn" id="account-sign-out">${icon('logout')}<span>${t('signOut')}</span></button></div></section>`;
+  const feedback = `<section class="panel panel-pad profile-side"><h2 class="section-title">${icon('help')} ${t('feedbackTitle')}</h2><p class="setting-help">${t('feedbackText')}</p><div class="button-row"><button class="secondary-btn" data-open-feedback>${icon('edit')}<span>${t('feedbackOpen')}</span></button></div></section>`;
+  content.innerHTML = `<div class="profile-page">${hero}<div class="profile-columns">${postsPanel}<div class="profile-aside">${accountPanel}${feedback}</div></div></div>`;
+}
+
+// Changing the username is deliberately a little slow: a dialog, the password, and once every 30 days.
+function openUsernameDialog() {
+  const user = accountUser();
+  if (!user) return;
+  const availableAt = user.usernameChangeAvailableAt;
+  if (availableAt && Date.parse(availableAt) > Date.now()) {
+    openDialog(`${closeButton()}<div class="form-dialog confirm-dialog"><div class="eyebrow">${t('usernameChange')}</div><h2 id="dialog-title">${t('usernameWaitTitle')}</h2><p>${esc(format(t('usernameWaitText'), { date: longDate(availableAt) }))}</p><div class="detail-actions"><button class="secondary-btn" data-close autofocus>${t('close')}</button></div></div>`);
+    return;
+  }
+  openDialog(
+    `${closeButton()}<form class="form-dialog account-form" id="username-form" novalidate><div class="eyebrow">${t('usernameChange')}</div><h2 id="dialog-title">${t('usernameChangeTitle')}</h2><p class="setting-help">${t('usernameChangeText')}</p>${authField('new-username', t('usernameNew'), { value: user.username, autocomplete: 'username', attrs: 'maxlength="24" autocapitalize="none" spellcheck="false" required', hint: `<small class="field-hint">${t('usernameHint')}</small>` })}${authField('confirm-password', t('usernameConfirmPassword'), { type: 'password', autocomplete: 'current-password', reveal: true, attrs: 'required' })}<p class="field-error" id="username-error" role="alert" hidden></p><div class="detail-actions"><button class="primary-btn" type="submit" id="username-submit">${t('usernameSave')}</button><button class="secondary-btn" type="button" data-close>${t('cancel')}</button></div></form>`
+  );
+}
+async function changeUsername(form) {
+  const submit = form.querySelector('#username-submit');
+  const error = form.querySelector('#username-error');
+  submit.disabled = true;
+  error.hidden = true;
+  try {
+    const result = await callDesktop(accountApi.updateProfile, { username: formValue(form, 'new-username'), password: formValue(form, 'confirm-password') });
+    account.status.user = result.user;
+    closeDialog();
+    toast(t('usernameChanged'));
+    render();
+  } catch (failure) {
+    error.hidden = false;
+    error.textContent = failure?.code === 'ACCOUNT_USERNAME_TOO_SOON' && failure.details?.availableAt ? format(t('usernameWaitText'), { date: longDate(failure.details.availableAt) }) : errorMessage(failure);
+    submit.disabled = false;
+  }
 }
 
 function accountSettingsSection() {
@@ -379,12 +456,7 @@ const ACCOUNT_FORMS = {
         account.notice = t('passwordChanged');
       }
     }),
-  'account-profile': form =>
-    accountAction(async () => {
-      const result = await callDesktop(accountApi.updateProfile, { username: formValue(form, 'profile-username') });
-      account.status.user = result.user;
-      toast(t('profileSaved'));
-    }),
+  'username-form': form => changeUsername(form),
   'feedback-form': form => sendFeedback(form)
 };
 
@@ -395,6 +467,11 @@ document.addEventListener('submit', event => {
   ACCOUNT_FORMS[form.id](form);
 });
 document.addEventListener('input', event => {
+  if (event.target.id === 'auth-new-username') {
+    const lower = event.target.value.toLowerCase();
+    if (lower !== event.target.value) event.target.value = lower;
+    return;
+  }
   const form = event.target.closest?.('.auth-card form');
   if (!form) return;
   if (event.target.name === 'username') {
@@ -459,6 +536,11 @@ document.addEventListener('click', async event => {
       });
     case 'avatar-change':
       return document.getElementById('avatar-file')?.click();
+    case 'username-change':
+      return openUsernameDialog();
+    case 'profile-retry':
+      account.profile = freshProfile('');
+      return render();
     case 'avatar-remove': {
       const ok = await confirmAction({ title: t('avatarRemove'), body: t('avatarRemoveText'), confirmLabel: t('avatarRemove') });
       if (!ok) return;

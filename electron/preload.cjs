@@ -14,6 +14,17 @@ contextBridge.exposeInMainWorld(
     openConfigFolder: invoke('integrations:open-config-folder'),
     launchGame: invoke('game:launch'),
     chooseCoverImage: invoke('collections:choose-cover'),
+    updates: Object.freeze({
+      state: invoke('update:state'),
+      check: invoke('update:check'),
+      download: invoke('update:download'),
+      install: invoke('update:install'),
+      onChange: callback => {
+        const listener = (_event, state) => callback(state);
+        ipcRenderer.on('update:changed', listener);
+        return () => ipcRenderer.removeListener('update:changed', listener);
+      }
+    }),
     curseforge: Object.freeze({
       test: invoke('cf:test'),
       classes: invoke('cf:classes'),

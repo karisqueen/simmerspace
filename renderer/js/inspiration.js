@@ -101,8 +101,10 @@ function renderInspirationFeed() {
 }
 
 /* ---------- Viewing and deleting ---------- */
+// Posts can be open from the feed or from the player's own profile page.
+const findPost = id => [...insp.posts, ...account.profile.posts].find(p => String(p.id) === String(id));
 function viewPost(id) {
-  const post = insp.posts.find(p => String(p.id) === String(id));
+  const post = findPost(id);
   if (!post) return;
   openDialog(
     `${closeButton()}<figure class="post-viewer"><img src="${esc(post.imageUrl)}" alt="${esc(post.caption || t('postNoCaption'))}" referrerpolicy="no-referrer"><figcaption><button class="post-author" data-inspiration-user="${esc(post.userId)}">${avatarMarkup({ username: post.author.username, avatarUrl: post.author.avatarUrl }, 'avatar-sm')}<span>@${esc(post.author.username)}</span></button>${post.caption ? `<p id="dialog-title">${esc(post.caption)}</p>` : `<p id="dialog-title" class="visually-hidden">${t('inspiration')}</p>`}<small>${t(`inspCat_${post.category}`)} · ${esc(relativeDate(post.createdAt))}</small></figcaption></figure>`,
@@ -116,6 +118,7 @@ async function deletePost(id) {
     const result = await callDesktop(inspirationApi.remove, { id });
     insp.posts = insp.posts.filter(p => String(p.id) !== String(id));
     if (insp.profile) insp.profile.postCount = Math.max(0, insp.profile.postCount - 1);
+    account.profile = freshProfile('');
     render();
     toast(result.imageRemoved ? t('postDeleted') : t('postDeletedImageLeft'), result.imageRemoved ? undefined : 'error');
   } catch (error) {
@@ -179,6 +182,8 @@ async function publishPost(form) {
     insp.upload = null;
     closeDialog();
     toast(t('postPublished'));
+    account.profile = freshProfile('');
+    if (state.page === 'account') render();
     insp.loaded = false;
     loadInspiration();
   } catch (failure) {

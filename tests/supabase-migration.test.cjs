@@ -9,8 +9,8 @@ const files = fs.readdirSync(dir).filter(name => name.endsWith('.sql'));
 const sql = files.map(name => fs.readFileSync(path.join(dir, name), 'utf8')).join('\n').toLowerCase();
 const policies = [...sql.matchAll(/create policy "[^"]+" on ([\w.]+)\s+for (\w+)(?: to (\w+))?([^;]*);/g)].map(m => ({ table: m[1], action: m[2], role: m[3] || 'public', body: m[4] }));
 
-test('only the migration for the real project is active; the old one is archived', () => {
-  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql']);
+test('the active migrations are the ones for the real project, in order', () => {
+  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql', '20261030120000_username_changes.sql']);
   assert.doesNotMatch(sql, /display_name|user_settings|public\.collections/);
 });
 
@@ -59,4 +59,11 @@ test('the account service and the migration agree on columns, categories and buc
   assert.ok(sql.includes(`check (category in (${FEEDBACK_CATEGORIES.map(c => `'${c}'`).join(', ')}))`));
   for (const bucket of ['avatars', 'inspiration']) assert.ok(service.includes(`'${bucket}'`) && sql.includes(`bucket_id = '${bucket}'`));
   assert.ok(service.includes("rpc('ensure_my_profile')") && service.includes("rpc('username_available'"));
+});
+
+test('usernames can change at most once every 30 days, enforced by a trigger', () => {
+  assert.match(sql, /add column if not exists username_changed_at timestamptz/);
+  assert.match(sql, /before update on public\.profiles\s+for each row execute function public\.simmerspace_guard_profile_update\(\)/);
+  assert.match(sql, /username_changed_at > now\(\) - interval '30 days'/);
+  assert.match(sql, /errcode = 'ss030'/);
 });
