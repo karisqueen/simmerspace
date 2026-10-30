@@ -142,6 +142,7 @@ ipc.handle('integrations:open-config-folder', validators.none, async () => {
   return !(await shell.openPath(app.getPath('userData')));
 });
 ipc.handle('game:launch', validators.none, () => gameLauncher.launch());
+ipc.handle('game:is-running', validators.none, () => gameLauncher.isRunning());
 // Collection cover (added in 0.7.1): the chosen image is shrunk to a JPEG thumbnail before it reaches the page.
 const COVER_TYPES = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 ipc.handle('collections:choose-cover', validators.none, async () => {

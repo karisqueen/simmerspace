@@ -402,3 +402,12 @@ test('tags: one readable name per search form, accents and # ignored', () => {
   assert.deepEqual(cleanTags(undefined), []);
   assert.throws(() => cleanTags('hair'), { code: 'INVALID_INPUT' });
 });
+
+test('Organize warns when The Sims 4 is running and says so when it could not check', async () => {
+  const make = names => createGameLauncher({ getGameFolder: async () => '', openPath: async () => '', listProcesses: async () => names });
+  assert.deepEqual(await make(['explorer.exe', 'TS4_x64.exe']).isRunning(), { running: true, checked: true });
+  assert.deepEqual(await make(['explorer.exe']).isRunning(), { running: false, checked: true });
+  assert.deepEqual(await make(null).isRunning(), { running: false, checked: false });
+  const broken = createGameLauncher({ getGameFolder: async () => '', openPath: async () => '', listProcesses: async () => { throw new Error('no'); } });
+  assert.deepEqual(await broken.isRunning(), { running: false, checked: false });
+});

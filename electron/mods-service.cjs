@@ -126,7 +126,7 @@ async function moveNoOverwrite(source, destination) {
 function organizeOptions(input) {
   const source = input && typeof input === 'object' ? input : {};
   const categoryFolders = Array.isArray(source.categoryFolders)
-    ? source.categoryFolders.filter(value => typeof value === 'string' && value.length <= 180).slice(0, 500)
+    ? source.categoryFolders.filter(value => typeof value === 'string' && value.length <= 180).slice(0, 5000)
     : [];
   return {
     layout: ORGANIZE_LAYOUTS.includes(source.layout) ? source.layout : 'flatten',

@@ -127,6 +127,53 @@
     const sorted = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     return [...sorted, none];
   }
+  // A name Windows accepts as a folder inside Mods: no reserved characters or device names, no trailing dot or
+  // space, at most 60 characters, and never "Mods" itself. Returns '' when nothing usable is left.
+  const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+  function safeFolderName(raw) {
+    let name = String(raw || '')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60)
+      .replace(/[. ]+$/, '');
+    if (WINDOWS_RESERVED.test(name)) name = `${name} CC`;
+    if (name.toLowerCase() === 'mods') name = 'Mods CC';
+    return name;
+  }
+  // "Organize folders" for the whole library or a selection: one destination folder per file, by category
+  // or by creator. Files without one go to the fallback folder ("No category" / "No creator") unless the player
+  // chose to leave them where they are. Folder names that differ only in case share one folder.
+  function organizeFolderEntries(files, mode, lookup, { fallbackName, includeUnsorted = true, folderFor = null } = {}) {
+    const entries = [];
+    const folders = new Map(); // lower-case name -> { name, count, fallback }
+    let left = 0;
+    for (const file of files) {
+      let name = '';
+      if (mode === 'creator') name = lookup.creatorKey(file) ? lookup.creatorLabel(file) : '';
+      else {
+        const categoryId = lookup.tags(file.relativePath).categoryId || '';
+        name = categoryId && lookup.categoryName(categoryId) ? (folderFor ? folderFor(categoryId) : lookup.categoryName(categoryId)) : '';
+      }
+      let folderName = safeFolderName(name);
+      const fallback = !folderName;
+      if (fallback) {
+        if (!includeUnsorted) {
+          left++;
+          continue;
+        }
+        folderName = safeFolderName(fallbackName);
+      }
+      const key = folderName.toLowerCase();
+      const folder = folders.get(key) || { name: folderName, count: 0, fallback };
+      folder.count++;
+      folders.set(key, folder);
+      entries.push({ relativePath: file.relativePath, folderName: folder.name });
+    }
+    const list = [...folders.values()].sort((a, b) => (a.fallback - b.fallback) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return { entries, folders: list, left };
+  }
+
   // External files the player has not classified yet (no category and no creator) and has not skipped.
   function unclassifiedExternal(files, lookup, skipped = new Set()) {
     return files.filter(file => lookup.origin(file) === 'external' && !skipped.has(modPathKey(file.relativePath)) && !lookup.tags(file.relativePath).categoryId && !lookup.tags(file.relativePath).creatorId);
@@ -253,6 +300,8 @@
     modPathKey,
     modOrigin,
     groupModFiles,
+    safeFolderName,
+    organizeFolderEntries,
     unclassifiedExternal,
     normalizeFollowing,
     rankByFollowing

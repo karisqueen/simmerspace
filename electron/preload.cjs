@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld(
     integrationStatus: invoke('integrations:status'),
     openConfigFolder: invoke('integrations:open-config-folder'),
     launchGame: invoke('game:launch'),
+    isGameRunning: invoke('game:is-running'),
     chooseCoverImage: invoke('collections:choose-cover'),
     updates: Object.freeze({
       state: invoke('update:state'),

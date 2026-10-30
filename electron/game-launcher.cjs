@@ -2,6 +2,7 @@
    EA app or Steam as needed, so SimmerSpace does not need to know which store it came from. */
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { execFile } = require('node:child_process');
 const { AppError } = require('./errors.cjs');
 
 // Relative to the game folder; the first one that exists is used.
@@ -17,7 +18,27 @@ async function findGameExecutable(gameFolder) {
   throw new AppError('GAME_NOT_FOUND', 'The Sims 4 was not found in the chosen game folder.');
 }
 
-function createGameLauncher({ getGameFolder, openPath }) {
+const GAME_PROCESS_NAMES = GAME_EXECUTABLES.map(file => path.basename(file).toLowerCase());
+
+// Lists running program names with Windows' own tasklist. Anywhere else (or if tasklist fails) the answer is
+// "unknown" rather than "not running", so callers can say they could not check.
+function listWindowsProcesses() {
+  return new Promise(resolve => {
+    if (process.platform !== 'win32') return resolve(null);
+    execFile('tasklist', ['/FO', 'CSV', '/NH'], { windowsHide: true, timeout: 5000, maxBuffer: 8 * 1024 * 1024 }, (error, stdout) => {
+      if (error) return resolve(null);
+      resolve(String(stdout).split(/\r?\n/).map(line => line.split('","')[0].replace(/^"/, '').trim().toLowerCase()).filter(Boolean));
+    });
+  });
+}
+
+function createGameLauncher({ getGameFolder, openPath, listProcesses = listWindowsProcesses }) {
+  // { running: true | false, checked: false when the process list could not be read }
+  async function isRunning() {
+    const names = await listProcesses().catch(() => null);
+    if (!Array.isArray(names)) return { running: false, checked: false };
+    return { running: names.some(name => GAME_PROCESS_NAMES.includes(String(name).toLowerCase())), checked: true };
+  }
   let launchedAt = 0;
   async function launch() {
     // A double click should not start two copies.
@@ -28,7 +49,7 @@ function createGameLauncher({ getGameFolder, openPath }) {
     launchedAt = Date.now();
     return { launched: true };
   }
-  return { launch };
+  return { launch, isRunning };
 }
 
-module.exports = { createGameLauncher, findGameExecutable, GAME_EXECUTABLES };
+module.exports = { createGameLauncher, findGameExecutable, GAME_EXECUTABLES, GAME_PROCESS_NAMES };
