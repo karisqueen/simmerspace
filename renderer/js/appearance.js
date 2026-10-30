@@ -29,7 +29,6 @@ function setAppearance(changes) {
   const next = normalizeAppearance({ ...state.appearance, ...changes });
   state.appearance = next;
   safeWrite('appearance', next);
-  safeWrite('preferences-updated', Date.now());
   render();
 }
 

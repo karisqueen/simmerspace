@@ -1,4 +1,4 @@
-/* SimmerSpace interface: state, pages and local interactions. Demo catalog data lives in demo-data.js. */
+/* SimmerSpace interface: state, pages and local interactions. */
 let APP_VERSION = '0.11.0';
 
 function savedLanguage() {
@@ -7,36 +7,26 @@ function savedLanguage() {
   return navigator.language?.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
-// Collections saved by earlier versions have no color or change time; both get safe defaults here.
+// Collections saved by earlier versions have no color or change time; both get safe defaults here. Earlier
+// versions also created three sample collections and could hold sample items: both are removed, so only
+// the user's own collections and their CurseForge mods ("cf:<id>") remain.
+const OLD_SAMPLE_COLLECTIONS = ['soft-life', 'build-inspo', 'dream-sims'];
 function normalizeCollections(list) {
-  const source = Array.isArray(list) ? list : structuredClone(SEED_COLLECTIONS);
-  return source
-    .filter(c => c && typeof c.id === 'string' && typeof c.name === 'string')
-    .map((c, index) => ({ ...c, items: Array.isArray(c.items) ? c.items.filter(id => typeof id === 'string') : [], color: collectionColor(c.color, index), updated: Number(c.updated) || 0 }));
+  return (Array.isArray(list) ? list : [])
+    .filter(c => c && typeof c.id === 'string' && typeof c.name === 'string' && !OLD_SAMPLE_COLLECTIONS.includes(c.id))
+    .map((c, index) => ({ ...c, items: Array.isArray(c.items) ? c.items.filter(isCurseForgeItem) : [], color: collectionColor(c.color, index), updated: Number(c.updated) || 0 }));
 }
 
 const state = {
   page: 'home',
-  parent: 'all',
-  sub: 'All',
-  parts: [],
-  gender: 'All',
-  age: 'All ages',
-  style: 'All',
-  source: 'All',
-  occult: [],
-  sort: 'curated',
   query: '',
   libraryQuery: '',
   libraryState: 'All',
   followingCreators: normalizeFollowing(safeRead('following-creators', [])),
   groupMode: safeGet('group-mode') === 'creator' ? 'creator' : 'category',
-  moreFilters: safeRead('more-filters-open', false) === true,
   navCollectionsOpen: safeRead('nav-collections-open', true) !== false,
   tooltips: safeRead('tooltips', true) !== false,
-  favorites: safeRead('favorites', []),
-  collections: normalizeCollections(safeRead('collections', SEED_COLLECTIONS)),
-  statuses: safeRead('statuses', {}),
+  collections: normalizeCollections(safeRead('collections', [])),
   appearance: loadAppearance(),
   lang: savedLanguage(),
   activeCollection: null,
@@ -45,89 +35,30 @@ const state = {
   appInfo: { developer: false },
   integrations: null
 };
-if (!Array.isArray(state.favorites)) state.favorites = [];
+
+// Saved data of features that no longer exist (sample favorites and statuses, boards, manual Patreon creators,
+// account sync). Removed once so nothing unused stays on this PC.
+for (const key of ['favorites', 'statuses', 'boards', 'board-sort', 'boards-show-all', 'suggestions', 'patreon-creators', 'more-filters-open', 'sample-library-open', 'preferences-updated']) {
+  try {
+    localStorage.removeItem(STORAGE_PREFIX + key);
+  } catch {}
+}
+persist();
 
 const content = document.getElementById('page-content');
 const search = document.getElementById('search-input');
-const ITEM_IDS = new Set(ITEMS.map(item => item.id));
-const itemById = id => ITEMS.find(item => item.id === id);
 let renderedPage = null;
 
 // Returns false when the browser storage refused the write (for example, a very large cover image).
 function persist() {
-  const saved = safeWrite('collections', state.collections);
-  safeWrite('favorites', state.favorites);
-  safeWrite('statuses', state.statuses);
-  return saved;
+  return safeWrite('collections', state.collections);
 }
 function touchCollection(c) {
   c.updated = Date.now();
 }
 
-/* ---------- Demo content labels ---------- */
-// Sample collections are translated only while they keep their original sample text.
 function collectionLabel(c) {
-  const translated = DEMO_ES.collections[c.id];
-  return state.lang === 'es' && translated && c.name === seedValue(SEED_COLLECTIONS, c.id, 'name') ? translated : c.name;
-}
-function seedValue(list, id, field) {
-  return list.find(item => item.id === id)?.[field];
-}
-function audienceLabel(value) {
-  return AUDIENCE_KEYS[value] ? t(AUDIENCE_KEYS[value]) : value;
-}
-function styleLabel(value) {
-  return value === 'Both' ? t('both') : value;
-}
-function categoryLabel(value) {
-  return CATEGORY_LABEL_KEYS[value] ? t(CATEGORY_LABEL_KEYS[value]) : value;
-}
-function tagLabel(tag) {
-  return state.lang === 'es' ? DEMO_ES.tags[tag] || tag : tag;
-}
-function labelItem(item, field = 'name') {
-  if (state.lang === 'es') {
-    if (field === 'note') return DEMO_ES.notes[item.id] || item.note;
-    if (field === 'name' && item.es) return item.es;
-  }
-  return item[field];
-}
-function subLabel(sub) {
-  return sub === 'All' ? t('all') : t(PART_KEYS[sub] || sub.toLowerCase());
-}
-const PART_KEYS = {
-  'Full body': 'fullBody',
-  Tops: 'tops',
-  Bottoms: 'bottoms',
-  Shoes: 'shoes',
-  Swimwear: 'swimwear',
-  Outerwear: 'outerwear',
-  Jewelry: 'jewelry',
-  Hats: 'hats',
-  Glasses: 'glasses',
-  Bags: 'bags',
-  Gloves: 'gloves',
-  Socks: 'socks',
-  Eyes: 'eyes',
-  Animals: 'animals',
-  Skins: 'animalSkins',
-  Objects: 'animalObjects'
-};
-const OCCULT_KEYS = {
-  Vampire: 'occultVampire',
-  Werewolf: 'occultWerewolf',
-  Mermaid: 'occultMermaid',
-  Fairy: 'occultFairy',
-  PlantSim: 'occultPlantSim',
-  Genie: 'occultGenie',
-  Spellcaster: 'occultSpellcaster',
-  Alien: 'occultAlien',
-  Ghost: 'occultGhost',
-  Servo: 'occultServo'
-};
-
-function art(item, extra = '') {
-  return `<div class="art ${extra}" aria-hidden="true" style="--art-height:${Number(item.height) || 208}px;--art-bg:${item.bg};--shape-a:${item.a};--shape-b:${item.b};--hair:${item.hair || '#594743'};--skin:${item.skin || '#dfb9a2'};--figure:${item.figure || '#c49bab'};--figure-light:${item.light || '#e4ccd7'};--figure-dark:${item.dark || '#977785'}"><span class="art-deco"></span><span class="art-rug"></span><span class="art-figure"></span><span class="art-object">${item.emoji}</span><span class="art-sparkle">✧</span></div>`;
+  return c.name;
 }
 
 /* ---------- Shell ---------- */
@@ -173,7 +104,7 @@ function nav() {
       <button class="account-chip ${state.page === 'account' ? 'is-active' : ''}" data-page="account" ${state.page === 'account' ? 'aria-current="page"' : ''} aria-label="${esc(t('accountTitle'))}" data-tip="${esc(t('tipAccount'))}">${avatar}<span class="nav-label account-copy"><strong>${esc(name || t('accountTitle'))}</strong><small>${esc(user?.email || t('accountSignedOutShort'))}</small></span></button>
     </div>`;
 }
-const PAGE_TITLES = { home: 'home', discover: 'discover', mycc: 'mycc', inspiration: 'inspiration', creators: 'creators', settings: 'settings', collections: 'collectionsTitle', favorites: 'favorites', curseforge: 'explore', account: 'accountTitle' };
+const PAGE_TITLES = { home: 'home', mycc: 'mycc', inspiration: 'inspiration', creators: 'creators', settings: 'settings', collections: 'collectionsTitle', curseforge: 'explore', account: 'accountTitle' };
 function pageName() {
   if (state.page === 'collection') {
     const c = state.collections.find(x => x.id === state.activeCollection);
@@ -225,55 +156,6 @@ function chipGroup({ name, label, options, selected, multi = false, size = '', q
     .map(([value, text]) => `<button class="chip ${size ? `chip-${size}` : ''} ${isOn(value) ? 'is-selected' : ''}" data-filter="${esc(name)}" data-value="${esc(value)}" ${multi ? 'data-multi="true"' : ''} aria-pressed="${isOn(value)}">${multi && isOn(value) ? icon('check', 'chip-check') : ''}<span>${esc(text)}</span></button>`)
     .join('')}</div></div>`;
 }
-const FILTER_DEFAULTS = { parent: 'all', sub: 'All', gender: 'All', age: 'All ages', style: 'All', source: 'All' };
-const MULTI_FILTERS = ['parts', 'occult'];
-function setFilter(name, value, multi) {
-  if (multi && MULTI_FILTERS.includes(name)) {
-    state[name] = state[name].includes(value) ? state[name].filter(v => v !== value) : [...state[name], value];
-  } else if (name in FILTER_DEFAULTS) {
-    state[name] = value;
-    if (name === 'parent') state.sub = 'All';
-    if (name === 'parent' || name === 'sub') state.parts = [];
-  }
-  render();
-}
-// Filters other than the category tabs, shown as removable tokens so it is clear what is narrowing results.
-function activeFilterTokens() {
-  const tokens = [];
-  for (const part of state.parts) tokens.push(['parts', part, subLabel(part)]);
-  if (state.gender !== 'All') tokens.push(['gender', state.gender, `${t('gender')}: ${t(state.gender.toLowerCase())}`]);
-  if (state.age !== 'All ages') tokens.push(['age', state.age, `${t('age')}: ${audienceLabel(state.age)}`]);
-  if (state.style !== 'All') tokens.push(['style', state.style, state.style]);
-  if (state.source !== 'All') tokens.push(['source', state.source, state.source]);
-  for (const value of state.occult) tokens.push(['occult', value, t(OCCULT_KEYS[value])]);
-  return tokens;
-}
-
-/* ---------- Demo items ---------- */
-function isInCollection(item) {
-  return state.collections.some(c => c.items.includes(item.id));
-}
-function installState(item) {
-  const stored = state.statuses[item.id];
-  if (stored && typeof stored === 'object') return { installed: !!stored.installed, needsUpdate: !!stored.needsUpdate };
-  const value = typeof stored === 'string' ? stored : item.status;
-  return { installed: value === 'installed' || value === 'update', needsUpdate: value === 'update' };
-}
-function itemStatus(item) {
-  const s = installState(item);
-  return s.needsUpdate ? 'update' : s.installed ? 'installed' : isInCollection(item) ? 'saved' : 'pending';
-}
-function itemCard(item) {
-  const liked = state.favorites.includes(item.id);
-  const saved = isInCollection(item);
-  const status = itemStatus(item);
-  const statusText = { installed: t('installed'), saved: t('saved'), update: t('needsUpdate'), pending: t('pending') }[status];
-  const name = esc(labelItem(item));
-  return `<article class="cc-card" data-detail="${esc(item.id)}">${art(item)}<div class="card-body"><div class="card-title-row"><h3><button class="card-title-button" data-detail="${esc(item.id)}" aria-label="${esc(t('openDetails'))}: ${name}">${name}</button></h3><div class="card-actions"><button class="icon-btn icon-btn-sm ${liked ? 'is-on' : ''}" data-favorite="${esc(item.id)}" title="${esc(t('favorite'))}" aria-label="${esc(t('favorite'))}: ${name}" aria-pressed="${liked}">${icon('heart')}</button><button class="icon-btn icon-btn-sm ${saved ? 'is-on' : ''}" data-save="${esc(item.id)}" title="${esc(t('save'))}" aria-label="${esc(t('save'))}: ${name}">${icon('folder')}</button></div></div><div class="card-creator">${esc(item.creator)}</div><div class="card-meta">${state.page === 'mycc' ? (status === 'pending' ? '' : `<span class="status-pill status-${status}">${esc(statusText)}</span>`) : `<span class="meta-pill">${esc(categoryLabel(item.category))}</span><span class="meta-pill">${esc(item.type)}</span>`}<span class="meta-source">${esc(item.source)}</span></div></div></article>`;
-}
-function filteredItems() {
-  return filterDemoItems(ITEMS, { ...state, lang: state.lang }, item => labelItem(item));
-}
 
 /* ---------- Pages ---------- */
 // Home: a summary built only from real data on this PC (scan results, collections, followed creators).
@@ -292,52 +174,6 @@ function renderHome() {
     : '';
   content.innerHTML = `${pageHeader(name ? esc(format(t('homeGreeting'), { name })) : t('home'))}${stats}${actions}${collections}`;
 }
-function renderDiscover() {
-  const items = filteredItems();
-  const parents = [
-    ['all', t('all')],
-    ['mods', t('mods')],
-    ['cas', t('cas')],
-    ['buildbuy', t('buildbuy')]
-  ];
-  const subs = SUBS[state.parent];
-  const partsDef = state.parent === 'cas' ? CAS_PARTS[state.sub] : null;
-  const sources = [...new Set(ITEMS.map(i => i.source))].sort();
-  const tokens = activeFilterTokens();
-  const moreCount = tokens.filter(([name]) => name !== 'parts').length;
-  const sort = `<label class="select-field select-inline"><span>${t('sort')}</span><select id="sort-filter">${[
-    ['curated', t('curated')],
-    ['az', t('az')],
-    ['updated', t('updated')],
-    ['popular', t('popular')]
-  ]
-    .map(([value, text]) => `<option value="${value}" ${state.sort === value ? 'selected' : ''}>${esc(text)}</option>`)
-    .join('')}</select></label>`;
-  const more = state.moreFilters
-    ? `<div class="filter-more" id="more-filters">${chipGroup({ name: 'gender', label: t('gender'), options: [['All', t('all')], ['Female', t('female')], ['Male', t('male')]], selected: state.gender, size: 'sm' })}${chipGroup({
-        name: 'age',
-        label: t('age'),
-        options: [['All ages', t('allages')], ['Babies', t('babies')], ['Infants', t('infants')], ['Toddlers', t('toddlers')], ['Kids', t('kids')], ['Teen', t('teen')], ['Young Adult', t('youngadult')], ['Elders', t('elders')]],
-        selected: state.age,
-        size: 'sm'
-      })}${chipGroup({ name: 'style', label: t('style'), options: [['All', t('typeAll')], ['Maxis Match', 'Maxis Match'], ['Alpha', 'Alpha']], selected: state.style, size: 'sm' })}${chipGroup({
-        name: 'source',
-        label: t('source'),
-        options: [['All', t('anysource')], ...sources.map(s => [s, s])],
-        selected: state.source,
-        size: 'sm'
-      })}${chipGroup({ name: 'occult', label: t('occultFilter'), options: OCCULTS.map(o => [o, t(OCCULT_KEYS[o])]), selected: state.occult, multi: true, size: 'xs', quiet: true })}</div>`
-    : '';
-  const filterBar = `<section class="filter-bar" aria-label="${esc(t('filters'))}">
-    <div class="filter-row">${chipGroup({ name: 'parent', label: t('category'), options: parents, selected: state.parent, hideLabel: true })}<div class="filter-tools"><button class="tertiary-btn" id="toggle-more-filters" aria-expanded="${state.moreFilters}" aria-controls="more-filters">${icon('sliders')}<span>${t('moreFilters')}</span>${moreCount ? `<span class="badge">${moreCount}</span>` : ''}</button>${sort}</div></div>
-    ${subs.length > 1 ? `<div class="filter-row filter-row-sub">${chipGroup({ name: 'sub', label: t('subcategory'), options: subs.map(s => [s, subLabel(s)]), selected: state.sub, size: 'sm', hideLabel: true })}</div>` : ''}
-    ${partsDef ? `<div class="filter-row filter-row-parts">${chipGroup({ name: 'parts', label: subLabel(state.sub), options: partsDef.values.map(v => [v, subLabel(v)]), selected: state.parts, multi: true, size: 'sm' })}</div>` : ''}
-    ${more}
-    ${tokens.length ? `<div class="active-filters" aria-label="${esc(t('activeFilters'))}"><span class="active-filters-label">${t('activeFilters')}</span>${tokens.map(([name, value, text]) => `<button class="filter-token" data-remove-filter="${esc(name)}" data-value="${esc(value)}" aria-label="${esc(format(t('removeFilterNamed'), { name: text }))}"><span>${esc(text)}</span>${icon('close')}</button>`).join('')}<button class="text-link" id="clear-filters">${t('resetFilters')}</button></div>` : ''}
-  </section>`;
-  content.innerHTML = `${pageHeader(t('discover'), { meta: `${items.length} ${t('finds')}`, actions: `<span class="sample-badge">${t('sampleData')}</span>` })}${notice(t('discoverDemoNote'), { action: `<button class="text-link" data-page="curseforge">${t('browseCurseForge')} →</button>` })}${filterBar}${items.length ? `<div class="card-grid">${items.map(itemCard).join('')}</div>` : empty(t('empty'), t('emptyText'), `<button class="secondary-btn" id="clear-filters-empty">${t('resetFilters')}</button>`)}`;
-}
-
 // My CC: the real Mods folder library (mods-manager.js and library.js). The sample cards of earlier
 // versions are no longer shown here.
 function renderLibrary() {
@@ -356,11 +192,9 @@ function renderCreators() {
   renderCreatorsPage();
 }
 
-// Cards for a collection: sample items plus CurseForge mods saved with "cf:<id>".
+// Cards for a collection: the CurseForge mods saved with "cf:<id>".
 function collectionCards(c) {
-  const sample = ITEMS.filter(i => i.isCC !== false && c.items.includes(i.id)).map(itemCard);
-  const fromCurseForge = c.items.filter(isCurseForgeItem).map(id => (typeof curseForgeCollectionCard === 'function' ? curseForgeCollectionCard(id) : ''));
-  return [...sample, ...fromCurseForge].filter(Boolean);
+  return c.items.filter(isCurseForgeItem).map(id => (typeof curseForgeCollectionCard === 'function' ? curseForgeCollectionCard(id) : '')).filter(Boolean);
 }
 function renderCollection() {
   const c = state.collections.find(x => x.id === state.activeCollection);
@@ -377,14 +211,8 @@ function renderCollection() {
 }
 function collectionPreview(c) {
   if (c.cover) return `<span class="collection-cover collection-photo" aria-hidden="true"><img src="${esc(c.cover)}" alt=""></span>`;
-  const items = ITEMS.filter(i => c.items.includes(i.id)).slice(0, 3);
   const defaults = ['✧', '✿', '☼'];
-  return `<span class="collection-cover" aria-hidden="true">${[0, 1, 2]
-    .map(slot => {
-      const item = items[slot];
-      return `<span class="collection-cover-tile ${item ? 'has-art' : ''}" ${item ? `style="--cover-art:${esc(item.bg)}"` : ''}>${item?.emoji || defaults[slot]}</span>`;
-    })
-    .join('')}</span>`;
+  return `<span class="collection-cover" aria-hidden="true">${defaults.map(mark => `<span class="collection-cover-tile">${mark}</span>`).join('')}</span>`;
 }
 // Collections matching the search box, in the chosen order. "Custom" is the saved order, changed by dragging.
 function visibleCollections() {
@@ -433,21 +261,14 @@ function renderSettings() {
   const about = `<dl class="facts"><div><dt>${t('version')}</dt><dd>${APP_VERSION} ${t('preBeta')}</dd></div><div><dt>${t('compatibility')}</dt><dd>${t('windows')}</dd></div></dl><p class="setting-help">${t('privacyNote')}</p><div class="button-row"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="tertiary-btn" id="donate-button" data-tip="${esc(t('donateFeedbackTip'))}">${t('donate')} · ${t('comingSoon')}</button></div>`;
   content.innerHTML = `${pageHeader(t('settingsTitle'))}<div class="settings-stack">${settingsPanel('personalization', t('personalization'), personalization, { open: isOpen('personalization'), summary: t('personalizationSummary') })}${settingsPanel('help-settings', t('helpSettings'), help, { open: isOpen('help-settings'), summary: t('helpSettingsSummary') })}${settingsPanel('general', t('general'), general, { open: isOpen('general'), summary: t('generalSummary') })}${settingsPanel('folders', t('folderRoutes'), folderSettingsSection(), { open: isOpen('folders'), summary: t('foldersSummary') })}${settingsPanel('account-settings', t('accountTitle'), typeof accountSettingsSection === 'function' ? accountSettingsSection() : '', { open: isOpen('account-settings'), summary: t('accountSummary') })}${settingsPanel('curseforge-settings', t('curseforgeConnection'), typeof curseForgeSettingsSection === 'function' ? curseForgeSettingsSection() : '', { open: isOpen('curseforge-settings'), summary: t('curseforgeSummary') })}${settingsPanel('about', t('about'), about, { open: isOpen('about') })}${state.appInfo.developer && typeof developerSection === 'function' ? settingsPanel('developer', t('developerTools'), developerSection(), { open: isOpen('developer'), summary: t('developerSummary') }) : ''}</div>`;
 }
-function renderFavorites() {
-  const items = ITEMS.filter(i => state.favorites.includes(i.id));
-  content.innerHTML = `${pageHeader(t('favorites'), { meta: format(t('itemsCount'), { count: items.length }) })}${items.length ? `<div class="card-grid">${items.map(itemCard).join('')}</div>` : empty(t('favoritesEmpty'), t('favoritesEmptyText'), `<button class="secondary-btn" data-page="discover">${t('discover')}</button>`)}`;
-}
-
 const PAGES = {
   home: renderHome,
-  discover: renderDiscover,
   mycc: renderLibrary,
   inspiration: renderInspiration,
   creators: renderCreators,
   settings: renderSettings,
   collection: renderCollection,
   collections: renderCollections,
-  favorites: renderFavorites,
   curseforge: () => renderCurseForge(),
   account: () => renderAccount()
 };
@@ -506,31 +327,13 @@ function editCollectionDialog() {
   );
 }
 function saveDialog(id) {
-  const item = itemById(id);
   const cfItem = isCurseForgeItem(id) && typeof curseForgeItemInfo === 'function' ? curseForgeItemInfo(id) : null;
-  if (!item && !cfItem) return;
-  if (item?.isCC === false) return toast(t('noCC'));
+  if (!cfItem) return;
   openDialog(
-    `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('save')}</h2><p>${esc(item ? labelItem(item) : cfItem.name)}</p><fieldset class="check-list"><legend class="visually-hidden">${t('collectionsTitle')}</legend>${state.collections
+    `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('save')}</h2><p>${esc(cfItem.name)}</p><fieldset class="check-list"><legend class="visually-hidden">${t('collectionsTitle')}</legend>${state.collections
       .map(c => `<label class="check-row"><input type="checkbox" value="${esc(c.id)}" ${c.items.includes(id) ? 'checked' : ''}>${plumbob(c.color)}<span>${esc(collectionLabel(c))}</span></label>`)
       .join('')}</fieldset><button class="tertiary-btn" id="new-collection-from-save">${icon('plus')}<span>${t('newCollection')}</span></button><div class="detail-actions"><button class="primary-btn" id="confirm-save" data-item="${esc(id)}">${t('save')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
   );
-}
-function detailDialog(item) {
-  const installed = installState(item).installed;
-  const liked = state.favorites.includes(item.id);
-  openDialog(
-    `${closeButton()}${art(item, 'detail-art')}<div class="detail-body"><div class="eyebrow">${esc(categoryLabel(item.category))} · ${esc(item.source)} · ${t('sampleData')}</div><h2 id="dialog-title">${esc(labelItem(item))}</h2><div class="card-creator">${esc(item.creator)} · ${esc(styleLabel(item.type))}</div><p>${esc(labelItem(item, 'note'))}</p><div class="tag-row"><span class="meta-pill">${esc(audienceLabel(item.gender))}</span><span class="meta-pill">${esc(audienceLabel(item.age))}</span><span class="meta-pill">${esc(item.source)}</span></div><div class="detail-actions"><button class="primary-btn" data-toggle-install="${esc(item.id)}">${installed ? t('uninstall') : t('install')}</button><button class="secondary-btn" data-save="${esc(item.id)}">${t('save')}</button><button class="secondary-btn" data-favorite="${esc(item.id)}" aria-pressed="${liked}">${icon('heart')}<span>${t('favorite')}</span></button></div><p class="muted-note">${t('downloadLinks')} ${t('markInstalledNote')}</p></div>`
-  );
-}
-function toggleFavorite(id) {
-  state.favorites = state.favorites.includes(id) ? state.favorites.filter(x => x !== id) : [...state.favorites, id];
-  safeWrite('preferences-updated', Date.now());
-  persist();
-  const inDetail = !overlay.hidden && dialog.querySelector(`[data-toggle-install="${CSS.escape(id)}"]`);
-  render();
-  if (inDetail) detailDialog(itemById(id));
-  toast(state.favorites.includes(id) ? t('favoriteAdded') : t('favoriteRemoved'));
 }
 function saveSelection(id) {
   const selected = [...dialog.querySelectorAll('input[type=checkbox]:checked')].map(x => x.value);
@@ -559,13 +362,13 @@ function createCollection() {
 function shareCollection(id) {
   const c = state.collections.find(x => x.id === id);
   if (!c) return;
-  const link = collectionLink(collectionLabel(c), c.items.filter(itemId => ITEM_IDS.has(itemId) || isCurseForgeItem(itemId)));
+  const link = collectionLink(collectionLabel(c), c.items.filter(isCurseForgeItem));
   openDialog(
     `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('share')}</h2><p>${t('linkShareHint')}</p><label class="field">${t('share')}<input id="collection-share-link" readonly value="${esc(link)}"></label><div class="detail-actions"><button class="primary-btn" id="copy-collection-link">${t('copyLink')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
   );
 }
 function importCollectionFromLink(value) {
-  const data = readCollectionLink(value, ITEM_IDS);
+  const data = readCollectionLink(value);
   if (!data) return toast(t('invalidCollectionLink'), 'error');
   state.collections.push({ id: `import-${Date.now().toString(36)}`, name: data.name || t('importedCollectionName'), color: collectionColor('', state.collections.length), items: data.items, updated: Date.now() });
   persist();
@@ -582,14 +385,8 @@ function offerSharedCollection() {
   if (!location.hash.startsWith('#collection=')) return;
   const raw = location.href;
   history.replaceState(null, '', location.pathname + location.search);
-  if (readCollectionLink(raw, ITEM_IDS)) importCollectionDialog(raw);
+  if (readCollectionLink(raw)) importCollectionDialog(raw);
 }
-function resetDiscoverFilters() {
-  Object.assign(state, { ...FILTER_DEFAULTS, parts: [], occult: [], sort: 'curated', query: '' });
-  search.value = '';
-  render();
-}
-
 // Cover images are picked in the system file dialog; the desktop app returns a small JPEG thumbnail.
 async function chooseCollectionCover() {
   const c = state.collections.find(x => x.id === state.activeCollection);
@@ -663,11 +460,6 @@ const CLICK_ACTIONS = {
     nav();
     document.getElementById('toggle-nav-collections')?.focus();
   },
-  'toggle-more-filters': () => {
-    state.moreFilters = !state.moreFilters;
-    safeWrite('more-filters-open', state.moreFilters);
-    render();
-  },
   'choose-collection-cover': chooseCollectionCover,
   'remove-collection-cover': () => {
     const c = state.collections.find(x => x.id === state.activeCollection);
@@ -705,8 +497,6 @@ const CLICK_ACTIONS = {
   'send-feedback': () => openFeedbackDialog(),
   'donate-button': () => openFeedbackDialog('donation_feedback'),
   'profile-button': () => goTo('account'),
-  'clear-filters': resetDiscoverFilters,
-  'clear-filters-empty': resetDiscoverFilters,
   'show-all-collections': () => goTo('collections')
 };
 
@@ -740,50 +530,20 @@ document.addEventListener('click', async event => {
       state.libraryState = filter.dataset.value;
       return render();
     }
-    return setFilter(name, filter.dataset.value, filter.dataset.multi === 'true');
-  }
-  const removeFilter = target.closest('[data-remove-filter]');
-  if (removeFilter) {
-    const name = removeFilter.dataset.removeFilter;
-    if (MULTI_FILTERS.includes(name)) state[name] = state[name].filter(v => v !== removeFilter.dataset.value);
-    else state[name] = FILTER_DEFAULTS[name];
-    render();
-    return document.getElementById('clear-filters')?.focus() || document.getElementById('toggle-more-filters')?.focus();
+    return;
   }
   const appearance = target.closest('[data-appearance]');
   if (appearance) return setAppearance({ [appearance.dataset.appearance]: appearance.dataset.value });
-  const install = target.closest('[data-toggle-install]');
-  if (install) {
-    const id = install.dataset.toggleInstall;
-    const currently = installState(itemById(id)).installed;
-    state.statuses[id] = { installed: !currently, needsUpdate: false };
-    persist();
-    closeDialog();
-    render();
-    return toast(t(!currently ? 'markedInstalled' : 'markedUninstalled'));
-  }
   const lang = target.closest('[data-language]');
   if (lang) {
     state.lang = lang.dataset.language === 'es' ? 'es' : 'en';
     safeSet('language', state.lang);
-    safeWrite('preferences-updated', Date.now());
     return render();
-  }
-  const favorite = target.closest('[data-favorite]');
-  if (favorite) {
-    event.stopPropagation();
-    return toggleFavorite(favorite.dataset.favorite);
   }
   const save = target.closest('[data-save]');
   if (save) {
     event.stopPropagation();
     return saveDialog(save.dataset.save);
-  }
-  const detail = target.closest('[data-detail]');
-  if (detail && !target.closest('#dialog')) {
-    const item = itemById(detail.dataset.detail);
-    if (item) detailDialog(item);
-    return;
   }
   const exp = target.closest('[data-export]');
   if (exp) return shareCollection(exp.dataset.export);
@@ -798,7 +558,6 @@ document.addEventListener(
       const open = safeRead('settings-open', {});
       safeWrite('settings-open', { ...(open && typeof open === 'object' ? open : {}), [panel.id]: panel.open });
     }
-    if (panel.id === 'sample-library') safeWrite('sample-library-open', panel.open);
   },
   true
 );
@@ -814,10 +573,6 @@ document.addEventListener('change', event => {
   if (target.id === 'group-mode' || target.id === 'group-mode-settings') {
     state.groupMode = target.value === 'creator' ? 'creator' : 'category';
     safeSet('group-mode', state.groupMode);
-    return render();
-  }
-  if (target.id === 'sort-filter') {
-    state.sort = target.value;
     return render();
   }
   if (target.id === 'collection-sort') {
@@ -900,7 +655,7 @@ search.addEventListener('input', () => {
         return renderModsPanel();
       }
       // Pages without their own search send the query to Explore, which searches the real CurseForge catalog.
-      if (!['discover', 'mycc', 'creators'].includes(state.page)) {
+      if (!['mycc', 'creators'].includes(state.page)) {
         state.page = 'curseforge';
         render();
         return curseForgeQueryChanged(state.query);

@@ -8,22 +8,15 @@ test('escapes HTML and fills placeholders', () => {
   assert.equal(core.format('Moved {moved}; {missing}', { moved: 3 }), 'Moved 3; {missing}');
 });
 
-test('accepts only public patreon.com profile links', () => {
-  assert.equal(core.normalizePatreonProfile('https://patreon.com/Creator/?x=1#y'), 'https://www.patreon.com/Creator');
-  for (const bad of ['http://www.patreon.com/a', 'https://evil.com/patreon.com', 'https://www.patreon.com/login', 'https://user:pw@patreon.com/a', 'nonsense']) {
-    assert.equal(core.normalizePatreonProfile(bad), null, bad);
-  }
-});
-
 test('collection links round-trip without exposing local paths and still read 0.6.1 links', () => {
-  const known = new Set(['a', 'b']);
-  const link = core.collectionLink('Cozy', ['a', 'b']);
+  const link = core.collectionLink('Cozy', ['cf:1', 'cf:2']);
   assert.match(link, /^simmerspace:\/\/collection#collection=/);
-  assert.deepEqual(core.readCollectionLink(link, known), { name: 'Cozy', items: ['a', 'b'] });
-  const legacy = `file:///C:/Users/x/app.asar/index.html#collection=${encodeURIComponent(JSON.stringify({ format: 'simmerspace-collection-link-v1', name: 'Old', items: ['a', 'zzz', 'a'] }))}`;
-  assert.deepEqual(core.readCollectionLink(legacy, known), { name: 'Old', items: ['a'] });
-  assert.equal(core.readCollectionLink('https://example.com', known), null);
-  assert.equal(core.readCollectionLink('#collection={bad json', known), null);
+  assert.deepEqual(core.readCollectionLink(link), { name: 'Cozy', items: ['cf:1', 'cf:2'] });
+  // Older links can name sample items that no longer exist; only CurseForge items are kept.
+  const legacy = `file:///C:/Users/x/app.asar/index.html#collection=${encodeURIComponent(JSON.stringify({ format: 'simmerspace-collection-link-v1', name: 'Old', items: ['cf:1', 'soft-cloud-bob', 'cf:1'] }))}`;
+  assert.deepEqual(core.readCollectionLink(legacy), { name: 'Old', items: ['cf:1'] });
+  assert.equal(core.readCollectionLink('https://example.com'), null);
+  assert.equal(core.readCollectionLink('#collection={bad json'), null);
 });
 
 test('depth warnings follow the game rules for scripts and packages', () => {
