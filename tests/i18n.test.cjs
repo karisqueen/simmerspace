@@ -6,7 +6,7 @@ const { DICT, MODS_TEXT } = require('../renderer/js/i18n.js');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js'].map(name => read(`renderer/js/${name}`)).join('\n');
+const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js', 'appearance.js', 'curseforge.js', 'account.js'].map(name => read(`renderer/js/${name}`)).join('\n');
 
 test('English and Spanish have the same keys and no empty text', () => {
   for (const [name, table] of [['DICT', DICT], ['MODS_TEXT', MODS_TEXT]]) {
@@ -20,10 +20,15 @@ test('English and Spanish have the same keys and no empty text', () => {
 test('every literal text key used by the interface exists', () => {
   for (const [, key] of rendererCode.matchAll(/\bt\('([A-Za-z_]+)'\)/g)) assert.ok(key in DICT.en, `t('${key}') is missing`);
   for (const [, key] of rendererCode.matchAll(/\bmtC?o?u?n?t?\('([A-Za-z_]+)'/g)) assert.ok(key in MODS_TEXT.en, `mt('${key}') is missing`);
+  // Keys passed through t(...) inside lists and helpers (labels for chips, sorts, accents and pages).
+  for (const [, key] of rendererCode.matchAll(/\[\s*\d+,\s*'(cf[A-Za-z]+)'\s*\]/g)) assert.ok(key in DICT.en, `sort label '${key}' is missing`);
+  for (const [, body] of rendererCode.matchAll(/const (?:PART_KEYS|OCCULT_KEYS|ACCENT_LABEL_KEYS|PAGE_TITLES) = \{([^}]*)\}/g)) {
+    for (const [, key] of body.matchAll(/:\s*'([A-Za-z]+)'/g)) assert.ok(key in DICT.en, `label key '${key}' is missing`);
+  }
 });
 
 test('every error code the desktop app can send has a translation', () => {
-  const electron = ['errors.cjs', 'mods-service.cjs', 'ipc.cjs'].map(name => read(`electron/${name}`)).join('\n');
+  const electron = ['errors.cjs', 'mods-service.cjs', 'ipc.cjs', 'curseforge-service.cjs', 'account-service.cjs', 'game-launcher.cjs', 'zip-reader.cjs', 'main.cjs'].map(name => read(`electron/${name}`)).join('\n');
   const codes = new Set([...electron.matchAll(/AppError\('([A-Z_]+)'/g), ...electron.matchAll(/:\s*'([A-Z_]{4,})'/g)].map(match => match[1]));
   codes.add('FORBIDDEN');
   codes.add('UNKNOWN');

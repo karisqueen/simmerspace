@@ -1,36 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-family="soft" data-mode="light" data-accent="lavender" data-accent2="lavender" data-density="comfortable" data-motion="system">
   <head>
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://media.forgecdn.net; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="A cozy visual manager for Sims 4 custom content." />
+    <meta name="description" content="A visual manager for Sims 4 mods and custom content." />
     <title>SimmerSpace</title>
     <link rel="stylesheet" href="./styles/fonts.css" />
-    <link rel="stylesheet" href="./styles/app.css" />
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/components.css" />
+    <link rel="stylesheet" href="./styles/layout.css" />
+    <link rel="stylesheet" href="./styles/pages.css" />
     <link rel="stylesheet" href="./styles/mods-manager.css" />
-    <link rel="stylesheet" href="./styles/refinements.css" />
-    <link rel="stylesheet" href="./styles/rework.css" />
   </head>
-  <body class="theme-soft-lavender">
+  <body>
     <a class="skip-link" id="skip-link" href="#page-content">Skip to content</a>
     <div class="app-shell">
       <aside class="sidebar" id="sidebar"></aside>
       <main class="main-area">
         <header class="topbar">
-          <div class="breadcrumbs"><span id="crumb-kicker"></span><b aria-hidden="true"> / </b><strong id="crumb-title"></strong></div>
+          <div class="topbar-title" id="topbar-title"></div>
           <div class="top-actions">
-            <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="" autocomplete="off" /><kbd aria-hidden="true">Ctrl K</kbd></label>
-            <button class="theme-toggle" id="theme-toggle" aria-label="Switch theme"><span class="theme-icon" aria-hidden="true">☾</span></button>
-            <button class="avatar top-avatar" id="profile-button" aria-label="Profile">S</button>
+            <label class="search-field"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="search-input" type="search" placeholder="" autocomplete="off" /><kbd aria-hidden="true">Ctrl K</kbd></label>
+            <button class="icon-btn" id="theme-toggle" aria-label="Switch theme"></button>
+            <button class="icon-btn account-button" id="profile-button" aria-label="Account"></button>
           </div>
         </header>
         <div class="content-wrap" id="page-content" tabindex="-1"></div>
-        <footer class="footer-note"><span aria-hidden="true">✦</span> <span id="footer-copy"></span> <span aria-hidden="true">·</span> <b id="footer-version"></b></footer>
+        <footer class="footer-note"><span id="footer-copy"></span> <span aria-hidden="true">·</span> <b id="footer-version"></b></footer>
       </main>
     </div>
     <div class="overlay" id="overlay" hidden><section class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"></section></div>
@@ -39,10 +41,14 @@
     <script src="./js/i18n.js"></script>
     <script src="./js/demo-data.js"></script>
     <script src="./js/ui.js"></script>
+    <script src="./js/icons.js"></script>
+    <script src="./js/appearance.js"></script>
     <script src="./js/app.js"></script>
     <script src="./js/mods-manager.js"></script>
     <script src="./js/organizer.js"></script>
     <script src="./js/folders.js"></script>
+    <script src="./js/curseforge.js"></script>
+    <script src="./js/account.js"></script>
     <script src="./js/main.js"></script>
   </body>
 </html>

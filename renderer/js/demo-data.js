@@ -31,6 +31,7 @@ const ITEMS = [
   },
   {
     id: 'slow-morning-set',
+    piece: 'Full body',
     name: 'Slow Morning Set',
     es: 'Conjunto mañana tranquila',
     creator: 'cozyorbit',
@@ -60,6 +61,7 @@ const ITEMS = [
   },
   {
     id: 'peachy-glow',
+    occult: ['Fairy'],
     name: 'Peachy Glow Blush',
     es: 'Rubor brillo durazno',
     creator: 'peachyfern',
@@ -118,6 +120,7 @@ const ITEMS = [
   },
   {
     id: 'garden-party-dress',
+    piece: 'Full body',
     name: 'Garden Party Dress',
     es: 'Vestido de jardín',
     creator: 'rosewoodpixel',
@@ -147,6 +150,7 @@ const ITEMS = [
   },
   {
     id: 'tiny-treasures',
+    piece: 'Jewelry',
     name: 'Tiny Treasures',
     es: 'Pequeños tesoros',
     creator: 'tinydaystudio',
@@ -205,6 +209,7 @@ const ITEMS = [
   },
   {
     id: 'starlight-eyes',
+    occult: ['Vampire', 'Spellcaster'],
     name: 'Starlight Eyes',
     es: 'Ojos luz de estrellas',
     creator: 'velvetplum',
@@ -234,6 +239,7 @@ const ITEMS = [
   },
   {
     id: 'mini-meadow-overalls',
+    piece: 'Full body',
     name: 'Mini Meadow Overalls',
     es: 'Overoles mini pradera',
     creator: 'sunberrypixel',
@@ -263,6 +269,7 @@ const ITEMS = [
   },
   {
     id: 'gentle-days-mod',
+    occult: ['Vampire', 'Spellcaster', 'Werewolf'],
     name: 'Gentle Days',
     es: 'Días tranquilos',
     creator: 'gentlepixel',
@@ -321,6 +328,7 @@ const ITEMS = [
   },
   {
     id: 'arched-brows',
+    occult: ['Werewolf'],
     name: 'Soft Arch Brows',
     es: 'Cejas arco suave',
     creator: 'willowwhimsy',
@@ -350,6 +358,7 @@ const ITEMS = [
   },
   {
     id: 'toddler-cloud-onesie',
+    piece: 'Full body',
     name: 'Cloud Nine Onesie',
     es: 'Pijama nube',
     creator: 'sunberrypixel',
@@ -408,6 +417,7 @@ const ITEMS = [
   },
   {
     id: 'daisy-skater-tee',
+    piece: 'Tops',
     name: 'Daisy Skater Tee',
     es: 'Playera patinadora margarita',
     creator: 'sunberrypixel',

@@ -704,6 +704,7 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
   }
 
   return {
+    selectedRoot,
     scan,
     cancel: () => {
       if (activeScan) activeScan.cancelled = true;

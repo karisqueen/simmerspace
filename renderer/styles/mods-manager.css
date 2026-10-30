@@ -1,4 +1,4 @@
-/* My CC → Mods folder panel. Colors come from the theme tokens in app.css / refinements.css. */
+/* My CC → Mods folder panel. Colors come from the theme tokens in tokens.css. */
 .mods-manager {
   display: grid;
   gap: 16px;
