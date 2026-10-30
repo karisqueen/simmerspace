@@ -269,3 +269,26 @@ drop policy if exists "Users delete their own inspiration images" on storage.obj
 create policy "Users delete their own inspiration images" on storage.objects
   for delete to authenticated
   using (bucket_id = 'inspiration' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Hardening of the project defaults
+-- ---------------------------------------------------------------------------------------------------------------
+-- TRUNCATE ignores row level security, so the app roles must not hold it. REFERENCES and TRIGGER are not used.
+revoke truncate, references, trigger on public.profiles, public.inspiration_posts, public.feedback from anon, authenticated;
+
+-- The app is sign-in only: anonymous feedback and the older "public" policies are replaced by the ones above.
+drop policy if exists "Users can submit feedback" on public.feedback;
+drop policy if exists "Profiles are publicly viewable" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Posts are publicly viewable" on public.inspiration_posts;
+drop policy if exists "Users can create posts" on public.inspiration_posts;
+drop policy if exists "Users can update own posts" on public.inspiration_posts;
+drop policy if exists "Users can delete own posts" on public.inspiration_posts;
+
+-- rls_auto_enable() runs from an event trigger; nobody needs to call it through the API.
+do $$ begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname = 'rls_auto_enable' and p.pronargs = 0) then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end $$;

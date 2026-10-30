@@ -25,6 +25,13 @@ create table public.feedback (
 );
 -- Like a default Supabase project: the API roles have table privileges, and row level security decides.
 grant select, insert, update, delete on public.profiles, public.inspiration_posts, public.feedback to anon, authenticated;
+-- The live project also had these: TRUNCATE for the API roles, "public" policies and anonymous feedback.
+grant truncate, references, trigger on public.profiles, public.inspiration_posts, public.feedback to anon, authenticated;
+create policy "Profiles are publicly viewable" on public.profiles for select using (true);
+create policy "Posts are publicly viewable" on public.inspiration_posts for select using (true);
+create policy "Users can submit feedback" on public.feedback for insert to anon, authenticated with check (true);
+create function public.rls_auto_enable() returns void language sql security definer as $$ select $$;
+grant execute on function public.rls_auto_enable() to anon, authenticated;
 create schema storage;
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
 alter table storage.objects enable row level security;

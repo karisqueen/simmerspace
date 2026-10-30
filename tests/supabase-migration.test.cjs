@@ -15,7 +15,12 @@ test('only the migration for the real project is active; the old one is archived
 });
 
 test('the migration never weakens security or drops data', () => {
-  assert.doesNotMatch(sql, /disable row level security|drop table|truncate|delete from|alter table auth\.|service_role/);
+  // Revoking a privilege only takes access away, so revoke statements and comments are left out of this check.
+  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '');
+  assert.doesNotMatch(statements, /disable row level security|drop table|truncate|delete from|alter table auth\.|service_role/);
+  // TRUNCATE ignores row level security, so the API roles lose it.
+  assert.match(sql, /revoke truncate, references, trigger on public\.profiles, public\.inspiration_posts, public\.feedback from anon, authenticated;/);
+  assert.match(sql, /drop policy if exists "users can submit feedback" on public\.feedback;/);
   for (const table of ['profiles', 'inspiration_posts', 'feedback']) assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`), table);
 });
 

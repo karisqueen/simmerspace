@@ -28,8 +28,17 @@ do $$ begin
   if public.username_available('Ana_Sims') then raise exception 'taken name (other case) reported as free'; end if;
   if public.username_available('no spaces') then raise exception 'invalid name reported as free'; end if;
   if (select count(*) from public.profiles) <> 0 or (select count(*) from public.inspiration_posts) <> 0 then raise exception 'anon could read rows'; end if;
+  begin
+    insert into public.feedback (user_id, category, message) values (null, 'other', 'anonymous');
+    raise exception 'anon could send feedback';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 reset role;
+do $$ begin
+  if has_table_privilege('anon', 'public.profiles', 'truncate') or has_table_privilege('authenticated', 'public.feedback', 'truncate') then raise exception 'API roles can still truncate'; end if;
+  if has_function_privilege('anon', 'public.rls_auto_enable()', 'execute') then raise exception 'anon can call rls_auto_enable'; end if;
+end $$;
 
 -- As user A
 set role authenticated;
