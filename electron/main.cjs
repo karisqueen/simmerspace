@@ -217,7 +217,7 @@ async function createWindow() {
     minWidth: 760,
     minHeight: 620,
     title: `SimmerSpace ${APP_VERSION}`,
-    icon: path.join(__dirname, '..', 'renderer', 'brand', 'app-icon.png'),
+    icon: path.join(__dirname, '..', 'renderer', 'brand', 'simmerspace-icon.png'),
     // The last theme's background, so dark themes do not flash light while the page loads.
     backgroundColor: /^#[0-9a-f]{6}$/i.test(saved.windowBackground || '') ? saved.windowBackground : '#f6f5fa',
     show: false,

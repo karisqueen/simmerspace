@@ -924,7 +924,7 @@ details[open] > summary .disclosure-icon {
   font-size: var(--fs-xs);
 }
 
-/* ---------- Plumbob, brand mark and wordmark ---------- */
+/* ---------- Plumbob (collections), brand mark and wordmark ---------- */
 .plumbob {
   width: 14px;
   height: 21px;
@@ -959,24 +959,7 @@ details[open] > summary .disclosure-icon {
   flex: none;
   overflow: visible;
 }
-.brand-mark .bm-a {
-  fill: var(--accent);
-}
-.brand-mark .bm-edge {
-  fill: none;
-  stroke: var(--text);
-  stroke-opacity: 0.22;
-  stroke-width: 0.7;
-  stroke-linejoin: round;
-}
-.brand-mark .bm-s {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 2.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-/* "simmerspace": one lowercase word in the rounded brand face. */
+/* "simmerspace": one lowercase word in the rounded brand face; "space" takes the theme's primary color. */
 .wordmark {
   font-family: var(--font-brand);
   font-size: 22px;
@@ -985,6 +968,9 @@ details[open] > summary .disclosure-icon {
   letter-spacing: -0.015em;
   color: var(--sidebar-strong);
   white-space: nowrap;
+}
+.wordmark .wm-space {
+  color: var(--accent-text);
 }
 
 /* ---------- Cards and illustrations ---------- */

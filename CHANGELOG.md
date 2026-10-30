@@ -8,6 +8,9 @@
 - The account page is now a profile: cover, large avatar with a photo button, member-since date, counts for posts, collections and followed creators, and a grid of your Inspiration posts.
 - Changing the username moved to a small button that opens a dialog, asks for the password and is allowed once every 30 days. The limit is enforced by the database (`supabase/migrations/20261030120000_username_changes.sql`).
 - Fixed the on/off switches in Settings, which were drawn as a small circle.
+- New visual identity, "the fold": a ribbon folded into an S, each stretch split into a light and a deep face that runs from sky blue to mint, with a small lavender spark. It replaces the plumbob-style symbol and the old icon files everywhere (app icon, `build/icon.ico`, in-app brand mark, installer, project page). The wordmark keeps Fredoka in lowercase, now in two tones ("simmer" + "space").
+- Blue is now the default theme, retuned to the new palette (Simmer blue, sky, mint, lavender spark). Saved theme choices are kept.
+- Brand guide at `docs/brand/` (story, construction, logotype, palette, type, variations, app icon and misuse).
 
 ## 0.11.1 cleanup, new icon and per-copy sessions (2026-10-30)
 

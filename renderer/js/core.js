@@ -150,7 +150,7 @@
   const MODES = ['light', 'dark', 'system'];
   const DENSITIES = ['comfortable', 'compact'];
   const MOTION = ['system', 'reduced', 'full'];
-  const DEFAULT_APPEARANCE = Object.freeze({ family: 'purple', mode: 'light', density: 'comfortable', motion: 'system' });
+  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'system' });
 
   // Reads saved appearance settings. Anything missing or unknown falls back to a default. Carried over:
   // the single theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark"), the main color

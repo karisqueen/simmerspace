@@ -92,8 +92,8 @@
 [data-family='purple'][data-mode='dark'] { --a1: #c6b0f3; --a2: #ff9e8c; --a3: #86d8b6; --tint: #15111d; }
 [data-family='green'][data-mode='light'] { --a1: #2b7150; --a2: #a03e6c; --a3: #8a5f00; --tint: #f4faf5; }
 [data-family='green'][data-mode='dark'] { --a1: #8fd4a9; --a2: #f2a5c6; --a3: #efc760; --tint: #0f1612; }
-[data-family='blue'][data-mode='light'] { --a1: #1560c0; --a2: #237d33; --a3: #ad4a22; --tint: #f3f8ff; }
-[data-family='blue'][data-mode='dark'] { --a1: #80b9f7; --a2: #8fe08f; --a3: #ffaf86; --tint: #0d141f; }
+[data-family='blue'][data-mode='light'] { --a1: #3a62c8; --a2: #1f7a50; --a3: #6a4fc4; --tint: #f3f6fd; }
+[data-family='blue'][data-mode='dark'] { --a1: #9cc0ff; --a2: #8ee3b8; --a3: #cbb8ff; --tint: #0e131e; }
 
 /* ---------- Surfaces, tinted by the family's primary ---------- */
 [data-mode='light'] {

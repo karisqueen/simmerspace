@@ -20,6 +20,8 @@ test('appearance settings from 0.7.x, 0.8.x / 0.9.x and 0.10.0 are carried over'
   // 0.8.0 and 0.9.0 saved "soft-blue" / "dark-blue" plus separate main and second colors.
   assert.deepEqual(core.normalizeAppearance(null, 'dark-blue', { primary: 'blue', secondary: 'rose' }), { ...core.DEFAULT_APPEARANCE, mode: 'dark', family: 'blue' });
   assert.equal(core.normalizeAppearance(null, 'soft-lavender', { primary: 'bogus', secondary: 'bogus' }).family, 'purple');
+  // New installs start on the blue theme, the brand's color.
+  assert.equal(core.normalizeAppearance(null).family, 'blue');
   // 0.10.0 saved a family ("soft" or "sims-blue") plus an accent; it wins over the older values.
   assert.equal(core.normalizeAppearance({ family: 'soft', primary: 'sage' }, 'dark-blue', { primary: 'blue' }).family, 'green');
   assert.equal(core.normalizeAppearance({ family: 'sims-blue', primary: 'rose', mode: 'dark' }).family, 'blue');

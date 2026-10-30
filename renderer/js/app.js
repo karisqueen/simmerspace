@@ -64,7 +64,7 @@ function collectionLabel(c) {
 /* ---------- Shell ---------- */
 // The wordmark is always one lowercase word.
 function wordmark() {
-  return `<span class="wordmark">simmerspace</span>`;
+  return `<span class="wordmark">simmer<span class="wm-space">space</span></span>`;
 }
 // `tip` is the short explanation shown by the delayed tooltip (see ui.js); the label is the accessible name.
 function navButton(id, iconName, { extra = '', label = t(id), tip = '' } = {}) {
