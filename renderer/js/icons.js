@@ -1,7 +1,7 @@
 /* SimmerSpace icon family: 24×24, rounded 1.75px strokes drawn with currentColor. Most icons add one soft
    "duotone" shape (class="d"), filled with the same color at low opacity, which gives each icon a distinct
    silhouette at small sizes in every theme. Icons are decorative (aria-hidden); the button or link around
-   them carries the accessible name. The plumbob (collections) and the brand crystal are below. */
+   them carries the accessible name. The plumbob (collections) and the brand mark are below. */
 const ICON_PATHS = {
   // Navigation
   home: '<path class="d" d="M5 10.5 12 5l7 5.5V19a1 1 0 0 1-1 1h-3.5v-5h-5v5H6a1 1 0 0 1-1-1z"/><path d="M3.5 11.5 12 4.8l8.5 6.7"/><path d="M5.5 10v9a1 1 0 0 0 1 1h3.5v-5h4v5h3.5a1 1 0 0 0 1-1v-9"/>',
@@ -79,8 +79,8 @@ function plumbob(color, { className = '', label = '' } = {}) {
   return `<svg class="plumbob ${className}" viewBox="0 0 16 24" ${a11y} focusable="false" style="--plumbob:${safe}"><path class="pb-body" d="M8 1.2 14.8 10 8 22.8 1.2 10z"/><path d="M8 1.2 1.2 10 8 11.2z" fill="#fff" opacity=".45"/><path d="M8 1.2 14.8 10 8 11.2z" fill="#fff" opacity=".18"/><path d="M1.2 10 8 11.2 8 22.8z" fill="#000" opacity=".06"/><path d="M14.8 10 8 11.2 8 22.8z" fill="#000" opacity=".22"/><path class="pb-edge" d="M8 1.2 14.8 10 8 22.8 1.2 10z"/></svg>`;
 }
 
-// SimmerSpace mark: a brilliant-cut crystal (not a plumbob) in the theme's primary color, with one facet in
-// the pop color and a sparkle in the warm note. renderer/brand/ holds the same drawing as standalone files.
+// SimmerSpace mark: a plumbob whose facets draw an S, in the theme's primary color. renderer/brand/app-icon.svg
+// is the same drawing in the app icon's green.
 function brandMark() {
-  return `<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bm-a" d="M9.2 6.5h13.6a1.6 1.6 0 0 1 1.3.66l3.9 5.4a1.6 1.6 0 0 1-.05 1.94L17.25 27.1a1.6 1.6 0 0 1-2.5 0L4.05 14.5a1.6 1.6 0 0 1-.05-1.94l3.9-5.4a1.6 1.6 0 0 1 1.3-.66z"/><path d="M4.3 13.4h23.4L16 27.6z" fill="#000" fill-opacity=".14"/><path d="M4.3 13.4 12.2 13.4 16 27.6z" fill="#fff" fill-opacity=".22"/><path d="M8.6 6.9 12.2 13.4H4.3z" fill="#fff" fill-opacity=".42"/><path d="M12.2 13.4 16 6.6 19.8 13.4z" fill="#fff" fill-opacity=".28"/><path class="bm-b" d="M23.4 6.9 19.8 13.4h7.9z"/><path class="bm-b" d="M19.8 13.4h7.9L16 27.6z" fill-opacity=".55"/><path class="bm-edge" d="M4.3 13.4h23.4M12.2 13.4 16 27.6M19.8 13.4 16 27.6M12.2 13.4 16 6.6l3.8 6.8"/><path class="bm-spark" d="M27.2 1.2c.3 1.7.9 2.3 2.6 2.6-1.7.3-2.3.9-2.6 2.6-.3-1.7-.9-2.3-2.6-2.6 1.7-.3 2.3-.9 2.6-2.6z"/></svg>`;
+  return `<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="bm-a" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path d="M16 .9 6.75 14.75H16z" fill="#fff" fill-opacity=".34"/><path d="M16 .9 25.25 14.75H16z" fill="#fff" fill-opacity=".12"/><path d="M25.25 14.75H16v16.35z" fill="#000" fill-opacity=".18"/><path class="bm-edge" d="M16 .9 25.25 14.75 16 31.1 6.75 14.75z"/><path class="bm-s" d="M19.88 10.13 16 7l-3.75 3.63 7.5 8.25L16 22.75l-3.87-3.12"/></svg>`;
 }

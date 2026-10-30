@@ -962,9 +962,6 @@ details[open] > summary .disclosure-icon {
 .brand-mark .bm-a {
   fill: var(--accent);
 }
-.brand-mark .bm-b {
-  fill: var(--highlight);
-}
 .brand-mark .bm-edge {
   fill: none;
   stroke: var(--text);
@@ -972,8 +969,12 @@ details[open] > summary .disclosure-icon {
   stroke-width: 0.7;
   stroke-linejoin: round;
 }
-.brand-mark .bm-spark {
-  fill: var(--sun);
+.brand-mark .bm-s {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 /* "simmerspace": one lowercase word in the rounded brand face. */
 .wordmark {
