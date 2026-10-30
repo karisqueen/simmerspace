@@ -867,3 +867,297 @@
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
+
+/* ---------- Library (My CC) ---------- */
+.library-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(0, 3fr) auto;
+  align-items: center;
+  gap: var(--sp-4) var(--sp-6);
+  margin-bottom: var(--sp-6);
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: linear-gradient(120deg, var(--accent-soft), var(--surface) 55%);
+}
+.strip-path {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.strip-path > div {
+  display: grid;
+  min-width: 0;
+}
+.strip-path span,
+.strip-fact span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.strip-path b {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+.strip-icon {
+  width: 38px;
+  height: 38px;
+  padding: 8px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--accent);
+}
+.strip-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--sp-3);
+}
+.strip-fact {
+  display: grid;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--line);
+}
+.strip-fact b {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.strip-fact.is-accent { border-left-color: var(--accent); }
+.strip-fact.is-pop { border-left-color: var(--highlight); }
+.strip-fact.is-danger { border-left-color: var(--danger); }
+.strip-fact.is-danger b { color: var(--danger); }
+@media (max-width: 1100px) {
+  .library-strip {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .strip-facts {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+.library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+/* "Library" has the same scale as the page's "My CC" title. */
+.library-title {
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.segmented-label {
+  align-self: center;
+  padding: 0 8px 0 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  margin: var(--sp-4) 0;
+}
+.folder-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+.folder-tile:hover {
+  border-color: var(--accent-line);
+}
+.folder-tile.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.folder-tile.is-fallback {
+  border-style: dashed;
+}
+.folder-tile-icon {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: var(--r-md);
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.folder-tile.is-fallback .folder-tile-icon {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+.folder-tile-copy {
+  display: grid;
+  min-width: 0;
+}
+.folder-tile-copy b {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-tile-copy small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.library-list {
+  margin-top: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+.library-list-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--r-xl);
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-md);
+  text-align: left;
+}
+.library-list-toggle:hover {
+  background: var(--surface-2);
+}
+.library-list-toggle small {
+  color: var(--text-3);
+}
+.library-list-toggle .disclosure-icon {
+  transform: rotate(-90deg);
+  transition: transform var(--dur) var(--ease);
+}
+.library-list.is-open .library-list-toggle .disclosure-icon {
+  transform: none;
+}
+.library-list-body {
+  padding: 0 18px 18px;
+}
+.origin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: normal;
+}
+.origin-badge .icon {
+  width: 13px;
+  height: 13px;
+}
+.managed-mod-tags .origin-badge.is-app,
+.origin-badge.is-app {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.managed-mod-tags .origin-badge.is-external,
+.origin-badge.is-external {
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.classify-open .icon {
+  color: var(--highlight);
+}
+
+/* ---------- Classification dialog ---------- */
+.classify-offer {
+  justify-items: center;
+  text-align: center;
+}
+.classify-hero {
+  width: 48px;
+  height: 48px;
+  padding: 10px;
+  border-radius: 50%;
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.classify-dialog {
+  width: min(520px, 100%);
+}
+.classify-progress {
+  display: grid;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.classify-progress i {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--highlight) var(--progress), var(--surface-3) var(--progress));
+}
+.classify-file {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.classify-file > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.classify-file h2 {
+  overflow-wrap: anywhere;
+}
+.classify-file .origin-badge {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+}
+.classify-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--accent-soft-2), var(--highlight-soft));
+  color: var(--accent);
+}
+.classify-thumb .icon {
+  width: 30px;
+  height: 30px;
+}
+.classify-quick {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.classify-quick .chip .icon {
+  width: 14px;
+  height: 14px;
+}
+.classify-more summary {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.classify-more-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}

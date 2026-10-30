@@ -1,0 +1,60 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const core = require('../renderer/js/core.js');
+
+const files = [
+  { relativePath: 'CC\\Hair One.package', enabled: true, depth: 1 },
+  { relativePath: 'CC\\Sofa.package', enabled: true, depth: 1 },
+  { relativePath: 'Cozy by Pix\\Sweater.package', enabled: false, depth: 1 },
+  { relativePath: 'Loose.package', enabled: true, depth: 0 }
+];
+const tags = { 'CC\\Hair One.package': { categoryId: 'cas-hair', creatorId: 'c1' }, 'CC\\Sofa.package': { categoryId: 'gone' } };
+const installed = new Set(['cozy by pix/sweater.package']);
+const lookup = {
+  tags: p => tags[p] || {},
+  categoryName: id => ({ 'cas-hair': 'Hair' })[id] || '',
+  creatorName: id => ({ c1: 'Simstrouble' })[id] || '',
+  origin: file => core.modOrigin(file.relativePath, installed),
+  creatorKey: file => (tags[file.relativePath]?.creatorId ? tags[file.relativePath].creatorId : file.relativePath.startsWith('Cozy') ? 'cf:pix' : ''),
+  creatorLabel: file => (tags[file.relativePath]?.creatorId ? 'Simstrouble' : file.relativePath.startsWith('Cozy') ? 'Pix' : '')
+};
+
+test('install-log paths match scanned paths regardless of slashes and case', () => {
+  assert.equal(core.modPathKey('Cozy by Pix\\Sweater.package'), 'cozy by pix/sweater.package');
+  assert.equal(core.modPathKey('/A/B.package'), 'a/b.package');
+  assert.equal(core.modOrigin('COZY BY PIX/Sweater.package', installed), 'simmerspace');
+  assert.equal(core.modOrigin('CC\\Hair One.package', installed), 'external');
+  assert.equal(core.modOrigin('x.package', null), 'external');
+});
+
+test('category folders always include "No category", count each file once, and ignore unknown categories', () => {
+  const groups = core.groupModFiles(files, 'category', lookup);
+  assert.deepEqual(groups.map(g => [g.key, g.count]), [['cas-hair', 1], ['__none__', 3]]);
+  assert.equal(groups.at(-1).fallback, true);
+  assert.equal(groups.reduce((sum, g) => sum + g.count, 0), files.length);
+  assert.equal(groups.find(g => g.key === '__none__').external, 2);
+  // The fallback exists even when every file has a category.
+  assert.deepEqual(core.groupModFiles([], 'category', lookup), [{ key: '__none__', name: '', count: 0, external: 0, fallback: true }]);
+});
+
+test('creator folders use the creator tag, then the CurseForge author, then "No creator"', () => {
+  const groups = core.groupModFiles(files, 'creator', lookup);
+  assert.deepEqual(groups.map(g => [g.key, g.name, g.count]), [['cf:pix', 'Pix', 1], ['c1', 'Simstrouble', 1], ['__none__', '', 2]]);
+});
+
+test('filters by origin and creator, including the "No creator" folder', () => {
+  const pick = filter => core.filterModFiles(files, filter, lookup).map(f => f.relativePath);
+  assert.deepEqual(pick({ origin: 'simmerspace' }), ['Cozy by Pix\\Sweater.package']);
+  assert.equal(pick({ origin: 'external' }).length, 3);
+  assert.deepEqual(pick({ creatorKey: 'c1' }), ['CC\\Hair One.package']);
+  assert.deepEqual(pick({ creatorKey: '__none__' }), ['CC\\Sofa.package', 'Loose.package']);
+  assert.deepEqual(pick({ query: 'pix' }), ['Cozy by Pix\\Sweater.package']);
+  // Filters written for 0.10.0 (no creator or origin lookups) keep working.
+  assert.equal(core.filterModFiles(files, { categoryId: '__none__' }, { tags: lookup.tags, categoryName: lookup.categoryName, creatorName: lookup.creatorName }).length, 3);
+});
+
+test('only untagged external files are offered for classification, minus skipped ones', () => {
+  const pending = core.unclassifiedExternal(files, lookup).map(f => f.relativePath);
+  assert.deepEqual(pending, ['Loose.package']); // the sofa has a (stale) category tag, the sweater is a download
+  assert.deepEqual(core.unclassifiedExternal(files, lookup, new Set(['loose.package'])), []);
+});

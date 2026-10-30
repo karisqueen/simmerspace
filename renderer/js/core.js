@@ -93,22 +93,69 @@
   }
 
   // Filters a scanned file list. `lookup` supplies tag-dependent text so the caller can use cached maps.
-  function filterModFiles(files, { query = '', state = 'all', categoryId = '' }, lookup) {
+  // `creatorKey` and `origin` are optional: lookup.creatorKey(file) gives the creator a file is grouped under
+  // ('' when it has none) and lookup.origin(file) gives 'simmerspace' or 'external'.
+  function filterModFiles(files, { query = '', state = 'all', categoryId = '', creatorKey = '', origin = 'all' }, lookup) {
     const needle = query.trim().toLocaleLowerCase();
     const result = [];
     for (const file of files) {
       if (state === 'enabled' && !file.enabled) continue;
       if (state === 'disabled' && file.enabled) continue;
       if (state === 'tooDeep' && !modDepthWarning(file)) continue;
+      if (origin !== 'all' && lookup.origin && lookup.origin(file) !== origin) continue;
       const tags = lookup.tags(file.relativePath);
-      if (categoryId === '__none__' ? tags.categoryId : categoryId && tags.categoryId !== categoryId) continue;
+      // A tag pointing at a deleted category counts as "No category", the same as in the folder view.
+      if (categoryId === '__none__' ? tags.categoryId && lookup.categoryName(tags.categoryId) : categoryId && tags.categoryId !== categoryId) continue;
+      if (creatorKey && lookup.creatorKey) {
+        const key = lookup.creatorKey(file);
+        if (creatorKey === '__none__' ? key : key !== creatorKey) continue;
+      }
       if (needle) {
-        const text = `${file.relativePath} ${lookup.categoryName(tags.categoryId)} ${lookup.creatorName(tags.creatorId)} ${tags.gender || ''} ${tags.age || ''}`;
+        const creator = lookup.creatorKey ? lookup.creatorLabel?.(file) || '' : lookup.creatorName(tags.creatorId);
+        const text = `${file.relativePath} ${lookup.categoryName(tags.categoryId)} ${creator} ${tags.gender || ''} ${tags.age || ''}`;
         if (!text.toLocaleLowerCase().includes(needle)) continue;
       }
       result.push(file);
     }
     return result;
+  }
+
+  /* ---------- Library origin and grouping ---------- */
+  // Paths from the scanner and from the CurseForge install log are compared without case or slash style.
+  function modPathKey(relativePath) {
+    return String(relativePath || '').replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+  }
+  // A file is a SimmerSpace download only when the install log lists its path; everything else is external.
+  function modOrigin(relativePath, installedKeys) {
+    return installedKeys && installedKeys.has(modPathKey(relativePath)) ? 'simmerspace' : 'external';
+  }
+  // Groups files into folders by category or creator. The fallback folder ('__none__', "No category" or
+  // "No creator") always exists, even when empty, and is listed last. Each file is counted once.
+  function groupModFiles(files, mode, lookup) {
+    const groups = new Map();
+    const none = { key: '__none__', name: '', count: 0, external: 0, fallback: true };
+    for (const file of files) {
+      let key = '';
+      let name = '';
+      if (mode === 'creator') {
+        key = lookup.creatorKey(file);
+        name = key ? lookup.creatorLabel(file) : '';
+      } else {
+        key = lookup.tags(file.relativePath).categoryId || '';
+        name = key ? lookup.categoryName(key) : '';
+        if (key && !name) key = '';
+      }
+      const group = key ? groups.get(key) || { key, name, count: 0, external: 0, fallback: false } : none;
+      group.count++;
+      if (lookup.origin?.(file) === 'external') group.external++;
+      if (key) groups.set(key, group);
+    }
+    const sorted = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return [...sorted, none];
+  }
+  // External files the player has not classified yet (no category and no creator) and has not skipped.
+  function unclassifiedExternal(files, lookup, skipped = new Set()) {
+    return files.filter(file => lookup.origin(file) === 'external' && !skipped.has(modPathKey(file.relativePath)) && !lookup.tags(file.relativePath).categoryId && !lookup.tags(file.relativePath).creatorId);
   }
 
   function summarizeModFiles(files) {
@@ -261,6 +308,10 @@
     mergeCollections,
     CAS_PARTS,
     OCCULTS,
-    filterDemoItems
+    filterDemoItems,
+    modPathKey,
+    modOrigin,
+    groupModFiles,
+    unclassifiedExternal
   };
 });

@@ -362,34 +362,11 @@ function renderDiscover() {
   content.innerHTML = `${pageHeader(t('discover'), { meta: `${items.length} ${t('finds')}`, actions: `<span class="sample-badge">${t('sampleData')}</span>` })}${notice(t('discoverDemoNote'), { action: `<button class="text-link" data-page="curseforge">${t('browseCurseForge')} →</button>` })}${filterBar}${items.length ? `<div class="card-grid">${items.map(itemCard).join('')}</div>` : empty(t('empty'), t('emptyText'), `<button class="secondary-btn" id="clear-filters-empty">${t('resetFilters')}</button>`)}`;
 }
 
+// My CC: the real Mods folder library (mods-manager.js and library.js). The sample cards of earlier
+// versions are no longer shown here.
 function renderLibrary() {
-  const statuses = [
-    ['All', 'all'],
-    ['Installed', 'installed'],
-    ['Saved', 'saved'],
-    ['Needs update', 'needsUpdate']
-  ];
-  const q = (state.libraryQuery || state.query).trim().toLowerCase();
-  const all = ITEMS.filter(i => (installState(i).installed || isInCollection(i)) && (!q || `${i.name} ${i.es} ${i.creator} ${i.category} ${i.sub}`.toLowerCase().includes(q)));
-  const items = all.filter(i => {
-    const s = installState(i);
-    if (state.libraryState === 'Installed' && !s.installed) return false;
-    if (state.libraryState === 'Saved' && (!isInCollection(i) || s.installed)) return false;
-    if (state.libraryState === 'Needs update' && !s.needsUpdate) return false;
-    return true;
-  });
-  const groupLabel = i => (state.groupMode === 'creator' ? i.creator : categoryLabel(i.category));
-  const grouped =
-    state.groupMode === 'creator'
-      ? CREATORS.map(c => [c.name, items.filter(i => i.creator === c.name)]).filter(x => x[1].length)
-      : [...new Set(items.map(groupLabel))].sort((a, b) => a.localeCompare(b, state.lang)).map(k => [k, items.filter(i => groupLabel(i) === k)]);
-  const sampleOpen = safeRead('sample-library-open', false) === true;
-  const count = typeof scannedModCount === 'function' ? scannedModCount() : null;
-  content.innerHTML = `${pageHeader(t('mycc'), { meta: count === null ? '' : format(t('filesFound'), { count: count.toLocaleString(state.lang) }) })}${folderRoutePanel()}<div id="mods-manager-root">${renderManagedModsPanel()}</div><details class="panel sample-library" id="sample-library" ${sampleOpen ? 'open' : ''}><summary class="panel-summary"><span><b>${t('demoLibraryTitle')}</b><small>${t('demoLibraryShort')}</small></span>${icon('chevron', 'disclosure-icon')}</summary><div class="panel-body"><p class="muted-note">${t('demoLibraryNote')}</p><div class="toolbar-row"><label class="search-field search-field-inline">${icon('search')}<input id="library-search" type="search" value="${esc(state.libraryQuery)}" placeholder="${esc(t('librarySearch'))}" aria-label="${esc(t('librarySearch'))}"></label>${chipGroup({ name: 'library-state', label: t('status'), options: statuses.map(([id, key]) => [id, t(key)]), selected: state.libraryState, size: 'sm', hideLabel: true })}<label class="select-field select-inline"><span>${t('groupBy')}</span><select id="group-mode"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></div>${
-    items.length
-      ? grouped.map(([name, group]) => `<section class="library-group"><h3 class="group-title">${esc(name)} <span>${group.length}</span></h3><div class="card-grid">${group.map(itemCard).join('')}</div></section>`).join('')
-      : empty(t('libraryEmpty'), '')
-  }</div></details>`;
+  content.innerHTML = `${pageHeader(t('mycc'))}${folderRoutePanel()}<div id="mods-manager-root">${renderManagedModsPanel()}</div>`;
+  ensureInstallsLoaded();
 }
 
 // Boards in the chosen order. "Custom" is the saved order, which can be changed by dragging.
@@ -1193,7 +1170,12 @@ search.addEventListener('input', () => {
     () => {
       state.query = search.value;
       if (state.page === 'curseforge') return curseForgeQueryChanged(state.query);
-      if (state.page === 'mycc') state.libraryQuery = '';
+      if (state.page === 'mycc') {
+        // The top search filters the real library list.
+        mods.query = state.query;
+        mods.page = 0;
+        return renderModsPanel();
+      }
       // Pages without their own search send the query to Explore, which searches the real CurseForge catalog.
       if (!['discover', 'mycc', 'creators'].includes(state.page)) {
         state.page = 'curseforge';

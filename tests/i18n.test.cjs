@@ -6,7 +6,7 @@ const { DICT, MODS_TEXT } = require('../renderer/js/i18n.js');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js', 'appearance.js', 'curseforge.js', 'account.js', 'tour.js'].map(name => read(`renderer/js/${name}`)).join('\n');
+const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js', 'appearance.js', 'curseforge.js', 'account.js', 'tour.js', 'library.js'].map(name => read(`renderer/js/${name}`)).join('\n');
 
 test('English and Spanish have the same keys and no empty text', () => {
   for (const [name, table] of [['DICT', DICT], ['MODS_TEXT', MODS_TEXT]]) {
