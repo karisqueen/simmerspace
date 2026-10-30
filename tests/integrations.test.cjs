@@ -68,7 +68,7 @@ test('config: a development .env.local fills unset variables, and Supabase secre
 });
 
 // A stand-in for supabase-js that records calls. No network, no real project.
-function fakeSupabase({ signUpSession = null, taken = [], identities = null } = {}) {
+function fakeSupabase({ signUpSession = null, taken = [], identities = null, verifyError = null } = {}) {
   const calls = [];
   let session = null;
   const listeners = [];
@@ -135,7 +135,7 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null } = 
         return { data: { user: session.user, session }, error: null };
       },
       signOut: async () => ((session = null), { error: null }),
-      verifyOtp: async args => (calls.push(['verifyOtp', args]), { data: { user: null }, error: null }),
+      verifyOtp: async args => (calls.push(['verifyOtp', args]), { data: { user: null }, error: verifyError }),
       resend: async args => (calls.push(['resend', args]), { error: null }),
       updateUser: async args => (calls.push(['updateUser', Object.keys(args)]), { error: null }),
       resetPasswordForEmail: async email => (calls.push(['reset', email]), { error: null })
@@ -190,6 +190,28 @@ test('accounts: sign-up checks email, password rules and username before contact
   await service.verifyEmail({ code: '123 456' });
   assert.deepEqual(fake.calls.find(c => c[0] === 'verifyOtp')[1], { email: 'b@example.com', token: '123456', type: 'email' });
   await assert.rejects(accountWith(t, dir, fakeSupabase({ identities: [] })).signUp({ email: 'c@example.com', password: 'long enough 1', username: 'cee' }), { code: 'ACCOUNT_EXISTS' });
+});
+
+test('accounts: an email confirmed through its link signs in instead of resending or failing the code', async t => {
+  const dir = await tempDir(t);
+  const fake = fakeSupabase();
+  const service = accountWith(t, dir, fake);
+  await service.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
+  const resent = await service.resendConfirmation({});
+  assert.equal(resent.alreadyConfirmed, true);
+  assert.equal(resent.user.username, 'ana');
+  assert.ok(!fake.calls.some(c => c[0] === 'resend'));
+  assert.equal((await service.status()).pendingEmail, '');
+
+  const expired = fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } });
+  const second = accountWith(t, await tempDir(t), expired);
+  await second.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
+  const verified = await second.verifyEmail({ code: '123456' });
+  assert.equal(verified.alreadyConfirmed, true);
+  // A wrong code for an address that is not confirmed yet still fails.
+  const third = accountWith(t, await tempDir(t), fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } }));
+  await third.signUp({ email: 'bea@example.com', password: 'long enough 1', username: 'bea' });
+  await assert.rejects(third.verifyEmail({ code: '123456' }));
 });
 
 test('accounts: sign-in loads (or recovers) the profile; reset uses a code then sets the new password', async t => {

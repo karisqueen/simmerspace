@@ -387,7 +387,7 @@ const DICT = {
     displayName: "Display name",
     passwordHint: "At least 8 characters.",
     verifyTitle: "Confirm your email",
-    verifyText: "We sent a confirmation email to {email}. Enter the code from it, or open its link and then sign in.",
+    verifyText: "We sent a 6-digit code to {email}. Enter it here to finish creating your account. It can take a minute to arrive; check spam too.",
     emailCode: "Code from the email",
     verifyButton: "Confirm",
     verifyLater: "I clicked the link, sign in instead",
@@ -693,6 +693,7 @@ const DICT = {
     inspCat_story: "Stories",
     inspCat_other: "Other",
     saveUsername: "Save",
+    alreadyConfirmed: "Your email was already confirmed, so you are now signed in.",
   },
 
   es: {
@@ -1082,7 +1083,7 @@ const DICT = {
     displayName: "Nombre visible",
     passwordHint: "Al menos 8 caracteres.",
     verifyTitle: "Confirma tu correo",
-    verifyText: "Enviamos un correo de confirmación a {email}. Escribe el código que contiene, o abre su enlace y luego inicia sesión.",
+    verifyText: "Enviamos un código de 6 dígitos a {email}. Escríbelo aquí para terminar de crear tu cuenta. Puede tardar un minuto en llegar; revisa también el spam.",
     emailCode: "Código del correo",
     verifyButton: "Confirmar",
     verifyLater: "Ya abrí el enlace, iniciar sesión",
@@ -1388,6 +1389,7 @@ const DICT = {
     inspCat_story: "Historias",
     inspCat_other: "Otros",
     saveUsername: "Guardar",
+    alreadyConfirmed: "Tu correo ya estaba confirmado, así que ya iniciaste sesión.",
   },
 };
 

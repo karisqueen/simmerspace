@@ -155,6 +155,9 @@ function createAccountService({ getConfig, userDataPath, safeStorage, createClie
   let client = null;
   let clientKey = '';
   let pendingEmail = '';
+  // Password of the sign-up waiting for its email code, kept only in memory. If the email was already confirmed
+  // (for example through the link in the email), it lets the app sign in instead of asking for a code again.
+  let pendingPassword = '';
   let profileCache = null; // { id, username, avatar_url } of the signed-in user
 
   async function supabase() {
@@ -264,8 +267,19 @@ function createAccountService({ getConfig, userDataPath, safeStorage, createClie
       // With "confirm email" on, Supabase answers an existing address with a user that has no identities.
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new AppError('ACCOUNT_EXISTS', 'There is already an account with this email.');
       pendingEmail = data.session ? '' : address;
+      pendingPassword = data.session ? '' : secret;
       return { needsConfirmation: !data.session, user: data.session ? publicUser(sb, data.session.user, await loadProfile(sb, data.session.user, { refresh: true })) : null };
     });
+  }
+
+  // Signs in with the pending sign-up when its email is already confirmed. Returns the user, or null.
+  async function signInIfConfirmed(sb, address) {
+    if (!pendingPassword || address !== pendingEmail) return null;
+    const { data, error } = await sb.auth.signInWithPassword({ email: address, password: pendingPassword });
+    if (error || !data?.user) return null;
+    pendingEmail = '';
+    pendingPassword = '';
+    return publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true }));
   }
 
   async function verifyEmail({ email, code } = {}) {
@@ -273,15 +287,23 @@ function createAccountService({ getConfig, userDataPath, safeStorage, createClie
     const token = checkCode(code);
     return run(async sb => {
       const { data, error } = await sb.auth.verifyOtp({ email: address, token, type: 'email' });
-      if (error) throw error;
+      if (error) {
+        const user = await signInIfConfirmed(sb, address);
+        if (user) return { user, alreadyConfirmed: true };
+        throw error;
+      }
       pendingEmail = '';
+      pendingPassword = '';
       return { user: data.user ? publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true })) : null };
     });
   }
 
+  // Supabase answers a resend for an address that is already confirmed without sending anything, so check first.
   async function resendConfirmation({ email } = {}) {
     const address = checkEmail(email || pendingEmail);
     return run(async sb => {
+      const user = await signInIfConfirmed(sb, address);
+      if (user) return { sent: false, alreadyConfirmed: true, user };
       const { error } = await sb.auth.resend({ type: 'signup', email: address });
       if (error) throw error;
       return { sent: true };
@@ -294,10 +316,14 @@ function createAccountService({ getConfig, userDataPath, safeStorage, createClie
     return run(async sb => {
       const { data, error } = await sb.auth.signInWithPassword({ email: address, password });
       if (error) {
-        if (error.code === 'email_not_confirmed') pendingEmail = address;
+        if (error.code === 'email_not_confirmed') {
+          pendingEmail = address;
+          pendingPassword = password;
+        }
         throw error;
       }
       pendingEmail = '';
+      pendingPassword = '';
       return { user: publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true })) };
     });
   }

@@ -355,6 +355,7 @@ const ACCOUNT_FORMS = {
     accountAction(async () => {
       const result = await callDesktop(accountApi.verifyEmail, { email: account.email, code: formValue(form, 'code') });
       await loadAccountStatus();
+      if (result.alreadyConfirmed) toast(t('alreadyConfirmed'));
       if (accountUser()) signedIn(accountUser());
       else {
         account.view = 'signin';
@@ -437,7 +438,11 @@ document.addEventListener('click', async event => {
       return render();
     case 'auth-resend':
       return accountAction(async () => {
-        await callDesktop(accountApi.resendConfirmation, { email: account.email });
+        const result = await callDesktop(accountApi.resendConfirmation, { email: account.email });
+        if (result.user) {
+          signedIn(result.user);
+          return toast(t('alreadyConfirmed'));
+        }
         account.resendAt = Date.now() + 60000;
         account.notice = t('codeResent');
         clearInterval(resendTimer);
