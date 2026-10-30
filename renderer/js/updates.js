@@ -21,7 +21,7 @@ function updateStatusText() {
     case 'checking':
       return t('updateChecking');
     case 'current':
-      return format(t('updateCurrent'), { version: s.currentVersion });
+      return `${t('updateCurrent')} ${format(t('updateIdle'), { version: s.currentVersion })}`;
     case 'available':
       return format(t('updateAvailableText'), values);
     case 'downloading':
@@ -29,10 +29,16 @@ function updateStatusText() {
     case 'ready':
       return format(t('updateReadyText'), values);
     case 'error':
-      return t('updateFailed');
+      return updateErrorText(s);
     default:
       return format(t('updateIdle'), { version: s.currentVersion });
   }
+}
+
+// Each failure kind gets its own explanation (electron/updater.cjs classifies them).
+const UPDATE_ERROR_KEYS = { offline: 'updateErrOffline', 'no-release': 'updateErrNoRelease', verify: 'updateErrVerify', download: 'updateErrDownload' };
+function updateErrorText(s) {
+  return t(UPDATE_ERROR_KEYS[s?.errorKind] || 'updateFailed');
 }
 
 function updateButtons() {
@@ -41,7 +47,8 @@ function updateButtons() {
   if (s.status === 'ready') return `<button class="primary-btn" id="update-install">${icon('refresh')}<span>${t('updateInstall')}</span></button>`;
   if (s.status === 'available' || (s.status === 'error' && s.version)) return `<button class="primary-btn" id="update-download">${icon('download')}<span>${t('updateDownload')}</span></button>`;
   const busy = s.status === 'checking' || s.status === 'downloading';
-  return `<button class="secondary-btn" id="update-check" ${busy ? 'disabled' : ''}>${icon('updates')}<span>${t('updateCheck')}</span></button>`;
+  const retry = s.status === 'error';
+  return `<button class="secondary-btn" id="update-check" ${busy ? 'disabled' : ''}>${icon(retry ? 'refresh' : 'updates')}<span>${retry ? t('updateRetry') : t('updateCheck')}</span></button>${s.status === 'error' && s.errorKind === 'no-release' ? `<a class="tertiary-btn" href="${SITE_URL}" target="_blank" rel="noopener noreferrer">${t('updateOpenPage')} ${icon('external')}</a>` : ''}`;
 }
 
 function updatesPanelBody() {
@@ -122,8 +129,8 @@ function onUpdateState(next) {
   const free = overlay.hidden && accountUser();
   if (next.status === 'available' && next.version !== updates.asked && free) askToDownload();
   else if (next.status === 'ready' && free) askToInstall();
-  else if (next.status === 'current' && updates.manual) toast(format(t('updateCurrent'), { version: next.currentVersion }));
-  else if (next.status === 'error' && updates.manual) toast(t('updateFailed'), 'error');
+  else if (next.status === 'current' && updates.manual) toast(t('updateCurrent'));
+  else if (next.status === 'error' && updates.manual) toast(updateErrorText(next), 'error');
 }
 
 async function startUpdates() {

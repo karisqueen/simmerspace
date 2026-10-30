@@ -475,7 +475,7 @@ const DICT = {
     updateCheck: "Check for updates",
     updateChecking: "Checking for updates…",
     updateIdle: "You have version {version}.",
-    updateCurrent: "You have the latest version ({version}).",
+    updateCurrent: "Your version of simmerspace is up to date.",
     updateAvailableText: "Version {version} is available.",
     updateDownload: "Download update",
     updateDownloading: "Downloading version {version}… {percent}%",
@@ -626,6 +626,11 @@ const DICT = {
     tourSettingsText: "Send feedback, choose your theme, density and animations, and set up your folders. Your profile and sign out are in the avatar menu at the top right.",
     tourLaunchTitle: "Launch The Sims 4",
     tourLaunchText: "When your CC is ready, start the game from here. You're all set!",
+    updateRetry: "Try again",
+    updateErrOffline: "simmerspace couldn't reach the update server. Check your internet connection and try again.",
+    updateErrNoRelease: "No version is published yet for automatic updates. You can download the latest one from the simmerspace page.",
+    updateErrVerify: "The update was downloaded but did not pass the safety check, so it won't be installed. Try again later.",
+    updateErrDownload: "The update couldn't be downloaded or saved. Check your connection and free disk space, then try again.",
   },
 
   es: {
@@ -1103,7 +1108,7 @@ const DICT = {
     updateCheck: "Buscar actualizaciones",
     updateChecking: "Buscando actualizaciones…",
     updateIdle: "Tienes la versión {version}.",
-    updateCurrent: "Tienes la última versión ({version}).",
+    updateCurrent: "Tu versión de simmerspace está actualizada.",
     updateAvailableText: "La versión {version} está disponible.",
     updateDownload: "Descargar actualización",
     updateDownloading: "Descargando la versión {version}… {percent}%",
@@ -1254,6 +1259,11 @@ const DICT = {
     tourSettingsText: "Envía feedback, elige tu tema, densidad y animaciones, y configura tus carpetas. Tu perfil y cerrar sesión están en el menú del avatar, arriba a la derecha.",
     tourLaunchTitle: "Iniciar Los Sims 4",
     tourLaunchText: "Cuando tu CC esté listo, abre el juego desde aquí. ¡Ya está todo listo!",
+    updateRetry: "Reintentar",
+    updateErrOffline: "simmerspace no pudo conectar con el servidor de actualizaciones. Revisa tu conexión a internet e inténtalo de nuevo.",
+    updateErrNoRelease: "Todavía no hay una versión publicada para la actualización automática. Puedes descargar la última desde la página de simmerspace.",
+    updateErrVerify: "La actualización se descargó pero no pasó la comprobación de seguridad, así que no se instalará. Inténtalo más tarde.",
+    updateErrDownload: "No se pudo descargar o guardar la actualización. Revisa tu conexión y el espacio libre en disco e inténtalo de nuevo.",
   },
 };
 
