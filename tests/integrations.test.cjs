@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { loadAppConfig, describeConfig } = require('../electron/app-config.cjs');
-const { createAccountService, createSessionStorage, cleanCollections } = require('../electron/account-service.cjs');
+const { createAccountService, createSessionStorage, passwordProblems } = require('../electron/account-service.cjs');
 const { createGameLauncher } = require('../electron/game-launcher.cjs');
 
 async function tempDir(t) {
@@ -68,47 +68,98 @@ test('config: a development .env.local fills unset variables, and Supabase secre
 });
 
 // A stand-in for supabase-js that records calls. No network, no real project.
-function fakeSupabase({ signUpSession = null } = {}) {
+function fakeSupabase({ signUpSession = null, taken = [], identities = null } = {}) {
   const calls = [];
   let session = null;
   const listeners = [];
-  const table = name => {
+  const profiles = new Map();
+  const objects = new Map();
+  const posts = [];
+  const query = name => {
+    const filters = [];
+    let op = 'select';
+    let values = null;
+    const run = () => {
+      calls.push([op, name, values, filters.slice()]);
+      if (name === 'profiles' && op === 'update') {
+        const id = filters.find(f => f[0] === 'id')[1];
+        if (values.username && [...profiles.values()].some(p => p.id !== id && p.username === values.username)) return { error: { code: '23505' } };
+        profiles.set(id, { ...profiles.get(id), ...values });
+        return { error: null };
+      }
+      if (name === 'inspiration_posts' && op === 'insert') {
+        const row = { id: `p${posts.length + 1}`, created_at: new Date(Date.UTC(2026, 9, 1 + posts.length)).toISOString(), ...values };
+        posts.push(row);
+        return { data: { id: row.id }, error: null };
+      }
+      const rows = name === 'inspiration_posts' ? posts : name === 'profiles' ? [...profiles.values()] : [];
+      const match = rows.filter(row => filters.every(([key, value, kind]) => (kind === 'in' ? value.includes(row[key]) : kind === 'lt' ? row[key] < value : row[key] === value)));
+      if (op === 'delete') {
+        for (const row of match) posts.splice(posts.indexOf(row), 1);
+        return { error: null };
+      }
+      return { data: match.slice().reverse(), error: null, count: match.length };
+    };
     const chain = {
-      _name: name,
       select: () => chain,
-      eq: () => chain,
-      order: () => Promise.resolve({ data: [], error: null }),
-      maybeSingle: () => Promise.resolve({ data: null, error: null }),
-      update: values => (calls.push(['update', name, values]), chain),
-      upsert: (values, options) => (calls.push(['upsert', name, values, options]), Promise.resolve({ error: null })),
-      then: (resolve, reject) => Promise.resolve({ error: null }).then(resolve, reject)
+      insert: v => ((op = 'insert'), (values = v), chain),
+      update: v => ((op = 'update'), (values = v), chain),
+      delete: () => ((op = 'delete'), chain),
+      eq: (k, v) => (filters.push([k, v]), chain),
+      in: (k, v) => (filters.push([k, v, 'in']), chain),
+      lt: (k, v) => (filters.push([k, v, 'lt']), chain),
+      order: () => chain,
+      limit: () => chain,
+      single: () => Promise.resolve(run()),
+      maybeSingle: () => Promise.resolve(run()).then(r => ({ ...r, data: Array.isArray(r.data) ? r.data[0] || null : r.data })),
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject)
     };
     return chain;
   };
+  const bucket = name => ({
+    upload: async (file, body, options) => (calls.push(['upload', name, file, options.contentType]), objects.set(`${name}/${file}`, body), { error: null }),
+    remove: async files => (calls.push(['remove', name, files]), files.forEach(f => objects.delete(`${name}/${f}`)), { error: null }),
+    list: async folder => ({ data: [...objects.keys()].filter(k => k.startsWith(`${name}/${folder}/`)).map(k => ({ name: k.split('/').pop() })), error: null }),
+    getPublicUrl: file => ({ data: { publicUrl: `https://abc.supabase.co/storage/v1/object/public/${name}/${file}` } }),
+    createSignedUrls: async files => ({ data: files.map(file => ({ path: file, signedUrl: `https://abc.supabase.co/signed/${file}` })), error: null })
+  });
   const client = {
     auth: {
       onAuthStateChange: fn => listeners.push(fn),
       getSession: async () => ({ data: { session } }),
-      signUp: async args => (calls.push(['signUp', args]), { data: { session: signUpSession }, error: null }),
+      signUp: async args => (calls.push(['signUp', args]), { data: { session: signUpSession, user: { id: 'new', identities: identities ?? [{}] } }, error: null }),
       signInWithPassword: async ({ email, password }) => {
         calls.push(['signIn', email]);
-        if (password !== 'correct horse') return { data: {}, error: { code: 'invalid_credentials', status: 400 } };
-        session = { access_token: 'user-token', user: { id: 'u1', email, email_confirmed_at: 'x', user_metadata: { display_name: 'Ana' } } };
+        if (password !== 'correct horse 1') return { data: {}, error: { code: 'invalid_credentials', status: 400 } };
+        session = { access_token: 'user-token', user: { id: '00000000-0000-0000-0000-00000000000a', email, email_confirmed_at: 'x', user_metadata: { username: 'ana' } } };
         return { data: { user: session.user, session }, error: null };
       },
       signOut: async () => ((session = null), { error: null }),
-      verifyOtp: async args => (calls.push(['verifyOtp', args]), { data: { user: { id: 'u1', email: args.email } }, error: null }),
+      verifyOtp: async args => (calls.push(['verifyOtp', args]), { data: { user: null }, error: null }),
+      resend: async args => (calls.push(['resend', args]), { error: null }),
       updateUser: async args => (calls.push(['updateUser', Object.keys(args)]), { error: null }),
       resetPasswordForEmail: async email => (calls.push(['reset', email]), { error: null })
     },
-    from: table
+    rpc: async (fn, args) => {
+      calls.push(['rpc', fn, args]);
+      if (fn === 'username_available') return { data: !taken.includes(args.name), error: null };
+      if (fn === 'ensure_my_profile') {
+        const id = session.user.id;
+        if (!profiles.has(id)) profiles.set(id, { id, username: session.user.user_metadata.username, avatar_url: null });
+        return { data: [profiles.get(id)], error: null };
+      }
+      return { data: null, error: { code: 'PGRST202' } };
+    },
+    from: query,
+    storage: { from: bucket }
   };
-  return { client, calls };
+  return { client, calls, profiles, objects, posts };
 }
 
-function accountWith(t, dir, fake, supabase = { url: 'https://abc.supabase.co', anonKey: 'anon' }) {
+function accountWith(t, dir, fake, supabase = { url: 'https://abc.supabase.co', anonKey: 'sb_publishable_x' }) {
   return createAccountService({ getConfig: async () => ({ supabase }), userDataPath: () => dir, safeStorage: null, createClient: () => fake.client });
 }
+const webp = n => ({ data: new Uint8Array(n).fill(1), type: 'image/webp' });
 
 test('accounts: not configured is reported, not faked', async t => {
   const dir = await tempDir(t);
@@ -117,51 +168,104 @@ test('accounts: not configured is reported, not faked', async t => {
   await assert.rejects(service.signIn({ email: 'a@b.co', password: 'x' }), { code: 'ACCOUNT_NOT_CONFIGURED' });
 });
 
-test('accounts: validates input before contacting the service and maps provider errors', async t => {
+test('accounts: sign-up checks email, password rules and username before contacting the service', async t => {
   const dir = await tempDir(t);
-  const fake = fakeSupabase();
+  const fake = fakeSupabase({ taken: ['ana'] });
   const service = accountWith(t, dir, fake);
-  await assert.rejects(service.signUp({ email: 'not-an-email', password: 'long enough' }), { code: 'ACCOUNT_EMAIL_INVALID' });
-  await assert.rejects(service.signUp({ email: 'ana@example.com', password: 'short' }), { code: 'ACCOUNT_WEAK_PASSWORD' });
+  assert.deepEqual(passwordProblems('abcdefgh'), { length: true, letter: true, number: false });
+  await assert.rejects(service.signUp({ email: 'not-an-email', password: 'long enough 1', username: 'bea' }), { code: 'ACCOUNT_EMAIL_INVALID' });
+  await assert.rejects(service.signUp({ email: 'b@example.com', password: 'onlyletters', username: 'bea' }), { code: 'ACCOUNT_WEAK_PASSWORD' });
+  await assert.rejects(service.signUp({ email: 'b@example.com', password: '12345678', username: 'bea' }), { code: 'ACCOUNT_WEAK_PASSWORD' });
+  await assert.rejects(service.signUp({ email: 'b@example.com', password: 'long enough 1', username: 'no spaces' }), { code: 'ACCOUNT_USERNAME_INVALID' });
   assert.equal(fake.calls.length, 0);
-  await assert.rejects(service.signIn({ email: 'ana@example.com', password: 'wrong' }), { code: 'ACCOUNT_INVALID_CREDENTIALS' });
-  const signedIn = await service.signIn({ email: ' Ana@Example.com ', password: 'correct horse' });
-  assert.equal(signedIn.user.email, 'ana@example.com');
-  assert.equal(signedIn.user.displayName, 'Ana');
-  assert.equal((await service.status()).user.id, 'u1');
-});
-
-test('accounts: sign-up waits for the emailed code; password reset uses a code then sets the new password', async t => {
-  const dir = await tempDir(t);
-  const fake = fakeSupabase();
-  const service = accountWith(t, dir, fake);
-  const result = await service.signUp({ email: 'ana@example.com', password: 'long enough', name: 'Ana' });
+  assert.deepEqual(await service.checkUsername({ username: 'x' }), { valid: false, available: false });
+  assert.deepEqual(await service.checkUsername({ username: 'Ana' }), { valid: true, available: false });
+  await assert.rejects(service.signUp({ email: 'b@example.com', password: 'long enough 1', username: 'ana' }), { code: 'ACCOUNT_USERNAME_TAKEN' });
+  const result = await service.signUp({ email: 'B@example.com', password: 'long enough 1', username: 'Bea_Sims' });
   assert.equal(result.needsConfirmation, true);
-  assert.equal((await service.status()).pendingEmail, 'ana@example.com');
+  assert.deepEqual(fake.calls.find(c => c[0] === 'signUp')[1].options.data, { username: 'bea_sims' });
+  assert.equal((await service.status()).pendingEmail, 'b@example.com');
+  await service.resendConfirmation({});
+  assert.deepEqual(fake.calls.at(-1), ['resend', { type: 'signup', email: 'b@example.com' }]);
   await service.verifyEmail({ code: '123 456' });
-  assert.deepEqual(fake.calls.find(call => call[0] === 'verifyOtp')[1], { email: 'ana@example.com', token: '123456', type: 'email' });
-  await assert.rejects(service.completePasswordReset({ email: 'ana@example.com', code: 'abc', password: 'new password' }), { code: 'ACCOUNT_CODE_INVALID' });
-  await service.requestPasswordReset({ email: 'ana@example.com' });
-  await service.completePasswordReset({ email: 'ana@example.com', code: '654321', password: 'new password' });
-  assert.deepEqual(fake.calls.at(-1), ['updateUser', ['password']]);
+  assert.deepEqual(fake.calls.find(c => c[0] === 'verifyOtp')[1], { email: 'b@example.com', token: '123456', type: 'email' });
+  await assert.rejects(accountWith(t, dir, fakeSupabase({ identities: [] })).signUp({ email: 'c@example.com', password: 'long enough 1', username: 'cee' }), { code: 'ACCOUNT_EXISTS' });
 });
 
-test('accounts: sync sends only cleaned data for the signed-in user', async t => {
+test('accounts: sign-in loads (or recovers) the profile; reset uses a code then sets the new password', async t => {
   const dir = await tempDir(t);
   const fake = fakeSupabase();
   const service = accountWith(t, dir, fake);
-  await assert.rejects(service.pushData({}), { code: 'ACCOUNT_SIGNED_OUT' });
-  await service.signIn({ email: 'ana@example.com', password: 'correct horse' });
-  await service.pushData({ preferences: { mode: 'dark' }, favorites: ['a', 5], collections: [{ id: 'c1', name: ' Cozy ', color: 'red', items: ['x', {}], updated: 5 }, { id: 9 }] });
-  const settings = fake.calls.find(call => call[0] === 'upsert' && call[1] === 'user_settings');
-  assert.equal(settings[2].user_id, 'u1');
-  assert.deepEqual(settings[2].favorites, ['a']);
-  const collections = fake.calls.find(call => call[0] === 'upsert' && call[1] === 'collections');
-  assert.equal(collections[2].length, 1);
-  assert.equal(collections[2][0].user_id, 'u1');
-  assert.equal(collections[2][0].color, null, 'invalid colors are not uploaded');
-  assert.deepEqual(collections[3], { onConflict: 'user_id,client_id' });
-  assert.equal(cleanCollections([{ id: 'x', name: 'n', color: '#AABBCC', items: [] }])[0].color, '#aabbcc');
+  await assert.rejects(service.signIn({ email: 'ana@example.com', password: 'wrong' }), { code: 'ACCOUNT_INVALID_CREDENTIALS' });
+  const signedIn = await service.signIn({ email: ' Ana@Example.com ', password: 'correct horse 1' });
+  assert.equal(signedIn.user.email, 'ana@example.com');
+  assert.equal(signedIn.user.username, 'ana');
+  assert.equal(signedIn.user.profileMissing, false);
+  assert.ok(fake.calls.some(c => c[0] === 'rpc' && c[1] === 'ensure_my_profile'));
+  await assert.rejects(service.completePasswordReset({ email: 'ana@example.com', code: 'abc', password: 'new password 2' }), { code: 'ACCOUNT_CODE_INVALID' });
+  await service.requestPasswordReset({ email: 'ana@example.com' });
+  await service.completePasswordReset({ email: 'ana@example.com', code: '654321', password: 'new password 2' });
+  assert.ok(fake.calls.some(c => c[0] === 'updateUser' && c[1][0] === 'password'));
+});
+
+test('accounts: profile changes, avatars in the user folder, and a taken username is explained', async t => {
+  const dir = await tempDir(t);
+  const fake = fakeSupabase();
+  const service = accountWith(t, dir, fake);
+  await assert.rejects(service.uploadAvatar(webp(10)), { code: 'ACCOUNT_SIGNED_OUT' });
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  fake.profiles.set('other', { id: 'other', username: 'taken' });
+  await assert.rejects(service.updateProfile({ username: 'taken' }), { code: 'ACCOUNT_USERNAME_TAKEN' });
+  assert.equal((await service.updateProfile({ username: 'Ana.B' })).user.username, 'ana.b');
+  await assert.rejects(service.uploadAvatar({ data: new Uint8Array(4), type: 'image/svg+xml' }), { code: 'IMAGE_TYPE' });
+  await assert.rejects(service.uploadAvatar(webp(2 * 1024 * 1024 + 1)), { code: 'IMAGE_TOO_LARGE' });
+  await service.uploadAvatar(webp(10));
+  const second = await service.uploadAvatar(webp(12));
+  const files = [...fake.objects.keys()];
+  assert.equal(files.length, 1, 'the previous avatar is removed');
+  assert.match(files[0], /^avatars\/00000000-0000-0000-0000-00000000000a\/avatar-\d+\.webp$/);
+  assert.match(second.user.avatarUrl, /^https:\/\/abc\.supabase\.co\/storage\/v1\/object\/public\/avatars\/00000000-0000-0000-0000-00000000000a\//);
+  await service.removeAvatar();
+  assert.equal(fake.objects.size, 0);
+});
+
+test('inspiration: posts upload into the author folder, list with authors and signed links, and delete their image', async t => {
+  const dir = await tempDir(t);
+  const fake = fakeSupabase();
+  const service = accountWith(t, dir, fake);
+  await assert.rejects(service.listPosts(), { code: 'ACCOUNT_SIGNED_OUT' });
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  await assert.rejects(service.createPost({ data: new Uint8Array(10 * 1024 * 1024 + 1), type: 'image/png' }), { code: 'IMAGE_TOO_LARGE' });
+  const { id } = await service.createPost({ data: new Uint8Array(8), type: 'image/gif', caption: '  Cozy\r\nroom ', category: 'build' });
+  await service.createPost({ ...webp(8), category: 'not-a-category' });
+  const [path1] = [...fake.objects.keys()];
+  assert.match(path1, /^inspiration\/00000000-0000-0000-0000-00000000000a\/[0-9a-f-]{36}\.gif$/);
+  assert.deepEqual(fake.posts.map(p => [p.caption, p.category]), [['Cozy\nroom', 'build'], ['', 'other']]);
+  const page = await service.listPosts({ limit: 1 });
+  assert.equal(page.posts.length, 1);
+  assert.ok(page.nextBefore, 'there is a next page');
+  assert.equal(page.posts[0].author.username, 'ana');
+  assert.equal(page.posts[0].own, true);
+  assert.match(page.posts[0].imageUrl, /^https:\/\/abc\.supabase\.co\/signed\//);
+  const filtered = await service.listPosts({ category: 'build' });
+  assert.deepEqual(filtered.posts.map(p => p.id), [id]);
+  const profile = await service.getProfile({ userId: '00000000-0000-0000-0000-00000000000a' });
+  assert.equal(profile.postCount, 2);
+  assert.deepEqual(await service.deletePost({ id }), { deleted: true, imageRemoved: true });
+  assert.ok(![...fake.objects.keys()].includes(path1), 'the image is deleted with the post');
+  await assert.rejects(service.deletePost({ id: 'p999' }), { code: 'ACCOUNT_FORBIDDEN' });
+});
+
+test('feedback: only known categories, a message is required, and the sender is the signed-in user', async t => {
+  const dir = await tempDir(t);
+  const fake = fakeSupabase();
+  const service = accountWith(t, dir, fake);
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  await assert.rejects(service.sendFeedback({ category: 'bug_report', message: '   ' }), { code: 'INVALID_INPUT' });
+  await assert.rejects(service.sendFeedback({ category: 'bug_report', message: 'x', email: 'nope' }), { code: 'ACCOUNT_EMAIL_INVALID' });
+  await service.sendFeedback({ category: 'rant', message: 'Hello', email: '' });
+  const insert = fake.calls.find(c => c[0] === 'insert' && c[1] === 'feedback');
+  assert.deepEqual(insert[2], { user_id: '00000000-0000-0000-0000-00000000000a', category: 'other', message: 'Hello', email: null });
 });
 
 test('session storage keeps sessions in memory only when the system cannot encrypt them', async t => {

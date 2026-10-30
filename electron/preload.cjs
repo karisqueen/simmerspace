@@ -34,14 +34,23 @@ contextBridge.exposeInMainWorld(
       signOut: invoke('account:sign-out'),
       requestReset: invoke('account:request-reset'),
       completeReset: invoke('account:complete-reset'),
+      checkUsername: invoke('account:check-username'),
+      resendConfirmation: invoke('account:resend-confirmation'),
       updateProfile: invoke('account:update-profile'),
-      pull: invoke('account:pull'),
-      push: invoke('account:push'),
+      uploadAvatar: invoke('account:upload-avatar'),
+      removeAvatar: invoke('account:remove-avatar'),
+      sendFeedback: invoke('account:send-feedback'),
       onChange: callback => {
         const listener = (_event, status) => callback(status);
         ipcRenderer.on('account:changed', listener);
         return () => ipcRenderer.removeListener('account:changed', listener);
       }
+    }),
+    inspiration: Object.freeze({
+      list: invoke('inspiration:list'),
+      profile: invoke('inspiration:profile'),
+      create: invoke('inspiration:create'),
+      remove: invoke('inspiration:delete')
     }),
     manageMods: Object.freeze({
       scan: invoke('mods:scan'),

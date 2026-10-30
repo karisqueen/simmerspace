@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://media.forgecdn.net; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://media.forgecdn.net https://*.supabase.co; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="./styles/layout.css" />
     <link rel="stylesheet" href="./styles/pages.css" />
     <link rel="stylesheet" href="./styles/mods-manager.css" />
+    <link rel="stylesheet" href="./styles/community.css" />
   </head>
   <body>
     <a class="skip-link" id="skip-link" href="#page-content">Skip to content</a>
@@ -35,6 +36,7 @@
         <footer class="footer-note"><span id="footer-copy"></span> <span aria-hidden="true">·</span> <b id="footer-version"></b></footer>
       </main>
     </div>
+    <div class="auth-screen" id="auth-screen" hidden></div>
     <div class="overlay" id="overlay" hidden><section class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"></section></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="./js/core.js"></script>
@@ -51,6 +53,7 @@
     <script src="./js/curseforge.js"></script>
     <script src="./js/creators.js"></script>
     <script src="./js/account.js"></script>
+    <script src="./js/inspiration.js"></script>
     <script src="./js/tour.js"></script>
     <script src="./js/main.js"></script>
   </body>

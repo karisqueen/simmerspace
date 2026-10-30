@@ -40,11 +40,8 @@ const state = {
   appearance: loadAppearance(),
   lang: savedLanguage(),
   activeCollection: null,
-  activeBoard: null,
   collectionQuery: '',
   collectionSort: ['custom', 'az', 'opened'].includes(safeGet('collection-sort')) ? safeGet('collection-sort') : 'custom',
-  boardSort: ['recent', 'az', 'custom'].includes(safeGet('board-sort')) ? safeGet('board-sort') : 'recent',
-  showAllBoards: safeGet('boards-show-all') === 'true',
   appInfo: { developer: false },
   integrations: null
 };
@@ -68,21 +65,7 @@ function touchCollection(c) {
 }
 
 /* ---------- Demo content labels ---------- */
-function getBoards() {
-  const saved = safeRead('boards', SEED_BOARDS);
-  if (!Array.isArray(saved)) return structuredClone(SEED_BOARDS);
-  return saved.map((b, i) => ({ ...b, refs: Array.isArray(b.refs) ? b.refs : [], note: b.note || '', used: b.used || saved.length - i }));
-}
-// Sample boards and collections are translated only while they keep their original sample text.
-function boardLabel(b) {
-  const translated = DEMO_ES.boards[b.id]?.name;
-  return state.lang === 'es' && translated && b.name === seedValue(SEED_BOARDS, b.id, 'name') ? translated : b.name;
-}
-function boardDescription(b) {
-  const translated = DEMO_ES.boards[b.id]?.note;
-  if (state.lang === 'es' && translated && b.note === seedValue(SEED_BOARDS, b.id, 'note')) return translated;
-  return b.note || '';
-}
+// Sample collections are translated only while they keep their original sample text.
 function collectionLabel(c) {
   const translated = DEMO_ES.collections[c.id];
   return state.lang === 'es' && translated && c.name === seedValue(SEED_COLLECTIONS, c.id, 'name') ? translated : c.name;
@@ -170,8 +153,8 @@ function nav() {
     })
     .join('');
   const user = typeof accountUser === 'function' ? accountUser() : null;
-  const name = user?.username || user?.displayName || '';
-  const avatar = typeof avatarMarkup === 'function' ? avatarMarkup(user) : `<span class="avatar" aria-hidden="true">${esc((name || 'S').slice(0, 1).toUpperCase())}</span>`;
+  const name = user?.username || '';
+  const avatar = avatarMarkup(user);
   sidebar.innerHTML = `<div class="sidebar-top"><button class="icon-btn sidebar-toggle" id="sidebar-toggle" aria-expanded="${sidebar.classList.contains('is-open')}" aria-controls="sidebar" aria-label="${esc(t('navToggle'))}">${icon('menu')}</button><a class="brand" href="#" data-page="home" aria-label="simmerspace · ${esc(t('home'))}">${brandMark()}<span class="nav-label">${wordmark()}</span></a></div>
     <nav class="side-nav" aria-label="${esc(t('mainNavigation'))}">
       <div class="nav-group">
@@ -218,8 +201,8 @@ function setShell() {
   toggle.dataset.tip = t('tipThemeToggle');
   const profile = document.getElementById('profile-button');
   const user = typeof accountUser === 'function' ? accountUser() : null;
-  profile.innerHTML = user ? `<span class="avatar" aria-hidden="true">${esc(user.displayName.slice(0, 1).toUpperCase())}</span>` : icon('user');
-  profile.title = user ? `${t('accountTitle')} · ${user.displayName}` : `${t('accountTitle')} · ${t('guest')}`;
+  profile.innerHTML = user ? avatarMarkup(user) : icon('user');
+  profile.title = user ? `${t('accountTitle')} · ${user.username}` : t('accountTitle');
   profile.setAttribute('aria-label', profile.title);
   document.getElementById('skip-link').textContent = t('skipToContent');
 }
@@ -288,10 +271,6 @@ function itemCard(item) {
   const name = esc(labelItem(item));
   return `<article class="cc-card" data-detail="${esc(item.id)}">${art(item)}<div class="card-body"><div class="card-title-row"><h3><button class="card-title-button" data-detail="${esc(item.id)}" aria-label="${esc(t('openDetails'))}: ${name}">${name}</button></h3><div class="card-actions"><button class="icon-btn icon-btn-sm ${liked ? 'is-on' : ''}" data-favorite="${esc(item.id)}" title="${esc(t('favorite'))}" aria-label="${esc(t('favorite'))}: ${name}" aria-pressed="${liked}">${icon('heart')}</button><button class="icon-btn icon-btn-sm ${saved ? 'is-on' : ''}" data-save="${esc(item.id)}" title="${esc(t('save'))}" aria-label="${esc(t('save'))}: ${name}">${icon('folder')}</button></div></div><div class="card-creator">${esc(item.creator)}</div><div class="card-meta">${state.page === 'mycc' ? (status === 'pending' ? '' : `<span class="status-pill status-${status}">${esc(statusText)}</span>`) : `<span class="meta-pill">${esc(categoryLabel(item.category))}</span><span class="meta-pill">${esc(item.type)}</span>`}<span class="meta-source">${esc(item.source)}</span></div></div></article>`;
 }
-function refCard(ref) {
-  const name = esc(labelItem(ref));
-  return `<article class="cc-card reference-card">${art(ref)}<div class="card-body"><div class="card-title-row"><h3>${name}</h3><button class="icon-btn icon-btn-sm" data-pin-ref="${esc(ref.id)}" title="${esc(t('addReference'))}" aria-label="${esc(t('addReference'))}: ${name}">${icon('plus')}</button></div><div class="card-creator">${esc(ref.creator)}</div><div class="card-meta"><span class="meta-pill">Pinterest</span><span class="meta-source">${t('sampleData')}</span></div></div></article>`;
-}
 function filteredItems() {
   return filterDemoItems(ITEMS, { ...state, lang: state.lang }, item => labelItem(item));
 }
@@ -300,7 +279,7 @@ function filteredItems() {
 // Home: a summary built only from real data on this PC (scan results, collections, followed creators).
 function renderHome() {
   const user = typeof accountUser === 'function' ? accountUser() : null;
-  const name = user?.username || user?.displayName || '';
+  const name = user?.username || '';
   const modsCount = typeof scannedModCount === 'function' ? scannedModCount() : null;
   const stat = (iconName, tone, value, label, page) =>
     `<button class="stat-card stat-${tone}" data-page="${page}">${icon(iconName, 'stat-icon')}<span class="stat-value">${value}</span><span class="stat-label">${esc(label)}</span></button>`;
@@ -366,50 +345,11 @@ function renderLibrary() {
   ensureInstallsLoaded();
 }
 
-// Boards in the chosen order. "Custom" is the saved order, which can be changed by dragging.
-function sortedBoards() {
-  const boards = getBoards();
-  if (state.boardSort === 'az') return boards.sort((a, b) => boardLabel(a).localeCompare(boardLabel(b), state.lang));
-  if (state.boardSort === 'custom') return boards;
-  return boards.sort((a, b) => (b.used || 0) - (a.used || 0));
-}
 function sortSelect(id, options, value) {
   return `<label class="select-field select-inline"><span>${t('sort')}</span><select id="${id}">${options.map(([optionValue, key]) => `<option value="${optionValue}" ${value === optionValue ? 'selected' : ''}>${t(key)}</option>`).join('')}</select></label>`;
 }
-function recommendedItems() {
-  const saved = ITEMS.filter(i => state.favorites.includes(i.id) || isInCollection(i));
-  const want = saved.length ? saved[0].type : null;
-  return ITEMS.filter(i => !state.favorites.includes(i.id))
-    .sort((a, b) => (want && b.type === want ? 1 : 0) - (want && a.type === want ? 1 : 0))
-    .slice(0, 3);
-}
-const BOARD_DEFAULT_ICONS = [
-  ['🛋️', '💐', '🪞'],
-  ['🏡', '🌿', '🕯️'],
-  ['👗', '👜', '🌷'],
-  ['💄', '🪻', '✧'],
-  ['🪑', '🪴', '🧸'],
-  ['🎨', '🌼', '☼']
-];
-function boardPreview(b, index) {
-  const refs = b.refs
-    .map(id => REFERENCES.find(r => r.id === id))
-    .filter(Boolean)
-    .slice(0, 3);
-  const defaults = BOARD_DEFAULT_ICONS[index % BOARD_DEFAULT_ICONS.length];
-  return `<span class="board-collage" aria-hidden="true">${[0, 1, 2].map(slot => `<span class="collage-tile">${refs[slot]?.emoji || defaults[slot]}</span>`).join('')}</span>`;
-}
 function renderInspiration() {
-  const allBoards = sortedBoards();
-  const boards = state.showAllBoards ? allBoards : allBoards.slice(0, 6);
-  const custom = state.boardSort === 'custom';
-  const recommendations = recommendedItems();
-  const tools = `<div class="section-tools">${sortSelect('board-sort', [['recent', 'recentlyUsed'], ['az', 'az'], ['custom', 'customOrder']], state.boardSort)}${allBoards.length > 6 ? `<button class="tertiary-btn" id="toggle-all-boards" aria-pressed="${state.showAllBoards}">${state.showAllBoards ? t('showRecent') : t('showAllBoards')}</button>` : ''}</div>`;
-  content.innerHTML = `${pageHeader(t('inspiration'), { actions: `<button class="secondary-btn" id="new-board">${icon('plus')}<span>${t('newBoard')}</span></button>`, meta: `<span class="sample-badge">${t('sampleData')}</span>` })}<div class="inspo-layout"><div><section class="section"><div class="section-head"><h2 class="section-title">${state.showAllBoards ? t('allBoards') : t('recentBoards')} <span>${boards.length} / ${allBoards.length}</span></h2>${tools}</div>${custom ? `<p class="muted-note drag-hint">${t('dragHint')}</p>` : ''}<div class="board-grid">${boards
-    .map((b, i) => `<button class="board-card" data-board="${esc(b.id)}" ${custom ? 'draggable="true"' : ''}>${boardPreview(b, i)}<span class="board-label"><strong>${esc(boardLabel(b))}</strong><span>${b.refs.length} ${t('pins')}</span></span></button>`)
-    .join('')}</div></section><section class="section"><div class="section-head"><h2 class="section-title">${t('pinterest')}</h2><button class="tertiary-btn" id="upload-reference" title="${esc(t('planned'))}">${icon('plus')}<span>${t('uploadImage')}</span></button></div><div class="card-grid">${REFERENCES.map(refCard).join('')}</div></section></div><aside class="panel recommend-panel"><h2 class="section-title">${icon('star')} ${t('recommendations')}</h2><p class="muted-note">${t('noRecommendations')}</p><div class="recommend-list">${recommendations
-    .map(i => `<div class="recommend-item">${art(i, 'recommend-art')}<div><strong>${esc(labelItem(i))}</strong><small>${esc(i.creator)} · ${esc(i.type)}</small><button class="text-link" data-detail="${esc(i.id)}">${t('openDetails')} →</button></div></div>`)
-    .join('')}</div></aside></div>`;
+  renderInspirationFeed();
 }
 
 function renderCreators() {
@@ -490,7 +430,7 @@ function renderSettings() {
   const personalization = `<div class="setting-row"><span class="setting-label" id="family-label">${t('theme')}</span><div class="theme-cards" role="radiogroup" aria-labelledby="family-label">${THEME_FAMILIES.map(themeCard).join('')}</div></div>${segmented('mode', t('mode'), [['light', t('modeLight')], ['dark', t('modeDark')], ['system', t('modeSystem')]], a.mode)}<p class="setting-help">${t('themeFamilyNote')}</p>${segmented('density', t('density'), [['comfortable', t('densityComfortable')], ['compact', t('densityCompact')]], a.density)}${segmented('motion', t('motion'), [['system', t('motionSystem')], ['reduced', t('motionReduced')], ['full', t('motionFull')]], a.motion)}<div class="setting-row"><span class="setting-label">${t('preview')}</span><div class="preview-row"><button class="primary-btn" tabindex="-1">${t('previewPrimary')}</button><button class="secondary-btn" tabindex="-1">${t('previewSecondary')}</button><span class="chip is-selected">${t('previewChip')}</span><span class="badge">3</span></div></div>`;
   const general = `<div class="setting-row"><span class="setting-label" id="language-label">${t('language')}</span><div class="segmented" role="radiogroup" aria-labelledby="language-label"><button class="segment ${state.lang === 'es' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'es'}" data-language="es" lang="es">Español</button><button class="segment ${state.lang === 'en' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'en'}" data-language="en" lang="en">English</button></div></div><div class="setting-row"><label class="setting-label" for="group-mode-settings">${t('groupBy')}</label><label class="select-field"><select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></div>`;
   const help = `<label class="switch-row"><span><b>${t('prefTooltips')}</b><small>${t('prefTooltipsNote')}</small></span><input type="checkbox" class="switch" id="pref-tooltips" ${state.tooltips ? 'checked' : ''}></label><div class="setting-row"><span class="setting-label">${t('tutorialTitle')}</span><div class="button-row"><button class="secondary-btn" id="replay-tour" data-tip="${esc(t('tipReplayTour'))}">${icon('help')}<span>${t('tutorialReplay')}</span></button></div></div>`;
-  const about = `<dl class="facts"><div><dt>${t('version')}</dt><dd>${APP_VERSION} ${t('preBeta')}</dd></div><div><dt>${t('compatibility')}</dt><dd>${t('windows')}</dd></div></dl><p class="setting-help">${t('privacyNote')}</p><div class="button-row"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="tertiary-btn" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div>`;
+  const about = `<dl class="facts"><div><dt>${t('version')}</dt><dd>${APP_VERSION} ${t('preBeta')}</dd></div><div><dt>${t('compatibility')}</dt><dd>${t('windows')}</dd></div></dl><p class="setting-help">${t('privacyNote')}</p><div class="button-row"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="tertiary-btn" id="donate-button" data-tip="${esc(t('donateFeedbackTip'))}">${t('donate')} · ${t('comingSoon')}</button></div>`;
   content.innerHTML = `${pageHeader(t('settingsTitle'))}<div class="settings-stack">${settingsPanel('personalization', t('personalization'), personalization, { open: isOpen('personalization'), summary: t('personalizationSummary') })}${settingsPanel('help-settings', t('helpSettings'), help, { open: isOpen('help-settings'), summary: t('helpSettingsSummary') })}${settingsPanel('general', t('general'), general, { open: isOpen('general'), summary: t('generalSummary') })}${settingsPanel('folders', t('folderRoutes'), folderSettingsSection(), { open: isOpen('folders'), summary: t('foldersSummary') })}${settingsPanel('account-settings', t('accountTitle'), typeof accountSettingsSection === 'function' ? accountSettingsSection() : '', { open: isOpen('account-settings'), summary: t('accountSummary') })}${settingsPanel('curseforge-settings', t('curseforgeConnection'), typeof curseForgeSettingsSection === 'function' ? curseForgeSettingsSection() : '', { open: isOpen('curseforge-settings'), summary: t('curseforgeSummary') })}${settingsPanel('about', t('about'), about, { open: isOpen('about') })}${state.appInfo.developer && typeof developerSection === 'function' ? settingsPanel('developer', t('developerTools'), developerSection(), { open: isOpen('developer'), summary: t('developerSummary') }) : ''}</div>`;
 }
 function renderFavorites() {
@@ -512,6 +452,7 @@ const PAGES = {
   account: () => renderAccount()
 };
 function render() {
+  if (renderAuthGate()) return;
   withFocusPreserved(() => {
     setShell();
     (PAGES[state.page] || renderHome)();
@@ -643,64 +584,6 @@ function offerSharedCollection() {
   history.replaceState(null, '', location.pathname + location.search);
   if (readCollectionLink(raw, ITEM_IDS)) importCollectionDialog(raw);
 }
-function newBoardDialog() {
-  openDialog(
-    `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('newBoard')}</h2><label class="field">${t('boardName')}<input id="board-name" maxlength="42"></label><label class="field">${t('note')}<textarea id="board-note" placeholder="${esc(t('boardNote'))}"></textarea></label><div class="detail-actions"><button class="primary-btn" id="create-board">${t('create')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
-  );
-}
-function openBoard(id) {
-  const boards = getBoards();
-  const board = boards.find(b => b.id === id);
-  if (!board) return;
-  board.used = Date.now();
-  safeWrite('boards', boards);
-  state.activeBoard = id;
-  const rec = ITEMS.filter(i => i.category === 'Furniture' || i.department === 'buildbuy').slice(0, 2);
-  const refs = REFERENCES.filter(r => board.refs.includes(r.id));
-  openDialog(
-    `${closeButton()}<div class="board-detail-layout"><div class="form-dialog"><div class="eyebrow">${t('pinterest')} · ${t('sampleData')}</div><h2 id="dialog-title">${esc(boardLabel(board))}</h2><label class="field">${t('boardNote')}<textarea id="board-note-edit">${esc(boardDescription(board))}</textarea></label><div class="board-reference-list">${refs.map(refCard).join('') || `<p class="muted-note">${t('noReferencesYet')}</p>`}</div><div class="detail-actions"><button class="primary-btn" id="save-board-note" data-save-board-note="${esc(id)}">${t('saveNote')}</button><button class="secondary-btn" id="add-reference">${icon('plus')}<span>${t('addReference')}</span></button><button class="danger-btn danger-quiet" data-delete-board="${esc(id)}">${t('deleteBoard')}</button></div></div><aside class="related-panel"><div class="eyebrow">${t('relatedCC')}</div>${rec
-      .map(i => `<div class="recommend-item">${art(i, 'recommend-art')}<div><strong>${esc(labelItem(i))}</strong><small>${esc(i.creator)} · ${esc(i.type)}</small><button class="text-link" data-save="${esc(i.id)}">${t('save')}</button></div></div>`)
-      .join('')}</aside></div>`,
-    { wide: true }
-  );
-}
-function pinReference(id) {
-  const boards = getBoards();
-  openDialog(
-    `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('addReference')}</h2><fieldset class="check-list"><legend class="visually-hidden">${t('recentBoards')}</legend>${boards
-      .map((b, i) => `<label class="check-row"><input type="radio" name="pin-board" value="${esc(b.id)}" ${i === 0 ? 'checked' : ''}><span>${esc(boardLabel(b))}</span></label>`)
-      .join('')}</fieldset><div class="detail-actions"><button class="primary-btn" id="confirm-pin" data-ref="${esc(id)}">${t('save')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
-  );
-}
-function createBoard() {
-  const input = document.getElementById('board-name');
-  const name = input.value.trim();
-  if (!name) return input.focus();
-  const boards = getBoards();
-  boards.unshift({ id: `board-${Date.now().toString(36)}`, name, emoji: '✧', refs: [], note: document.getElementById('board-note').value.trim(), used: Date.now() });
-  safeWrite('boards', boards);
-  closeDialog();
-  render();
-  toast(t('boardSaved'));
-}
-function saveBoardNote(id) {
-  const boards = getBoards();
-  const board = boards.find(x => x.id === id);
-  if (!board) return;
-  const text = document.getElementById('board-note-edit').value.trim();
-  // Saving the displayed translation unchanged keeps the original sample note.
-  if (text !== boardDescription(board)) board.note = text;
-  board.used = Date.now();
-  safeWrite('boards', boards);
-  closeDialog();
-  render();
-  toast(t('noteSaved'));
-}
-function openFeedback() {
-  openDialog(
-    `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('feedback')}</h2><p>${t('feedbackLocalNote')}</p><label class="field">${t('feedback')}<textarea id="feedback-note" maxlength="4000" placeholder="${esc(t('feedbackPlaceholder'))}"></textarea></label><div class="detail-actions"><button class="primary-btn" id="save-feedback">${t('saveSuggestion')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
-  );
-}
 function resetDiscoverFilters() {
   Object.assign(state, { ...FILTER_DEFAULTS, parts: [], occult: [], sort: 'curated', query: '' });
   search.value = '';
@@ -785,12 +668,6 @@ const CLICK_ACTIONS = {
     safeWrite('more-filters-open', state.moreFilters);
     render();
   },
-  'new-board': newBoardDialog,
-  'toggle-all-boards': () => {
-    state.showAllBoards = !state.showAllBoards;
-    safeSet('boards-show-all', String(state.showAllBoards));
-    render();
-  },
   'choose-collection-cover': chooseCollectionCover,
   'remove-collection-cover': () => {
     const c = state.collections.find(x => x.id === state.activeCollection);
@@ -800,23 +677,6 @@ const CLICK_ACTIONS = {
     persist();
     render();
     toast(t('coverRemoved'));
-  },
-  'create-board': createBoard,
-  'save-board-note': el => saveBoardNote(el.dataset.saveBoardNote),
-  'add-reference': () => pinReference(REFERENCES[0].id),
-  'confirm-pin': el => {
-    const selected = dialog.querySelector('input[name="pin-board"]:checked');
-    if (!selected) return toast(t('chooseBoard'), 'error');
-    const boards = getBoards();
-    const b = boards.find(x => x.id === selected.value);
-    if (b && !b.refs.includes(el.dataset.ref)) {
-      b.refs.push(el.dataset.ref);
-      b.used = Date.now();
-      safeWrite('boards', boards);
-    }
-    closeDialog();
-    render();
-    toast(t('pinAdded'));
   },
   'import-collection-button': () => importCollectionDialog(),
   'import-collection-link': () => importCollectionFromLink(document.getElementById('collection-link-input')?.value || ''),
@@ -842,19 +702,9 @@ const CLICK_ACTIONS = {
     closeDialog();
     render();
   },
-  'send-feedback': openFeedback,
-  'save-feedback': () => {
-    const field = document.getElementById('feedback-note');
-    const text = field.value.trim();
-    if (!text) return field.focus();
-    const notes = safeRead('suggestions', []);
-    safeWrite('suggestions', [...(Array.isArray(notes) ? notes : []), { text, date: new Date().toISOString() }]);
-    closeDialog();
-    toast(t('suggestionSaved'));
-  },
-  'donate-button': () => toast(t('donationDemo')),
+  'send-feedback': () => openFeedbackDialog(),
+  'donate-button': () => openFeedbackDialog('donation_feedback'),
   'profile-button': () => goTo('account'),
-  'upload-reference': () => toast(t('planned')),
   'clear-filters': resetDiscoverFilters,
   'clear-filters-empty': resetDiscoverFilters,
   'show-all-collections': () => goTo('collections')
@@ -929,28 +779,11 @@ document.addEventListener('click', async event => {
     event.stopPropagation();
     return saveDialog(save.dataset.save);
   }
-  const pin = target.closest('[data-pin-ref]');
-  if (pin) {
-    event.stopPropagation();
-    return pinReference(pin.dataset.pinRef);
-  }
   const detail = target.closest('[data-detail]');
   if (detail && !target.closest('#dialog')) {
     const item = itemById(detail.dataset.detail);
     if (item) detailDialog(item);
     return;
-  }
-  const board = target.closest('[data-board]');
-  if (board) return openBoard(board.dataset.board);
-  const deleteBoard = target.closest('[data-delete-board]');
-  if (deleteBoard) {
-    const id = deleteBoard.dataset.deleteBoard;
-    const boardName = getBoards().find(b => b.id === id);
-    const ok = await confirmAction({ title: t('deleteBoard'), body: t('confirmDeleteBoard'), details: boardName ? [boardLabel(boardName)] : [], confirmLabel: t('deleteBoard'), danger: true });
-    if (!ok) return;
-    safeWrite('boards', getBoards().filter(b => b.id !== id));
-    render();
-    return toast(t('boardDeleted'));
   }
   const exp = target.closest('[data-export]');
   if (exp) return shareCollection(exp.dataset.export);
@@ -987,9 +820,8 @@ document.addEventListener('change', event => {
     state.sort = target.value;
     return render();
   }
-  if (target.id === 'collection-sort' || target.id === 'board-sort') {
-    const key = target.id === 'collection-sort' ? 'collectionSort' : 'boardSort';
-    state[key] = target.value;
+  if (target.id === 'collection-sort') {
+    state.collectionSort = target.value;
     safeSet(target.id, target.value);
     return render();
   }
@@ -1018,23 +850,23 @@ document.addEventListener('input', event => {
   }
 });
 
-// Drag to reorder collections and boards. Only offered while the "Custom order" sort is chosen; the new
+// Drag to reorder collections. Only offered while the "Custom order" sort is chosen; the new
 // order is saved locally. Keyboard users can still use the A–Z and recent orders.
 let draggedCard = null;
 document.addEventListener('dragstart', event => {
-  const card = event.target.closest?.('.collection-tile[draggable="true"], .board-card[draggable="true"]');
+  const card = event.target.closest?.('.collection-tile[draggable="true"]');
   if (!card) return;
   draggedCard = card;
   card.classList.add('is-dragging');
   event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', card.dataset.collection || card.dataset.board);
+  event.dataTransfer.setData('text/plain', card.dataset.collection);
 });
 document.addEventListener('dragover', event => {
-  const over = event.target.closest?.('.collection-tile, .board-card');
+  const over = event.target.closest?.('.collection-tile');
   if (draggedCard && over && over.className.split(' ')[0] === draggedCard.className.split(' ')[0]) event.preventDefault();
 });
 document.addEventListener('drop', event => {
-  const over = event.target.closest?.('.collection-tile, .board-card');
+  const over = event.target.closest?.('.collection-tile');
   if (!draggedCard || !over || over === draggedCard) return;
   event.preventDefault();
   const move = (list, key) => {
@@ -1046,9 +878,6 @@ document.addEventListener('drop', event => {
   };
   if (draggedCard.dataset.collection && over.dataset.collection) {
     if (move(state.collections, 'collection')) persist();
-  } else if (draggedCard.dataset.board && over.dataset.board) {
-    const boards = getBoards();
-    if (move(boards, 'board')) safeWrite('boards', boards);
   }
   draggedCard = null;
   render();
