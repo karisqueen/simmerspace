@@ -88,6 +88,13 @@ psql -d prueba -f supabase/migrations/20261030000000_simmerspace_community.sql  
 psql -d prueba -f supabase/tests/community-check.sql                          # "community checks passed"
 ```
 
+## 3c. Comunidad de Inspiración (0.12.1)
+
+`supabase/migrations/20261031000000_inspiration_social.sql` añade etiquetas, tableros, comentarios con respuestas y
+seguidores, con RLS en cada tabla nueva. Solo añade: no borra tablas ni columnas, y las publicaciones existentes
+siguen igual (sin etiquetas ni comentarios). Pégala entera en el **SQL Editor** y ejecútala; se puede repetir.
+La prueba local con dos cuentas está en `supabase/tests/social-check.sql` («social checks passed»).
+
 ## 4. Correos y URL de confirmación
 
 Desde 0.12.1 el registro usa el **enlace de confirmación** que Supabase manda por defecto (la app ya no pide un código

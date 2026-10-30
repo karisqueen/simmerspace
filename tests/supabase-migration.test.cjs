@@ -10,13 +10,15 @@ const sql = files.map(name => fs.readFileSync(path.join(dir, name), 'utf8')).joi
 const policies = [...sql.matchAll(/create policy "[^"]+" on ([\w.]+)\s+for (\w+)(?: to (\w+))?([^;]*);/g)].map(m => ({ table: m[1], action: m[2], role: m[3] || 'public', body: m[4] }));
 
 test('the active migrations are the ones for the real project, in order', () => {
-  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql', '20261030120000_username_changes.sql']);
+  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql', '20261030120000_username_changes.sql', '20261031000000_inspiration_social.sql']);
   assert.doesNotMatch(sql, /display_name|user_settings|public\.collections/);
 });
 
 test('the migration never weakens security or drops data', () => {
   // Revoking a privilege only takes access away, so revoke statements and comments are left out of this check.
-  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '');
+  // Function bodies are left out too: a delete inside a function only runs for one row the caller owns (checked by
+  // supabase/tests/social-check.sql), never when the migration is applied.
+  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '').replace(/\$\$[\s\S]*?\$\$/g, '$$$$');
   assert.doesNotMatch(statements, /disable row level security|drop table|truncate|delete from|alter table auth\.|service_role/);
   // TRUNCATE ignores row level security, so the API roles lose it.
   assert.match(sql, /revoke truncate, references, trigger on public\.profiles, public\.inspiration_posts, public\.feedback from anon, authenticated;/);
@@ -66,4 +68,23 @@ test('usernames can change at most once every 30 days, enforced by a trigger', (
   assert.match(sql, /before update on public\.profiles\s+for each row execute function public\.simmerspace_guard_profile_update\(\)/);
   assert.match(sql, /username_changed_at > now\(\) - interval '30 days'/);
   assert.match(sql, /errcode = 'ss030'/);
+});
+
+test('0.12.1 community tables: row level security on, signed-in only, nothing dropped', () => {
+  const social = fs.readFileSync(path.join(dir, '20261031000000_inspiration_social.sql'), 'utf8').toLowerCase();
+  const tables = ['inspiration_tags', 'inspiration_post_tags', 'inspiration_boards', 'inspiration_board_posts', 'inspiration_comments', 'user_follows'];
+  for (const table of tables) {
+    assert.match(social, new RegExp(`create table if not exists public\\.${table} \\(`), table);
+    assert.match(social, new RegExp(`alter table public\\.${table} enable row level security`), table);
+    assert.ok(policies.some(p => p.table === `public.${table}` && p.action === 'select'), `${table} has a read policy`);
+    for (const p of policies.filter(p => p.table === `public.${table}`)) assert.equal(p.role, 'authenticated', `${table} ${p.action}`);
+  }
+  assert.match(social, /revoke all on public\.inspiration_tags, public\.inspiration_post_tags, public\.inspiration_boards,\s+public\.inspiration_board_posts, public\.inspiration_comments, public\.user_follows from anon;/);
+  // Boards are private unless marked public, and other people's private boards are never readable.
+  assert.match(social, /is_public boolean not null default false/);
+  assert.match(social, /for select to authenticated using \(user_id = \(select auth\.uid\(\)\) or is_public\)/);
+  // Players cannot write tags directly: the function creates them for their own posts only.
+  assert.ok(!policies.some(p => p.table === 'public.inspiration_tags' && p.action !== 'select'));
+  assert.match(social, /if not exists \(select 1 from public\.inspiration_posts p where p\.id = target_post and p\.user_id = me\)/);
+  assert.doesNotMatch(social.replace(/--[^\n]*/g, ''), /drop table|drop column|disable row level security/);
 });
