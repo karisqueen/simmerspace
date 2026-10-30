@@ -15,32 +15,7 @@
     return String(template).replace(/\{(\w+)\}/g, (match, key) => (key in values ? String(values[key]) : match));
   }
 
-  function normalizePatreonProfile(raw) {
-    try {
-      const url = new URL(String(raw).trim());
-      if (
-        url.protocol !== 'https:' ||
-        !['patreon.com', 'www.patreon.com'].includes(url.hostname.toLowerCase()) ||
-        url.username ||
-        url.password ||
-        (url.port && url.port !== '443')
-      ) {
-        return null;
-      }
-      const profilePath = url.pathname.replace(/\/+$/, '');
-      const firstSegment = profilePath.split('/').filter(Boolean)[0]?.toLowerCase();
-      if (!firstSegment || ['login', 'oauth2', 'api', 'about', 'home', 'settings'].includes(firstSegment)) return null;
-      url.hostname = 'www.patreon.com';
-      url.pathname = profilePath;
-      url.search = '';
-      url.hash = '';
-      return url.href.replace(/\/$/, '');
-    } catch {
-      return null;
-    }
-  }
-
-  // Collection links carry only a name and demo item ids. They use a neutral simmerspace:// address so
+  // Collection links carry only a name and CurseForge item ids. They use a neutral simmerspace:// address so
   // that sharing a link never reveals where the app is installed on this PC.
   const COLLECTION_FORMAT = 'simmerspace-collection-link-v1';
   const COLLECTION_LINK_BASE = 'simmerspace://collection';
@@ -55,7 +30,7 @@
   const isCurseForgeItem = id => typeof id === 'string' && CURSEFORGE_ITEM.test(id);
 
   // Also accepts links made by 0.6.1, which used the app's own file:// address.
-  function readCollectionLink(value, knownIds) {
+  function readCollectionLink(value) {
     try {
       const text = String(value || '').trim();
       const hashStart = text.indexOf('#');
@@ -64,10 +39,9 @@
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || data.format !== COLLECTION_FORMAT || !Array.isArray(data.items)) return null;
-      const known = knownIds instanceof Set ? knownIds : new Set(knownIds || []);
       return {
         name: String(data.name || '').trim().slice(0, 40),
-        items: [...new Set(data.items.filter(id => typeof id === 'string' && (known.has(id) || isCurseForgeItem(id))))]
+        items: [...new Set(data.items.filter(isCurseForgeItem))]
       };
     } catch {
       return null;
@@ -215,68 +189,7 @@
     return (x + 0.05) / (y + 0.05);
   }
 
-  // Combines this PC's collections with the ones saved in the account. The newer copy of each collection
-  // wins; collections that exist on only one side are kept. Nothing is deleted by a sync.
-  function mergeCollections(local, remote) {
-    const merged = (Array.isArray(local) ? local : []).map(item => ({ ...item }));
-    const byId = new Map(merged.map(item => [item.id, item]));
-    for (const item of Array.isArray(remote) ? remote : []) {
-      if (!item || typeof item.id !== 'string') continue;
-      const mine = byId.get(item.id);
-      const clean = { id: item.id, name: String(item.name || ''), color: item.color || '', items: Array.isArray(item.items) ? item.items.filter(id => typeof id === 'string') : [], updated: Number(item.updated) || 0 };
-      // A cover image chosen on this PC is never replaced by a sync (covers are not uploaded).
-      if (mine?.cover) clean.cover = mine.cover;
-      if (!mine) {
-        merged.push(clean);
-        byId.set(clean.id, clean);
-      } else if (clean.updated > (Number(mine.updated) || 0)) {
-        Object.assign(mine, clean);
-      }
-    }
-    return merged;
-  }
-
-  /* ---------- Discover filters ---------- */
-  // Sub-filters shown under Create a Sim categories. Body uses the item's `sub`, clothing and accessories use
-  // `piece`, and animal CC uses `animal`.
-  const CAS_PARTS = Object.freeze({
-    Body: { field: 'sub', values: ['Hair', 'Makeup', 'Eyes', 'Lashes', 'Eyebrows'] },
-    Clothing: { field: 'piece', values: ['Tops', 'Bottoms', 'Full body', 'Shoes', 'Swimwear', 'Outerwear'] },
-    Accessories: { field: 'piece', values: ['Jewelry', 'Hats', 'Glasses', 'Bags', 'Gloves', 'Socks'] },
-    Animals: { field: 'animal', values: ['Skins', 'Clothing', 'Eyes', 'Accessories', 'Objects'] }
-  });
-  const OCCULTS = ['Vampire', 'Werewolf', 'Mermaid', 'Fairy', 'PlantSim', 'Genie', 'Spellcaster', 'Alien', 'Ghost', 'Servo'];
-  // Life stages that the catalog may spell in the singular.
-  const AGE_ALIASES = { Elders: ['Elder', 'Elders'], Infants: ['Infant', 'Infants'], Babies: ['Baby', 'Babies'] };
-
-  // One function for every Discover filter, so the redesigned controls cannot drift from the results.
-  // Single-value filters combine with AND; multi-select groups (parts, occult) match any of their choices.
-  function filterDemoItems(items, f, labelOf = item => item.name) {
-    const query = String(f.query || '').trim().toLowerCase();
-    const parts = Array.isArray(f.parts) ? f.parts : [];
-    const occult = Array.isArray(f.occult) ? f.occult : [];
-    const result = items.filter(i => {
-      if (query && !`${i.name} ${i.es || ''} ${i.creator} ${i.category} ${i.sub} ${i.piece || ''} ${i.source} ${i.tag} ${i.type}`.toLowerCase().includes(query)) return false;
-      if (f.parent && f.parent !== 'all' && i.department !== f.parent) return false;
-      const sub = f.sub || 'All';
-      if (sub === 'Body' && f.parent === 'cas') {
-        if (!CAS_PARTS.Body.values.includes(i.sub)) return false;
-      } else if (sub !== 'All' && i.sub !== sub && i.category !== sub) return false;
-      if (parts.length && CAS_PARTS[sub] && !parts.includes(i[CAS_PARTS[sub].field])) return false;
-      if (f.gender && f.gender !== 'All' && i.gender !== 'All' && i.gender !== f.gender && i.gender !== 'Unisex') return false;
-      if (f.age && f.age !== 'All ages' && i.age !== 'All ages' && !(AGE_ALIASES[f.age] || [f.age]).includes(i.age)) return false;
-      if (f.style && f.style !== 'All' && i.type !== f.style && i.type !== 'Both') return false;
-      if (f.source && f.source !== 'All' && i.source !== f.source) return false;
-      if (occult.length && !(Array.isArray(i.occult) && i.occult.some(value => occult.includes(value)))) return false;
-      return true;
-    });
-    if (f.sort === 'az') result.sort((a, b) => labelOf(a).localeCompare(labelOf(b), f.lang));
-    if (f.sort === 'updated') result.sort((a, b) => b.updated - a.updated);
-    if (f.sort === 'popular') result.sort((a, b) => b.popularity - a.popularity);
-    return result;
-  }
-
-  // Followed CurseForge creators: { id, name, url }. Older builds stored ids of sample creators as plain
+  // Followed CurseForge creators: { id, name, url }. Older builds stored ids of other creators as plain
   // strings; those do not exist on CurseForge, so they are dropped.
   function normalizeFollowing(raw) {
     if (!Array.isArray(raw)) return [];
@@ -313,7 +226,6 @@
   return {
     esc,
     format,
-    normalizePatreonProfile,
     collectionLink,
     readCollectionLink,
     modDepthWarning,
@@ -331,10 +243,6 @@
     COLLECTION_PASTELS,
     collectionColor,
     contrastRatio,
-    mergeCollections,
-    CAS_PARTS,
-    OCCULTS,
-    filterDemoItems,
     modPathKey,
     modOrigin,
     groupModFiles,

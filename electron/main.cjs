@@ -1,4 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session, shell } = require('electron');
+const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { fileURLToPath } = require('node:url');
@@ -45,10 +46,14 @@ const modsService = createModsService({
 const DEV_MODE = process.env.SIMMERSPACE_DEV === '1' || process.argv.includes('--developer');
 // A copy run from source may keep its development keys in the git-ignored .env.local; packaged builds never read it.
 const getConfig = () => loadAppConfig({ userDataPath: app.getPath('userData'), devEnvFile: app.isPackaged ? '' : path.join(__dirname, '..', '.env.local') });
+// Which copy of the app this is: the version plus the location of the .exe (the portable build runs from a
+// temporary folder and reports its own file in PORTABLE_EXECUTABLE_FILE). Only a hash is stored.
+const installId = app.isPackaged ? crypto.createHash('sha256').update(`${APP_VERSION}|${process.env.PORTABLE_EXECUTABLE_FILE || process.execPath}`).digest('hex') : 'development';
 const account = createAccountService({
   getConfig,
   userDataPath: () => app.getPath('userData'),
   safeStorage,
+  installId,
   onChange: status => sendToPage('account:changed', status)
 });
 const curseforge = createCurseForgeService({

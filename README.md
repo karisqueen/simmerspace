@@ -2,7 +2,7 @@
 
 **A cozy, bilingual Sims 4 mod manager prototype. / Un prototipo acogedor y bilingüe para gestionar mods de Los Sims 4.**
 
-SimmerSpace is a beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code and synthetic demo content.
+SimmerSpace is a beta Windows desktop app for managing a player's local Sims 4 content library. This repository contains the application source code.
 
 SimmerSpace is an independent fan project and is not affiliated with, endorsed by, or sponsored by Electronic Arts or Maxis. The Sims and The Sims 4 are trademarks of Electronic Arts Inc.
 
@@ -12,7 +12,7 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 
 - **A SimmerSpace account is required (0.10.0).** Sign up with a username, email and password (at least 8 characters with letters and numbers, checked as you type), confirm with a 6-digit email code, reset a forgotten password with a code. A session saved on this PC opens again without internet. Accounts use the project's Supabase backend; see [docs/SUPABASE.md](docs/SUPABASE.md).
 - **Eight themes**: pink, purple, green and blue, each in light and dark, with a contrasting accent color. Comfortable or compact density and reduced motion.
-- **New look**: lowercase “simmerspace” wordmark with a crystal symbol, an app icon, and a duotone icon family with category icons.
+- **New look**: lowercase “simmerspace” wordmark with a plumbob that draws an S as the symbol and app icon, and a duotone icon family with category icons.
 - **Navigation**: an icon rail that expands on hover (or with the menu button on touch screens): Home, Explore, My CC, Creators, Collections, Inspiration, Settings. Descriptions appear after a short pause and can be turned off in Settings.
 - **First-launch tutorial** (next, back, skip, progress) that also explains how to choose the Mods folder. It can be replayed from Settings.
 - **My CC**: folder strip with the Mods path and last scan, a “Library” section with list, category or creator views, a collapsible file list, a badge for mods installed by SimmerSpace versus external ones (no invented update info), and an optional one-by-one classifier (category, creator, tags, skip, skip all). Files without a category or creator are grouped under “Uncategorized” / “No creator”; changing the view never deletes tags.
@@ -25,16 +25,15 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 ### Limitations
 
 - Windows only. The build is not code-signed yet, so Windows SmartScreen shows a warning.
-- The app needs the Supabase project URL and publishable key to start (developers can continue without an account with `--developer`).
 - Tags are linked to file paths. Files moved or renamed outside SimmerSpace lose their tags until they are tagged again.
-- CurseForge goes through the project's Supabase proxy, which holds the key on the server and only answers signed-in users. No key is included in the app or this repository. A local key still works for development.
+- CurseForge is integrated but still in beta: some things are still being polished.
 - Patreon is not connected.
 
 ## Funciones actuales (español)
 
 - **Hace falta una cuenta de SimmerSpace (0.10.0).** Registro con nombre de usuario, correo y contraseña (mínimo 8 caracteres con letras y números, comprobado mientras escribes), confirmación con un código de 6 dígitos y recuperación de contraseña con código. Una sesión guardada en el equipo se abre también sin internet. Consulta [docs/SUPABASE.md](docs/SUPABASE.md).
 - **Ocho temas**: rosa, morado, verde y azul, cada uno claro y oscuro, con un color de acento que contrasta. Densidad cómoda o compacta y movimiento reducido.
-- **Nueva imagen**: logotipo “simmerspace” en minúsculas con un símbolo de cristal, icono de la app y una familia de iconos bicolor con iconos por categoría.
+- **Nueva imagen**: logotipo “simmerspace” en minúsculas con un plumbob que dibuja una S como símbolo e icono de la app y una familia de iconos bicolor con iconos por categoría.
 - **Navegación**: barra de iconos que se despliega al pasar el cursor (o con el botón de menú en pantallas táctiles): Inicio, Explorar, Mi CC, Creadores, Colecciones, Inspiración, Ajustes. Las descripciones aparecen tras una breve pausa y se pueden desactivar en Ajustes.
 - **Tutorial inicial** (siguiente, anterior, omitir, progreso) que explica también cómo elegir la carpeta Mods. Se puede repetir desde Ajustes.
 - **Mi CC**: franja con la ruta de Mods y el último escaneo, sección “Biblioteca” con vista de lista, por categoría o por creador, lista de archivos plegable, insignia para distinguir los mods instalados con SimmerSpace de los externos (sin inventar actualizaciones) y un clasificador opcional uno a uno (categoría, creador, etiquetas, omitir, omitir todos). Lo que no tiene categoría o creador se agrupa en “Sin categoría” / “Sin creador”; cambiar de vista nunca borra etiquetas.
@@ -47,14 +46,13 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 ### Limitaciones
 
 - Solo Windows. La compilación todavía no tiene firma de código, así que Windows SmartScreen muestra una advertencia.
-- La app necesita la URL del proyecto de Supabase y la clave publicable para arrancar (en modo desarrollador, `--developer`, se puede continuar sin cuenta).
 - Las etiquetas están ligadas a la ruta del archivo; si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas.
-- CurseForge pasa por el proxy de Supabase del proyecto, que guarda la clave en el servidor y solo responde a usuarios con sesión. La app y este repositorio no incluyen ninguna clave. Una clave local sigue sirviendo para desarrollo.
+- CurseForge ya está integrado, pero sigue en beta: aún hay cosas por pulir.
 - Patreon no está conectado.
 
 ## Get the app
 
-The source archive from GitHub's **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run Windows app. Any Windows build published by the project owner will be listed separately in **Releases**.
+Download the Windows app (portable `.exe`, no installation) from the [SimmerSpace page](https://karisqueen.github.io/simmerspace/) or from [Releases](https://github.com/karisqueen/simmerspace/releases/latest). The source archive from **Code → Download ZIP** is for inspecting or building the project; it is not a ready-to-run app. / Descarga la app para Windows (`.exe` portable, sin instalación) desde la [página de SimmerSpace](https://karisqueen.github.io/simmerspace/) o desde [Releases](https://github.com/karisqueen/simmerspace/releases/latest).
 
 To run from source, install Node.js and pnpm, then run:
 
@@ -96,7 +94,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 - `electron/`: the main process. `main.cjs` creates the window and registers IPC; `mods-service.cjs` holds every file operation; `settings-store.cjs` saves folder locations; `ipc.cjs` validates the sender and the arguments of every request; `preload.cjs` exposes the small `simmerSpace` API to the page. `app-config.cjs` reads integration settings, `curseforge-service.cjs` talks to the CurseForge API, `zip-reader.cjs` unpacks downloads safely, `account-service.cjs` handles SimmerSpace accounts and `game-launcher.cjs` starts the game.
 - `renderer/`: the page. `js/core.js` and `js/i18n.js` hold shared helpers and all English and Spanish text; `js/ui.js` holds dialogs and toasts; `js/appearance.js` applies personalization; `js/icons.js` draws icons and plumbobs; `app.js`, `mods-manager.js`, `library.js`, `organizer.js`, `folders.js`, `curseforge.js`, `creators.js`, `account.js`, `inspiration.js` and `tour.js` render the pages. Styles: `tokens.css` (all colors and sizes), `base.css`, `components.css`, `layout.css`, `pages.css`, `mods-manager.css` and `community.css`. Brand files are in `renderer/brand`. Fonts are bundled in `renderer/fonts` under the SIL Open Font License: DM Sans for text and Fredoka for the logo. No EA fonts or logo artwork are included.
-- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL, the CurseForge proxy function, and `legacy/` (an older migration that must not be applied).
+- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL and the CurseForge proxy function.
 - `tests/`: Node test runner tests (`node --test`).
 
 ## Privacy and file access
@@ -110,7 +108,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 ## Project status
 
-Current version: **0.11.0 beta**: CurseForge works after signing in with no key on your PC (through the project's Supabase proxy); redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.0 beta**: CurseForge funciona al iniciar sesión sin clave en tu PC (a través del proxy de Supabase del proyecto); rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
+Current version: **0.11.1 beta**: no sample content, new plumbob-S icon; CurseForge integrated: explore and install mods after signing in; redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.1 beta**: sin contenido de ejemplo, nuevo icono plumbob-S; CurseForge integrado: explora e instala mods al iniciar sesión; rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
 Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 

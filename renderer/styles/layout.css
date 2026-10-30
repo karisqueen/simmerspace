@@ -128,50 +128,6 @@
 .nav-subtle {
   color: color-mix(in oklab, var(--sidebar-text) 80%, transparent);
 }
-.nav-heading {
-  padding: 0 8px 2px;
-  color: color-mix(in oklab, var(--sidebar-text) 78%, transparent);
-  font-size: 11px;
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.nav-heading-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-.nav-disclosure {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 28px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: none;
-  white-space: nowrap;
-}
-.nav-disclosure:hover {
-  color: var(--sidebar-strong);
-}
-.nav-disclosure .disclosure-icon {
-  width: 14px;
-  height: 14px;
-  color: inherit;
-  transition: transform var(--dur) var(--ease);
-}
-.nav-collections.is-collapsed .nav-disclosure .disclosure-icon {
-  transform: rotate(-90deg);
-}
-.nav-heading-row .icon-btn {
-  color: var(--sidebar-text);
-}
-.nav-heading-row .icon-btn:hover {
-  background: var(--sidebar-hover);
-  color: var(--sidebar-strong);
-}
 .nav-collection-list {
   display: grid;
   gap: 2px;
