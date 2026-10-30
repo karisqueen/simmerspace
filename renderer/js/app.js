@@ -1,5 +1,5 @@
 /* SimmerSpace interface: state, pages and local interactions. Demo catalog data lives in demo-data.js. */
-let APP_VERSION = '0.10.0';
+let APP_VERSION = '0.11.0';
 
 function savedLanguage() {
   const value = safeGet('language');

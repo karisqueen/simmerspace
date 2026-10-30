@@ -74,7 +74,7 @@ function modRecord(overrides = {}) {
   };
 }
 
-async function setup(t, { routes = {}, config = {} } = {}) {
+async function setup(t, { routes = {}, config = {}, proxyToken } = {}) {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), 'simmerspace-cf-test-'));
   const mods = path.join(base, 'Mods');
   const data = path.join(base, 'data');
@@ -86,6 +86,7 @@ async function setup(t, { routes = {}, config = {} } = {}) {
   let clock = 1_000_000;
   const service = createCurseForgeService({
     getConfig: async () => ({ curseforge: { apiKey: FAKE_KEY, baseUrl: API, proxyUrl: '', gameId: 0, ...config } }),
+    ...(proxyToken ? { getProxyToken: proxyToken } : {}),
     fetchImpl: async (url, options = {}) => {
       calls.push({ url, options });
       for (const [pattern, reply] of Object.entries(routes)) {
@@ -337,4 +338,23 @@ test('search can be limited to one author', async t => {
   const f = await setup(t, { routes: { [`${API}/v1/mods/search`]: json({ data: [modRecord()], pagination: { index: 0, pageSize: 20, resultCount: 1, totalCount: 1 } }) } });
   await f.service.search({ authorId: 77 });
   assert.equal(new URL(f.calls.find(call => call.url.includes('/v1/mods/search')).url).searchParams.get('authorId'), '77');
+});
+
+test('with a proxy, sends the signed-in token instead of the key, and needs a session', async t => {
+  const PROXY = 'https://project.supabase.co/functions/v1/curseforge-proxy';
+  const routes = {
+    [`${PROXY}/v1/games`]: json(GAMES),
+    [`${PROXY}/v1/mods/search`]: json({ data: [modRecord()], pagination: { index: 0, pageSize: 20, resultCount: 1, totalCount: 1 } })
+  };
+  const f = await setup(t, { routes, config: { apiKey: '', proxyUrl: PROXY }, proxyToken: async () => ({ bearer: 'user-token', apikey: 'sb_publishable_test' }) });
+  const result = await f.service.search({ query: 'kitchen' });
+  assert.equal(result.mods.length, 1);
+  assert.ok(f.calls.length >= 2);
+  for (const call of f.calls) {
+    assert.ok(call.url.startsWith(PROXY), call.url);
+    assert.equal(call.options.headers.Authorization, 'Bearer user-token');
+    assert.equal(call.options.headers['x-api-key'], undefined);
+  }
+  const signedOut = await setup(t, { routes, config: { apiKey: '', proxyUrl: PROXY }, proxyToken: async () => null });
+  await assert.rejects(signedOut.service.search({ query: 'kitchen' }), error => error.code === 'CF_NOT_CONFIGURED');
 });

@@ -43,16 +43,12 @@ Opcionales: `CURSEFORGE_API_BASE_URL` (por defecto `https://api.curseforge.com`)
 2. En modo desarrollador, **Herramientas de desarrollo** muestra solo el *origen* de la clave (`env` o `file`) y su *longitud*, nunca la clave. Compara la longitud con la de la consola.
 3. Errores habituales: “clave rechazada” (401/403: clave mal copiada o app no aprobada), “sin conexión”, “demasiadas peticiones” (CurseForge pidió esperar; la app respeta `Retry-After`).
 
-## 4. Opcional: proxy para no guardar la clave en el PC
+## 4. Versión para repartir: proxy en Supabase (lo que usa el .exe desde 0.11.0)
 
-Una clave en el PC de cada jugador se puede extraer. Para distribuir la app a otras personas, usa el proxy de `supabase/functions/curseforge-proxy` (requiere cuentas de SimmerSpace configuradas, ver [ACCOUNTS-SETUP.md](ACCOUNTS-SETUP.md)):
-
-```bash
-supabase secrets set CURSEFORGE_API_KEY='tu-clave'
-supabase functions deploy curseforge-proxy
-```
-
-y define `CURSEFORGE_PROXY_URL=https://<tu-proyecto>.supabase.co/functions/v1/curseforge-proxy`. Solo personas con sesión iniciada pueden usarlo y solo deja pasar las rutas de lectura que usa SimmerSpace. **Este proxy no se ha desplegado ni probado contra un proyecto real.**
+Una clave en el PC de cada jugador se puede extraer, así que el ejecutable no la lleva. Usa la función
+`supabase/functions/curseforge-proxy`: guarda la clave como secreto de Supabase y solo responde a personas con sesión
+iniciada en SimmerSpace, y solo deja pasar las rutas de lectura que usa la app. Los pasos están en
+[SUPABASE.md](SUPABASE.md) (sección 5b). Con `proxyUrl` configurado, la app usa el proxy aunque haya una clave local.
 
 ## Qué hace y qué no
 

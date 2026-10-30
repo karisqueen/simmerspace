@@ -489,11 +489,13 @@ function createAccountService({ getConfig, userDataPath, safeStorage, createClie
   async function proxyToken() {
     const { anonKey } = (await getConfig()).supabase;
     if (!anonKey) return null;
+    // The CurseForge proxy only answers signed-in users, so without a session there is nothing to send.
     try {
       const { data } = await (await supabase()).auth.getSession();
-      return { bearer: data?.session?.access_token || anonKey, apikey: anonKey };
+      const bearer = data?.session?.access_token;
+      return bearer ? { bearer, apikey: anonKey } : null;
     } catch {
-      return { bearer: anonKey, apikey: anonKey };
+      return null;
     }
   }
 

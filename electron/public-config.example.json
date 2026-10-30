@@ -4,6 +4,6 @@
     "publishableKey": "your-supabase-publishable-key"
   },
   "curseforge": {
-    "proxyUrl": ""
+    "proxyUrl": "https://your-project-ref.supabase.co/functions/v1/curseforge-proxy"
   }
 }

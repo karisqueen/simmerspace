@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0 CurseForge without a key on this PC (2026-10-30)
+
+- Explore and Creators work out of the box after signing in: the app asks a Supabase Edge Function (`supabase/functions/curseforge-proxy`) that holds the CurseForge key as a server secret. The key is not in the app, the installer or the repository.
+- The proxy checks the signed-in user's token with Supabase Auth on every new token and only forwards the read-only CurseForge paths SimmerSpace uses. Downloads still come straight from the CurseForge CDN, with the same size and hash checks.
+- Without a session the app no longer sends the publishable key to the proxy; it asks you to sign in.
+- Supabase migration hardened: the API roles lose TRUNCATE (which ignores row level security), anonymous feedback and the older public policies are removed, and `rls_auto_enable()` can no longer be called through the API.
+- A local key (`CURSEFORGE_API_KEY` or `simmerspace.config.json`) still works for development when no proxy is configured.
+
 ## 0.10.0 redesign and accounts (2026-10-30)
 
 ### Design

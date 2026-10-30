@@ -27,7 +27,7 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 - Windows only. The build is not code-signed yet, so Windows SmartScreen shows a warning.
 - The app needs the Supabase project URL and publishable key to start (developers can continue without an account with `--developer`).
 - Tags are linked to file paths. Files moved or renamed outside SimmerSpace lose their tags until they are tagged again.
-- CurseForge works only with an approved API key (or the optional proxy). No key is included in the app or this repository.
+- CurseForge goes through the project's Supabase proxy, which holds the key on the server and only answers signed-in users. No key is included in the app or this repository. A local key still works for development.
 - Patreon is not connected.
 
 ## Funciones actuales (español)
@@ -49,7 +49,7 @@ SimmerSpace is provided as-is. Back up important files before using any mod-mana
 - Solo Windows. La compilación todavía no tiene firma de código, así que Windows SmartScreen muestra una advertencia.
 - La app necesita la URL del proyecto de Supabase y la clave publicable para arrancar (en modo desarrollador, `--developer`, se puede continuar sin cuenta).
 - Las etiquetas están ligadas a la ruta del archivo; si mueves o renombras archivos fuera de SimmerSpace, pierden sus etiquetas.
-- CurseForge solo funciona con una clave API aprobada (o el proxy opcional). La app y este repositorio no incluyen ninguna clave.
+- CurseForge pasa por el proxy de Supabase del proyecto, que guarda la clave en el servidor y solo responde a usuarios con sesión. La app y este repositorio no incluyen ninguna clave. Una clave local sigue sirviendo para desarrollo.
 - Patreon no está conectado.
 
 ## Get the app
@@ -96,7 +96,7 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 
 - `electron/`: the main process. `main.cjs` creates the window and registers IPC; `mods-service.cjs` holds every file operation; `settings-store.cjs` saves folder locations; `ipc.cjs` validates the sender and the arguments of every request; `preload.cjs` exposes the small `simmerSpace` API to the page. `app-config.cjs` reads integration settings, `curseforge-service.cjs` talks to the CurseForge API, `zip-reader.cjs` unpacks downloads safely, `account-service.cjs` handles SimmerSpace accounts and `game-launcher.cjs` starts the game.
 - `renderer/`: the page. `js/core.js` and `js/i18n.js` hold shared helpers and all English and Spanish text; `js/ui.js` holds dialogs and toasts; `js/appearance.js` applies personalization; `js/icons.js` draws icons and plumbobs; `app.js`, `mods-manager.js`, `library.js`, `organizer.js`, `folders.js`, `curseforge.js`, `creators.js`, `account.js`, `inspiration.js` and `tour.js` render the pages. Styles: `tokens.css` (all colors and sizes), `base.css`, `components.css`, `layout.css`, `pages.css`, `mods-manager.css` and `community.css`. Brand files are in `renderer/brand`. Fonts are bundled in `renderer/fonts` under the SIL Open Font License: DM Sans for text and Fredoka for the logo. No EA fonts or logo artwork are included.
-- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL, an optional CurseForge proxy function, and `legacy/` (an older migration that must not be applied).
+- `supabase/`: the migration for the existing Supabase project (row level security and storage policies), SQL checks for a local PostgreSQL, the CurseForge proxy function, and `legacy/` (an older migration that must not be applied).
 - `tests/`: Node test runner tests (`node --test`).
 
 ## Privacy and file access
@@ -105,12 +105,12 @@ Point the test profile at a copy of a Mods folder, not your real one, when tryin
 - The Mods scan reads folder listings and filenames; it does not open file contents. Folder paths and filenames are never uploaded.
 - Your account (email, username, profile photo), your Inspiration posts and the feedback you send are stored in SimmerSpace's Supabase project, protected by row level security: everyone signed in can see profiles and posts; only you can change or delete yours.
 - The session is saved encrypted with Windows protection (Electron safeStorage); if that is not available it is kept in memory only.
-- CurseForge requests send your searches and the mod and file ids to CurseForge.
+- CurseForge requests send your searches and the mod and file ids to the project's Supabase function, which forwards them to CurseForge.
 - Import, rename, enable/disable, organization and deletion are explicit local actions.
 
 ## Project status
 
-Current version: **0.10.0 beta**: redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.10.0 beta**: rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
+Current version: **0.11.0 beta**: CurseForge works after signing in with no key on your PC (through the project's Supabase proxy); redesign with eight themes, required SimmerSpace accounts, the Inspiration community feed, real CurseForge creators and the reorganized My CC page. See [CHANGELOG.md](CHANGELOG.md). / Versión actual: **0.11.0 beta**: CurseForge funciona al iniciar sesión sin clave en tu PC (a través del proxy de Supabase del proyecto); rediseño con ocho temas, cuentas obligatorias, feed de Inspiración, creadores reales de CurseForge y Mi CC reorganizado.
 
 Bug reports and suggestions can be sent from **Settings → About → Feedback** or opened as GitHub Issues. Please do not include personal folder paths, account credentials, or private files.
 

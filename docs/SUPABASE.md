@@ -1,4 +1,4 @@
-# Supabase en SimmerSpace 0.10.0
+# Supabase en SimmerSpace 0.11.0
 
 Desde la 0.10.0 **hace falta una cuenta** para usar SimmerSpace (gestor de mods incluido). Si hay una sesión
 guardada en el equipo, se recupera al abrir la app, también sin internet. La cuenta de SimmerSpace es
@@ -108,6 +108,21 @@ Orden de prioridad: variables de entorno → `.env.local` (solo al ejecutar desd
   La copia empaquetada **nunca** lee `.env.local`.
 - **Compilación para repartir**: copia `electron/public-config.example.json` a `electron/public-config.json` con la
   URL y la clave publicable (solo valores públicos; también está en `.gitignore`).
+
+## 5b. CurseForge a través de Supabase (desde 0.11.0)
+
+La app empaquetada no lleva la clave de CurseForge. Pide los datos a la función `curseforge-proxy`, que guarda la
+clave como secreto del servidor y solo responde a usuarios con sesión iniciada.
+
+1. En el panel: **Edge Functions → Secrets → Add new secret**, nombre `CURSEFORGE_API_KEY`, valor: tu clave tal cual.
+2. Despliega la función (`supabase functions deploy curseforge-proxy --no-verify-jwt`). La comprobación de JWT de la
+   pasarela va apagada porque la función valida el token del usuario con Supabase Auth, y así funciona también con
+   las claves nuevas `sb_publishable_`.
+3. En `electron/public-config.json` pon
+   `"curseforge": { "proxyUrl": "https://<ref>.supabase.co/functions/v1/curseforge-proxy" }`.
+
+`https://<ref>.supabase.co/functions/v1/curseforge-proxy/health` responde `{"ok":true}` cuando la función está
+desplegada y tiene la clave.
 
 ## 6. Qué se guarda dónde
 
