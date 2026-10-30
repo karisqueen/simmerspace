@@ -2,9 +2,9 @@
    Every color, radius, size and duration in the interface comes from here. Themes are chosen with data
    attributes on <html> (set by renderer/js/appearance.js):
      data-family   pink | purple | green | blue   the theme's colors
-     data-mode     light | dark            resolved from the Light / Dark / Match Windows setting
+     data-mode     light | dark
      data-density  comfortable | compact
-     data-motion   system | reduced | full
+     data-motion   reduced | full
    Color rules: --accent (primary) marks actions, selection, focus and links. --highlight (the pop color)
    and --sun are only used for small decorative notes: the active page marker, counts and badges, category
    accents and the brand sparkle. */
@@ -54,30 +54,52 @@
   --rail-w: 72px;
 
   /* Motion */
-  --dur-fast: 120ms;
-  --dur: 180ms;
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 380ms;
+  /* One family of curves: a soft deceleration for most things, a gentle overshoot only for things that "land"
+     (selection marks, dialogs). No bouncing loops. */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-land: cubic-bezier(0.34, 1.32, 0.64, 1);
 }
 
+/* Comfortable is the base above, with a little more air; Compact tightens sizes AND the spacing scale, so the
+   difference is visible everywhere (density.css adjusts the few places with fixed sizes). */
+[data-density='comfortable'] {
+  --control-h: 38px;
+  --control-h-sm: 32px;
+  --control-h-xs: 26px;
+  --card-pad: 16px;
+  --panel-pad: 22px;
+  --gap: 18px;
+  --fs-md: 14px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+}
 [data-density='compact'] {
-  --control-h: 32px;
-  --control-h-sm: 28px;
-  --control-h-xs: 24px;
-  --card-pad: 10px;
-  --panel-pad: 14px;
-  --gap: 12px;
-  --fs-md: 13.5px;
+  --control-h: 31px;
+  --control-h-sm: 27px;
+  --control-h-xs: 23px;
+  --card-pad: 8px;
+  --panel-pad: 12px;
+  --gap: 8px;
+  --fs-md: 13px;
+  --sp-3: 8px;
+  --sp-4: 11px;
+  --sp-5: 14px;
+  --sp-6: 16px;
+  --sp-8: 22px;
 }
 
+/* Motion (motion.css uses these). Reduced keeps state changes instant and drops entrances. */
 [data-motion='reduced'] {
   --dur-fast: 0ms;
   --dur: 0ms;
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-motion='system'] {
-    --dur-fast: 0ms;
-    --dur: 0ms;
-  }
+  --dur-slow: 0ms;
 }
 
 /* ---------- Theme colors: four families × light/dark = eight themes ----------

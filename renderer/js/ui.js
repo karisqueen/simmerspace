@@ -199,11 +199,12 @@ document.addEventListener('keydown', event => {
 });
 
 /* ---------- Delayed tooltips ----------
-   Any control with data-tip="…" explains itself after the pointer rests on it for about two seconds, or
-   shortly after it gets keyboard focus. The text says what the control does, not its name. Players can turn
+   Any control with data-tip="…" explains itself after the pointer rests on it for one second (passing over
+   it quickly shows nothing), or shortly after it gets keyboard focus. These two delays are the only ones in the
+   app: no component sets its own. The text says what the control does, not its name. Players can turn
    this off in Settings (state.tooltips). Tooltips never hold essential information: every control also
    has a visible label or an accessible name. */
-const TIP_DELAY_POINTER = 2000;
+const TIP_DELAY_POINTER = 1000;
 const TIP_DELAY_KEYBOARD = 700;
 let tipTimer = null;
 let tipTarget = null;

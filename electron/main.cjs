@@ -117,7 +117,7 @@ async function existingDefault(value) {
 async function chooseFolder(id) {
   const routes = await settings.loadRoutes();
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Choose a folder for SimmerSpace',
+    title: 'Choose a folder for simmerspace',
     properties: ['openDirectory'],
     defaultPath: routes[id]?.path || (await existingDefault(defaultFolders[id]))
   });
@@ -215,7 +215,7 @@ async function createWindow() {
     height: 940,
     minWidth: 760,
     minHeight: 620,
-    title: `SimmerSpace ${APP_VERSION}`,
+    title: `simmerspace ${APP_VERSION}`,
     icon: path.join(__dirname, '..', 'renderer', 'brand', 'simmerspace-icon.png'),
     // The last theme's background, so dark themes do not flash light while the page loads.
     backgroundColor: /^#[0-9a-f]{6}$/i.test(saved.windowBackground || '') ? saved.windowBackground : '#f6f5fa',

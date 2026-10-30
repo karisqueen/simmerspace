@@ -29,7 +29,7 @@ function folderSettingsSection() {
 function folderRoutePanel() {
   const done = REQUIRED_FOLDERS.filter(def => routeRecords[def.id]?.path).length;
   if (done === REQUIRED_FOLDERS.length || routeRecords.mods?.path) return '';
-  return notice(`<b>${t('requiredRoutes')} (${done}/${REQUIRED_FOLDERS.length}).</b> ${t('requiredText')}`, { tone: 'warning', action: `<button class="secondary-btn small-chip" data-page="settings">${t('setPaths')}</button>` });
+  return notice(`<b>${t('requiredRoutes')} (${done}/${REQUIRED_FOLDERS.length}).</b> ${t('requiredText')}`, { tone: 'warning', action: `<button class="secondary-btn small-chip" data-settings-section="folders">${t('setPaths')}</button>` });
 }
 
 async function chooseDirectory(id) {

@@ -364,11 +364,7 @@ const CF_CLICK_ACTIONS = {
   'cf-reload-installs': loadCurseForgeInstalls,
   'cf-check-updates': checkCurseForgeUpdates,
   'cf-retry-details': () => cf.detailId && openCurseForgeDetails(cf.detailId, { refresh: true }),
-  'cf-open-settings': () => {
-    safeWrite('settings-open', { ...(safeRead('settings-open', {}) || {}), 'curseforge-settings': true });
-    goTo('settings');
-    document.getElementById('curseforge-settings')?.scrollIntoView({ block: 'start' });
-  },
+  'cf-open-settings': () => openSettings('curseforge-settings'),
   'cf-test': async () => {
     cf.testing = true;
     render();

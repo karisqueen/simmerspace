@@ -147,16 +147,18 @@
   // "sims-blue" family plus a chosen accent; those accents map onto the family with the same color.
   const THEME_FAMILIES = ['pink', 'purple', 'green', 'blue'];
   const LEGACY_ACCENT_FAMILY = Object.freeze({ rose: 'pink', lavender: 'purple', sage: 'green', blue: 'blue' });
-  const MODES = ['light', 'dark', 'system'];
+  // 0.12.1 removed "Match Windows" from mode and motion. A saved "system" becomes what Windows asked for when the
+  // setting is read (systemPrefs), so nobody's appearance changes on update; after that it is a normal choice.
+  const MODES = ['light', 'dark'];
   const DENSITIES = ['comfortable', 'compact'];
-  const MOTION = ['system', 'reduced', 'full'];
-  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'system' });
+  const MOTION = ['reduced', 'full'];
+  const DEFAULT_APPEARANCE = Object.freeze({ family: 'blue', mode: 'light', density: 'comfortable', motion: 'full' });
 
   // Reads saved appearance settings. Anything missing or unknown falls back to a default. Carried over:
   // the single theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark"), the main color
   // saved by 0.8.x and 0.9.x ("primary-hue") and the family + accent saved by 0.10.0.
-  function normalizeAppearance(raw, legacyTheme, legacyHues = {}) {
-    const result = { ...DEFAULT_APPEARANCE };
+  function normalizeAppearance(raw, legacyTheme, legacyHues = {}, systemPrefs = {}) {
+    const result = { ...DEFAULT_APPEARANCE, ...(systemPrefs.reducedMotion ? { motion: 'reduced' } : {}) };
     if (typeof legacyTheme === 'string') {
       const [tone, hue] = legacyTheme === 'dark' ? ['dark', 'lavender'] : legacyTheme.split('-');
       if (['soft', 'dark'].includes(tone) && LEGACY_ACCENT_FAMILY[hue]) Object.assign(result, { mode: tone === 'dark' ? 'dark' : 'light', family: LEGACY_ACCENT_FAMILY[hue] });
@@ -167,8 +169,10 @@
     else if (source.family === 'sims-blue') result.family = 'blue';
     else if (LEGACY_ACCENT_FAMILY[source.primary]) result.family = LEGACY_ACCENT_FAMILY[source.primary];
     if (MODES.includes(source.mode)) result.mode = source.mode;
+    else if (source.mode === 'system') result.mode = systemPrefs.dark ? 'dark' : 'light';
     if (DENSITIES.includes(source.density)) result.density = source.density;
     if (MOTION.includes(source.motion)) result.motion = source.motion;
+    else if (source.motion === 'system') result.motion = systemPrefs.reducedMotion ? 'reduced' : 'full';
     return result;
   }
 
@@ -239,6 +243,8 @@
     LEGACY_ACCENT_FAMILY,
     THEME_FAMILIES,
     DEFAULT_APPEARANCE,
+    MODES,
+    MOTION,
     normalizeAppearance,
     COLLECTION_COLORS,
     COLLECTION_PASTELS,

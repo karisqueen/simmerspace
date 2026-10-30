@@ -849,11 +849,6 @@ details[open] > summary .disclosure-icon {
 [data-motion='reduced'] .skeleton {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  [data-motion='system'] .skeleton {
-    animation: none;
-  }
-}
 .is-refreshing {
   opacity: 0.6;
   transition: opacity var(--dur) var(--ease);

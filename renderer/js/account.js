@@ -208,10 +208,10 @@ function renderAuthGate() {
   }
   applyAppearance(state.appearance);
   document.documentElement.lang = state.lang;
-  document.title = `${t('signIn')} · SimmerSpace`;
+  document.title = `${t('signIn')} · simmerspace`;
   if (!screen) return true;
   const focusedId = document.activeElement?.id;
-  screen.innerHTML = `<div class="auth-layout">${authAside()}<main class="auth-main"><div class="auth-card">${authCard()}</div><p class="auth-legal">SimmerSpace ${esc(APP_VERSION)} · ${t('preBeta')}</p></main></div>`;
+  screen.innerHTML = `<div class="auth-layout">${authAside()}<main class="auth-main"><div class="auth-card">${authCard()}</div><p class="auth-legal">simmerspace ${esc(APP_VERSION)} · ${t('preBeta')}</p></main></div>`;
   const again = focusedId && document.getElementById(focusedId);
   (again || screen.querySelector('.field-error ~ .field input, .account-form input, .auth-message button'))?.focus({ preventScroll: true });
   refreshSubmit();
@@ -303,21 +303,65 @@ async function changeUsername(form) {
   }
 }
 
-function accountSettingsSection() {
-  const user = accountUser();
-  if (!user) return `<p class="setting-help">${t('accountsRequiredText')}</p>`;
-  return `<div class="setting-row"><span class="setting-label">${t('status')}</span><div class="inline-row">${avatarMarkup(user)}<span class="status-pill status-installed">${esc(format(t('signedInAs'), { name: `@${user.username}` }))}</span></div></div><div class="button-row"><button class="secondary-btn" data-page="account">${t('manageAccount')}</button><button class="tertiary-btn" data-open-feedback>${t('feedbackOpen')}</button></div>`;
+/* ---------- Profile menu (the avatar in the top bar) ----------
+   Everything about the account is here and on the profile page: there is no separate Account section in Settings. */
+let profileMenu = null;
+function closeProfileMenu() {
+  if (!profileMenu) return;
+  profileMenu.remove();
+  profileMenu = null;
+  document.getElementById('profile-button')?.setAttribute('aria-expanded', 'false');
 }
+function toggleProfileMenu() {
+  if (profileMenu) return closeProfileMenu();
+  const user = accountUser();
+  const button = document.getElementById('profile-button');
+  if (!user || !button) return goTo('account');
+  profileMenu = document.createElement('div');
+  profileMenu.className = 'profile-menu';
+  profileMenu.setAttribute('role', 'menu');
+  profileMenu.setAttribute('aria-label', t('profileMenu'));
+  const item = (id, iconName, label, attrs = '') => `<button class="profile-menu-item" role="menuitem" ${id ? `id="${id}"` : ''} ${attrs}>${icon(iconName)}<span>${esc(label)}</span></button>`;
+  profileMenu.innerHTML = `<div class="profile-menu-head">${avatarMarkup(user)}<div><b>@${esc(user.username)}</b><small>${esc(user.email)}</small></div></div>${item('', 'user', t('profileView'), 'data-page="account"')}${item('username-change', 'edit', t('usernameChange'))}${item('menu-avatar-change', 'upload', t('avatarChange'))}${item('', 'comment', t('feedbackNav'), 'data-settings-section="feedback"')}<hr>${item('account-sign-out', 'logout', t('signOut'), 'data-danger')}`;
+  document.body.append(profileMenu);
+  const box = button.getBoundingClientRect();
+  profileMenu.style.top = `${Math.round(box.bottom + 8)}px`;
+  profileMenu.style.right = `${Math.round(window.innerWidth - box.right)}px`;
+  button.setAttribute('aria-expanded', 'true');
+  profileMenu.querySelector('button')?.focus();
+}
+document.addEventListener('pointerdown', event => {
+  if (profileMenu && !profileMenu.contains(event.target) && !event.target.closest('#profile-button')) closeProfileMenu();
+});
+document.addEventListener('click', event => {
+  if (profileMenu && event.target.closest('.profile-menu [data-page], .profile-menu [data-settings-section]')) setTimeout(closeProfileMenu, 0);
+});
+document.addEventListener('keydown', event => {
+  if (!profileMenu) return;
+  if (event.key === 'Escape') {
+    closeProfileMenu();
+    document.getElementById('profile-button')?.focus();
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const items = [...profileMenu.querySelectorAll('button')];
+    const index = items.indexOf(document.activeElement);
+    items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+  }
+});
 
 /* ---------- Feedback ---------- */
 const FEEDBACK_CATEGORIES = ['suggestion', 'bug_report', 'feature_request', 'donation_feedback', 'other'];
-function openFeedbackDialog(category = 'suggestion') {
+// The same form inside Settings → Feedback (inline) and in a dialog (from the profile or About).
+function feedbackFormMarkup({ category = 'suggestion', inline = false } = {}) {
   const user = accountUser();
-  openDialog(
-    `${closeButton()}<form class="form-dialog" id="feedback-form" novalidate><div class="eyebrow">${t('feedbackTitle')}</div><h2 id="dialog-title">${t('feedbackOpen')}</h2><p>${t('feedbackDialogText')}</p><fieldset class="choice-row"><legend>${t('feedbackCategory')}</legend>${FEEDBACK_CATEGORIES.map(
-      value => `<label class="choice-chip"><input type="radio" name="feedback-category" value="${value}" ${value === category ? 'checked' : ''}><span>${t(`feedbackCat_${value}`)}</span></label>`
-    ).join('')}</fieldset><label class="field" for="feedback-message">${t('feedbackMessage')}<textarea id="feedback-message" maxlength="4000" rows="6" required></textarea></label><label class="field" for="feedback-email">${t('feedbackEmail')}<input id="feedback-email" type="email" autocomplete="email" value="${esc(user?.email || '')}"><small class="field-hint">${t('feedbackEmailHint')}</small></label><p class="field-error" id="feedback-error" role="alert" hidden></p><div class="detail-actions"><button class="primary-btn" type="submit">${t('feedbackSend')}</button><button class="secondary-btn" type="button" data-close>${t('cancel')}</button></div></form>`
-  );
+  const head = inline ? `<p class="setting-help">${t('feedbackDialogText')}</p>` : `<div class="eyebrow">${t('feedbackTitle')}</div><h2 id="dialog-title">${t('feedbackOpen')}</h2><p>${t('feedbackDialogText')}</p>`;
+  const actions = inline ? `<button class="primary-btn" type="submit">${icon('comment')}<span>${t('feedbackSend')}</span></button>` : `<button class="primary-btn" type="submit">${t('feedbackSend')}</button><button class="secondary-btn" type="button" data-close>${t('cancel')}</button>`;
+  return `<form class="form-dialog ${inline ? 'feedback-inline' : ''}" id="feedback-form" novalidate>${head}<fieldset class="choice-row"><legend>${t('feedbackCategory')}</legend>${FEEDBACK_CATEGORIES.map(
+    value => `<label class="choice-chip"><input type="radio" name="feedback-category" value="${value}" ${value === category ? 'checked' : ''}><span>${t(`feedbackCat_${value}`)}</span></label>`
+  ).join('')}</fieldset><label class="field" for="feedback-message">${t('feedbackMessage')}<textarea id="feedback-message" maxlength="4000" rows="6" required></textarea></label><label class="field" for="feedback-email">${t('feedbackEmail')}<input id="feedback-email" type="email" autocomplete="email" value="${esc(user?.email || '')}"><small class="field-hint">${t('feedbackEmailHint')}</small></label><p class="field-error" id="feedback-error" role="alert" hidden></p><div class="detail-actions">${actions}</div></form>`;
+}
+function openFeedbackDialog(category = 'suggestion') {
+  openDialog(`${closeButton()}${feedbackFormMarkup({ category })}`);
   document.getElementById('feedback-message')?.focus();
 }
 async function sendFeedback(form) {
@@ -332,7 +376,10 @@ async function sendFeedback(form) {
   submit.disabled = true;
   try {
     await callDesktop(accountApi.sendFeedback, { category: form.querySelector('[name="feedback-category"]:checked')?.value || 'other', message, email: document.getElementById('feedback-email').value.trim() });
-    closeDialog();
+    if (form.classList.contains('feedback-inline')) {
+      form.reset();
+      submit.disabled = false;
+    } else closeDialog();
     toast(t('feedbackSent'));
   } catch (failure) {
     error.hidden = false;
@@ -515,7 +562,12 @@ document.addEventListener('click', async event => {
       });
     case 'avatar-change':
       return document.getElementById('avatar-file')?.click();
+    case 'menu-avatar-change':
+      closeProfileMenu();
+      if (state.page !== 'account') goTo('account');
+      return document.getElementById('avatar-file')?.click();
     case 'username-change':
+      closeProfileMenu();
       return openUsernameDialog();
     case 'profile-retry':
       account.profile = freshProfile('');
@@ -538,8 +590,12 @@ document.addEventListener('click', async event => {
     case 'account-sign-out': {
       const ok = await confirmAction({ title: t('signOut'), body: t('signOutText'), confirmLabel: t('signOut') });
       if (!ok) return;
+      closeProfileMenu();
       return accountAction(async () => {
         await callDesktop(accountApi.signOut);
+        // Nothing from the account stays on screen or in memory for the next person at this computer.
+        account.profile = freshProfile('');
+        if (typeof resetCommunityCache === 'function') resetCommunityCache();
         await loadAccountStatus();
         account.view = 'signin';
         account.notice = t('signedOut');
