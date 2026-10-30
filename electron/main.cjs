@@ -43,7 +43,8 @@ const modsService = createModsService({
 
 // Integration diagnostics are for developers only: start with SIMMERSPACE_DEV=1 or --developer to see them.
 const DEV_MODE = process.env.SIMMERSPACE_DEV === '1' || process.argv.includes('--developer');
-const getConfig = () => loadAppConfig({ userDataPath: app.getPath('userData') });
+// A copy run from source may keep its development keys in the git-ignored .env.local; packaged builds never read it.
+const getConfig = () => loadAppConfig({ userDataPath: app.getPath('userData'), devEnvFile: app.isPackaged ? '' : path.join(__dirname, '..', '.env.local') });
 const account = createAccountService({
   getConfig,
   userDataPath: () => app.getPath('userData'),
@@ -143,6 +144,7 @@ ipc.handle('cf:test', validators.none, () => curseforge.testConnection());
 ipc.handle('cf:classes', validators.none, () => curseforge.classes());
 ipc.handle('cf:categories', validators.id, classId => curseforge.categories(classId));
 ipc.handle('cf:search', validators.optionalObject, options => curseforge.search(options));
+ipc.handle('cf:creators', validators.optionalObject, options => curseforge.popularCreators(options));
 ipc.handle('cf:details', validators.id, modId => curseforge.details(modId));
 ipc.handle('cf:files', validators.idAndObject, (modId, options) => curseforge.files(modId, options));
 ipc.handle('cf:install', validators.twoIdsAndObject, (modId, fileId, options) => curseforge.install(modId, fileId, { replacePrevious: options.replacePrevious === true }));

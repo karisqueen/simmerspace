@@ -29,9 +29,7 @@ const state = {
   query: '',
   libraryQuery: '',
   libraryState: 'All',
-  creatorPlatform: 'All',
-  creatorFollowingOnly: false,
-  followingCreators: safeRead('following-creators', []),
+  followingCreators: normalizeFollowing(safeRead('following-creators', [])),
   groupMode: safeGet('group-mode') === 'creator' ? 'creator' : 'category',
   moreFilters: safeRead('more-filters-open', false) === true,
   navCollectionsOpen: safeRead('nav-collections-open', true) !== false,
@@ -51,7 +49,6 @@ const state = {
   integrations: null
 };
 if (!Array.isArray(state.favorites)) state.favorites = [];
-if (!Array.isArray(state.followingCreators)) state.followingCreators = [];
 
 const content = document.getElementById('page-content');
 const search = document.getElementById('search-input');
@@ -415,69 +412,8 @@ function renderInspiration() {
     .join('')}</div></aside></div>`;
 }
 
-function localPatreonCreators() {
-  const saved = safeRead('patreon-creators', []);
-  if (!Array.isArray(saved)) return [];
-  return saved.flatMap(c => {
-    if (!c || typeof c.name !== 'string' || typeof c.id !== 'string') return [];
-    const profileUrl = normalizePatreonProfile(c.profileUrl);
-    return profileUrl ? [{ ...c, profileUrl, icon: 'P', platforms: [['Patreon', profileUrl]], tags: [], type: 'Unknown', style: 'Patreon profile', esStyle: 'Perfil de Patreon', manualPatreon: true }] : [];
-  });
-}
-function creatorCatalog() {
-  return [...CREATORS, ...localPatreonCreators()];
-}
-function creatorCard(c) {
-  const following = state.followingCreators.includes(c.id);
-  const platformControl =
-    c.platforms.length > 1
-      ? `<label class="select-field select-compact"><span class="visually-hidden">${t('choosePlatform')}</span><select data-creator-link="${esc(c.id)}"><option value="">${t('visit')}…</option>${c.platforms.map((p, i) => `<option value="${i}">${esc(p[0])}</option>`).join('')}</select></label>`
-      : `<a class="secondary-btn small-chip" href="${esc(c.platforms[0][1])}" target="_blank" rel="noopener noreferrer">${t('visit')} ${esc(c.platforms[0][0])} ${icon('external')}</a>`;
-  return `<article class="creator-card"><header class="creator-head"><div class="creator-avatar" aria-hidden="true">${esc(c.icon)}</div><div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">${c.platforms.map(p => esc(p[0])).join(' · ')}</div></div><span class="meta-pill">${c.manualPatreon ? t('creatorAddedByYou') : esc(styleLabel(c.type))}</span></header>${c.tags.length ? `<div class="tag-row">${c.tags.slice(0, 3).map(tag => `<span class="meta-pill meta-pill-quiet">${esc(tagLabel(tag))}</span>`).join('')}</div>` : ''}<div class="creator-footer">${platformControl}<button class="small-chip ${following ? 'is-on' : ''}" data-follow-creator="${esc(c.id)}" aria-pressed="${following}">${following ? icon('check') : ''}<span>${following ? t('followingCreator') : t('followCreator')}</span></button>${
-    c.manualPatreon ? `<button class="small-chip danger-quiet" data-remove-patreon-creator="${esc(c.id)}">${t('removePatreonCreator')}</button>` : ''
-  }</div>${c.manualPatreon ? `<p class="muted-note">${t('patreonProfileLink')}</p>` : ''}</article>`;
-}
 function renderCreators() {
-  const creators = creatorCatalog();
-  const query = state.query.toLowerCase();
-  const filtered = creators.filter(
-    c =>
-      (state.creatorPlatform === 'All' || c.platforms.some(p => p[0] === state.creatorPlatform)) &&
-      (!state.creatorFollowingOnly || state.followingCreators.includes(c.id)) &&
-      (!query || `${c.name} ${c.tags.join(' ')} ${c.style}`.toLowerCase().includes(query))
-  );
-  const platforms = [...new Set(creators.flatMap(c => c.platforms.map(p => p[0])))];
-  content.innerHTML = `${pageHeader(t('creators'), { meta: `<span class="sample-badge">${t('sampleData')}</span>`, actions: `<button class="primary-btn" id="add-patreon-creator">${icon('plus')}<span>${t('addPatreonCreator')}</span></button>` })}${notice(`<b>${t('patreonPostsTitle')}.</b> ${t('patreonPostsNote')}`)}<div class="toolbar-row">${chipGroup({
-    name: 'creator-platform',
-    label: t('creatorFilter'),
-    options: [['All', t('allPlatforms')], ...platforms.map(p => [p, p])],
-    selected: state.creatorPlatform,
-    size: 'sm'
-  })}<button class="chip chip-sm ${state.creatorFollowingOnly ? 'is-selected' : ''}" id="creator-following-filter" aria-pressed="${state.creatorFollowingOnly}">${icon('heart', 'chip-check')}<span>${t('followingOnly')} · ${state.followingCreators.length}</span></button></div><div class="creator-grid">${filtered.map(creatorCard).join('')}</div>${filtered.length ? '' : empty(t('noResult'), '')}`;
-}
-function addPatreonCreatorDialog() {
-  openDialog(
-    `${closeButton()}<div class="form-dialog"><div class="eyebrow">Patreon · ${t('creatorAddedByYou')}</div><h2 id="dialog-title">${t('addPatreonCreator')}</h2><p>${t('patreonManualNote')}</p><label class="field">${t('creatorName')}<input id="patreon-creator-name" type="text" maxlength="70" autocomplete="off"></label><label class="field">${t('patreonProfileUrl')}<input id="patreon-profile-url" type="url" inputmode="url" autocomplete="off" placeholder="${esc(t('patreonProfilePlaceholder'))}"></label><div class="detail-actions"><button class="primary-btn" id="save-patreon-creator">${t('addPatreonCreator')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
-  );
-}
-function savePatreonCreator() {
-  const name = document.getElementById('patreon-creator-name')?.value.trim();
-  const input = document.getElementById('patreon-profile-url')?.value.trim();
-  const profileUrl = normalizePatreonProfile(input);
-  if (!name || !input) return toast(t('patreonNameRequired'), 'error');
-  if (!profileUrl) return toast(t('patreonUrlInvalid'), 'error');
-  const saved = localPatreonCreators();
-  if (saved.some(c => c.profileUrl === profileUrl)) return toast(t('patreonDuplicate'), 'error');
-  const id = `patreon-custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  saved.push({ id, name, profileUrl });
-  if (!safeWrite('patreon-creators', saved.map(({ id, name, profileUrl }) => ({ id, name, profileUrl })))) return toast(t('patreonSaveFailed'), 'error');
-  closeDialog();
-  state.creatorPlatform = 'All';
-  state.creatorFollowingOnly = false;
-  state.query = '';
-  search.value = '';
-  render();
-  toast(t('patreonCreatorAdded'));
+  renderCreatorsPage();
 }
 
 // Cards for a collection: sample items plus CurseForge mods saved with "cf:<id>".
@@ -865,8 +801,6 @@ const CLICK_ACTIONS = {
     render();
     toast(t('coverRemoved'));
   },
-  'add-patreon-creator': addPatreonCreatorDialog,
-  'save-patreon-creator': savePatreonCreator,
   'create-board': createBoard,
   'save-board-note': el => saveBoardNote(el.dataset.saveBoardNote),
   'add-reference': () => pinReference(REFERENCES[0].id),
@@ -923,11 +857,7 @@ const CLICK_ACTIONS = {
   'upload-reference': () => toast(t('planned')),
   'clear-filters': resetDiscoverFilters,
   'clear-filters-empty': resetDiscoverFilters,
-  'show-all-collections': () => goTo('collections'),
-  'creator-following-filter': () => {
-    state.creatorFollowingOnly = !state.creatorFollowingOnly;
-    render();
-  }
+  'show-all-collections': () => goTo('collections')
 };
 
 document.addEventListener('click', async event => {
@@ -958,10 +888,6 @@ document.addEventListener('click', async event => {
     if (name.startsWith('cf-')) return; // handled in curseforge.js
     if (name === 'library-state') {
       state.libraryState = filter.dataset.value;
-      return render();
-    }
-    if (name === 'creator-platform') {
-      state.creatorPlatform = filter.dataset.value;
       return render();
     }
     return setFilter(name, filter.dataset.value, filter.dataset.multi === 'true');
@@ -997,26 +923,6 @@ document.addEventListener('click', async event => {
   if (favorite) {
     event.stopPropagation();
     return toggleFavorite(favorite.dataset.favorite);
-  }
-  const followCreator = target.closest('[data-follow-creator]');
-  if (followCreator) {
-    const id = followCreator.dataset.followCreator;
-    state.followingCreators = state.followingCreators.includes(id) ? state.followingCreators.filter(value => value !== id) : [...state.followingCreators, id];
-    safeWrite('following-creators', state.followingCreators);
-    render();
-    return toast(state.followingCreators.includes(id) ? t('creatorFollowSaved') : t('creatorFollowRemoved'));
-  }
-  const removePatreon = target.closest('[data-remove-patreon-creator]');
-  if (removePatreon) {
-    const id = removePatreon.dataset.removePatreonCreator;
-    const creator = localPatreonCreators().find(c => c.id === id);
-    const ok = await confirmAction({ title: t('removePatreonCreator'), body: t('confirmRemovePatreon'), details: creator ? [creator.name] : [], confirmLabel: t('removePatreonCreator'), danger: true });
-    if (!ok) return;
-    safeWrite('patreon-creators', localPatreonCreators().filter(c => c.id !== id).map(({ id, name, profileUrl }) => ({ id, name, profileUrl })));
-    state.followingCreators = state.followingCreators.filter(value => value !== id);
-    safeWrite('following-creators', state.followingCreators);
-    render();
-    return toast(t('patreonCreatorRemoved'));
   }
   const save = target.closest('[data-save]');
   if (save) {
@@ -1099,18 +1005,6 @@ document.addEventListener('change', event => {
       custom.value = target.value;
     }
     return;
-  }
-  const link = target.closest('[data-creator-link]');
-  if (link && link.value !== '') {
-    const creator = creatorCatalog().find(c => c.id === link.dataset.creatorLink);
-    const platform = creator?.platforms[Number(link.value)];
-    if (platform) {
-      try {
-        const url = new URL(platform[1]);
-        if (url.protocol === 'https:') window.open(url.href, '_blank', 'noopener,noreferrer');
-      } catch {}
-    }
-    link.value = '';
   }
 });
 document.addEventListener('input', event => {

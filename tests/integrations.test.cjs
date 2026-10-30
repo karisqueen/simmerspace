@@ -46,6 +46,27 @@ test('config: a broken or missing file means "not set up", not a crash', async t
   assert.equal(describeConfig(config).supabase.configured, false);
 });
 
+test('config: a development .env.local fills unset variables, and Supabase secret keys are refused', async t => {
+  const dir = await tempDir(t);
+  const envFile = path.join(dir, '.env.local');
+  await fs.writeFile(envFile, '# local only\r\nCURSEFORGE_API_KEY="dev-file-key"\nSUPABASE_URL=https://xyz.supabase.co\nexport SUPABASE_PUBLISHABLE_KEY=sb_publishable_abc\n');
+  const none = path.join(dir, 'none.json');
+  const dev = await loadAppConfig({ userDataPath: dir, env: {}, publicConfigFile: none, devEnvFile: envFile });
+  assert.equal(dev.curseforge.apiKey, 'dev-file-key');
+  assert.equal(dev.supabase.url, 'https://xyz.supabase.co');
+  assert.equal(dev.supabase.anonKey, 'sb_publishable_abc');
+  const overridden = await loadAppConfig({ userDataPath: dir, env: { CURSEFORGE_API_KEY: 'real-env' }, publicConfigFile: none, devEnvFile: envFile });
+  assert.equal(overridden.curseforge.apiKey, 'real-env', 'real environment variables win over .env.local');
+  const packaged = await loadAppConfig({ userDataPath: dir, env: {}, publicConfigFile: none });
+  assert.equal(packaged.curseforge.apiKey, '', 'without devEnvFile the file is never read');
+
+  const serviceRole = `x.${Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url')}.y`;
+  for (const key of ['sb_secret_123', serviceRole]) {
+    const refused = await loadAppConfig({ userDataPath: dir, env: { SUPABASE_URL: 'https://xyz.supabase.co', SUPABASE_PUBLISHABLE_KEY: key }, publicConfigFile: none });
+    assert.equal(refused.supabase.anonKey, '');
+  }
+});
+
 // A stand-in for supabase-js that records calls. No network, no real project.
 function fakeSupabase({ signUpSession = null } = {}) {
   const calls = [];

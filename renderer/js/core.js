@@ -276,6 +276,32 @@
     return result;
   }
 
+  // Followed CurseForge creators: { id, name, url }. Older builds stored ids of sample creators as plain
+  // strings; those do not exist on CurseForge, so they are dropped.
+  function normalizeFollowing(raw) {
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set();
+    return raw.flatMap(entry => {
+      const id = Number(entry?.id);
+      if (!Number.isSafeInteger(id) || id <= 0 || seen.has(id) || typeof entry.name !== 'string' || !entry.name.trim()) return [];
+      seen.add(id);
+      let url = '';
+      try {
+        const parsed = new URL(String(entry.url || ''));
+        if (parsed.protocol === 'https:' && /(^|\.)curseforge\.com$/i.test(parsed.hostname)) url = parsed.href;
+      } catch {}
+      return [{ id, name: entry.name.trim().slice(0, 80), url }];
+    });
+  }
+
+  // Moves mods by followed creators to the front, keeping CurseForge's order inside each group.
+  function rankByFollowing(mods, following) {
+    const ids = new Set((following || []).map(f => f.id));
+    if (!ids.size || !Array.isArray(mods)) return mods;
+    const followed = mods.filter(mod => (mod.authors || []).some(a => ids.has(a.id)));
+    return followed.length ? [...followed, ...mods.filter(mod => !followed.includes(mod))] : mods;
+  }
+
   // Turns a { ok, value | error } desktop reply into a value, or throws an Error carrying `code`.
   function unwrapDesktopResult(result) {
     if (result && result.ok === true) return result.value;
@@ -312,6 +338,8 @@
     modPathKey,
     modOrigin,
     groupModFiles,
-    unclassifiedExternal
+    unclassifiedExternal,
+    normalizeFollowing,
+    rankByFollowing
   };
 });

@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld(
       classes: invoke('cf:classes'),
       categories: invoke('cf:categories'),
       search: invoke('cf:search'),
+      creators: invoke('cf:creators'),
       details: invoke('cf:details'),
       files: invoke('cf:files'),
       install: invoke('cf:install'),

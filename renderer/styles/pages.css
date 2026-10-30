@@ -767,3 +767,55 @@
   height: 22px;
   color: var(--accent);
 }
+
+/* Creators: the three most popular projects of each creator, and the "you follow" marker in Explore. */
+.creator-projects {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.creator-projects li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+.creator-projects .text-link {
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.follow-btn.is-on {
+  border-color: transparent;
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.cf-card.is-followed {
+  border-color: color-mix(in oklab, var(--highlight) 45%, var(--line));
+}
+.followed-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--highlight) 45%, var(--line));
+  background: var(--surface);
+  color: var(--highlight-text);
+  box-shadow: var(--shadow-sm);
+}
+.followed-badge .icon {
+  width: 16px;
+  height: 16px;
+}
+.followed-row {
+  margin-bottom: var(--sp-3);
+}

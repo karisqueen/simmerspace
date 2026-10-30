@@ -1,6 +1,7 @@
 /* Integration settings (CurseForge and SimmerSpace accounts), read only in the desktop process.
    Sources, highest priority first:
-     1. Environment variables (CURSEFORGE_API_KEY, SUPABASE_URL, ...).
+     1. Environment variables (CURSEFORGE_API_KEY, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, ...). When running from
+        source (not packaged), a git-ignored .env.local next to package.json fills in variables that are not set.
      2. simmerspace.config.json in the app's user-data folder (local to this PC, never packaged).
      3. electron/public-config.json, bundled with the app. It may hold only PUBLIC values; a CurseForge key
         found there is ignored, because anything packaged with the app can be extracted from it.
@@ -42,11 +43,42 @@ function cleanUrl(value) {
   }
 }
 
+// Reads KEY=VALUE lines from a dotenv-style file. Only used for a development copy run from source.
+async function readEnvFile(file) {
+  let text = '';
+  try {
+    text = await fs.readFile(file, 'utf8');
+  } catch {
+    return {};
+  }
+  const values = {};
+  for (const line of text.split(/\r?\n/)) {
+    const match = /^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+    if (!match) continue;
+    values[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
+  }
+  return values;
+}
+
+// Supabase secret keys (sb_secret_...) and service_role JWTs bypass row-level security: refuse them.
+function publicKey(value) {
+  const text = clean(value);
+  if (!text || /^sb_secret_/i.test(text)) return '';
+  const payload = text.split('.')[1];
+  if (payload) {
+    try {
+      if (JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))?.role === 'service_role') return '';
+    } catch {}
+  }
+  return text;
+}
+
 function pick(...values) {
   return values.find(value => value) || '';
 }
 
-async function loadAppConfig({ userDataPath, env = process.env, publicConfigFile = PUBLIC_CONFIG_FILE } = {}) {
+async function loadAppConfig({ userDataPath, env = process.env, publicConfigFile = PUBLIC_CONFIG_FILE, devEnvFile = '' } = {}) {
+  if (devEnvFile) env = { ...(await readEnvFile(devEnvFile)), ...env };
   const localFile = userDataPath ? path.join(userDataPath, LOCAL_CONFIG_FILE) : '';
   const local = localFile ? await readJson(localFile) : {};
   const bundled = await readJson(publicConfigFile);
@@ -72,7 +104,8 @@ async function loadAppConfig({ userDataPath, env = process.env, publicConfigFile
     },
     supabase: {
       url: pick(cleanUrl(env.SUPABASE_URL), cleanUrl(localSb.url), cleanUrl(bundledSb.url)),
-      anonKey: pick(clean(env.SUPABASE_ANON_KEY), clean(localSb.anonKey), clean(bundledSb.anonKey))
+      // The publishable key is public by design (row-level security protects the data). Never a secret key.
+      anonKey: pick(publicKey(env.SUPABASE_PUBLISHABLE_KEY), publicKey(env.SUPABASE_ANON_KEY), publicKey(localSb.publishableKey), publicKey(localSb.anonKey), publicKey(bundledSb.publishableKey), publicKey(bundledSb.anonKey))
     }
   };
 }

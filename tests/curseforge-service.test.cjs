@@ -314,3 +314,27 @@ test('summaries drop unexpected values', () => {
   assert.deepEqual(summary.screenshots, []);
   assert.equal(summary.latestFiles[0].downloadAllowed, false);
 });
+
+test('popular creators are built only from authors CurseForge returns, ranked by their projects\' downloads', async t => {
+  const projects = [
+    modRecord({ id: 1, name: 'A', downloadCount: 100, authors: [{ id: 5, name: 'mossyhome', url: 'https://www.curseforge.com/members/mossyhome' }] }),
+    modRecord({ id: 2, name: 'B', downloadCount: 900, authors: [{ id: 6, name: 'pixelpine', url: 'https://evil.example/x' }] }),
+    modRecord({ id: 3, name: 'C', downloadCount: 50, authors: [{ id: 5, name: 'mossyhome' }] }),
+    modRecord({ id: 4, name: 'D', downloadCount: 10, authors: [] })
+  ];
+  const f = await setup(t, { routes: { [`${API}/v1/mods/search`]: url => json({ data: new URL(url).searchParams.get('index') === '0' ? projects : [], pagination: { index: 0, pageSize: 50, resultCount: 4, totalCount: 4 } }) } });
+  const creators = await f.service.popularCreators({ limit: 12 });
+  assert.deepEqual(creators.map(c => [c.id, c.name, c.downloads, c.projectCount]), [[6, 'pixelpine', 900, 1], [5, 'mossyhome', 150, 2]]);
+  assert.equal(creators[1].url, 'https://www.curseforge.com/members/mossyhome');
+  assert.equal(creators[0].url, '', 'only curseforge.com profile links are kept');
+  assert.equal(creators[1].projects[0].name, 'A');
+  const searches = f.calls.filter(call => call.url.includes('/v1/mods/search'));
+  assert.equal(searches.length, 2);
+  for (const call of searches) assert.equal(new URL(call.url).searchParams.get('sortField'), '2');
+});
+
+test('search can be limited to one author', async t => {
+  const f = await setup(t, { routes: { [`${API}/v1/mods/search`]: json({ data: [modRecord()], pagination: { index: 0, pageSize: 20, resultCount: 1, totalCount: 1 } }) } });
+  await f.service.search({ authorId: 77 });
+  assert.equal(new URL(f.calls.find(call => call.url.includes('/v1/mods/search')).url).searchParams.get('authorId'), '77');
+});

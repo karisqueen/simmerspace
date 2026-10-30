@@ -58,3 +58,14 @@ test('only untagged external files are offered for classification, minus skipped
   assert.deepEqual(pending, ['Loose.package']); // the sofa has a (stale) category tag, the sweater is a download
   assert.deepEqual(core.unclassifiedExternal(files, lookup, new Set(['loose.package'])), []);
 });
+
+test('following keeps only real CurseForge creators and ranks their mods first', () => {
+  const following = core.normalizeFollowing(['sample-creator', { id: 7, name: ' Ana ', url: 'https://www.curseforge.com/members/ana' }, { id: 7, name: 'dup' }, { id: 9, name: 'Bo', url: 'https://evil.example/x' }]);
+  assert.deepEqual(following, [
+    { id: 7, name: 'Ana', url: 'https://www.curseforge.com/members/ana' },
+    { id: 9, name: 'Bo', url: '' }
+  ]);
+  const mods = [{ id: 1, authors: [{ id: 3 }] }, { id: 2, authors: [{ id: 9 }] }, { id: 3, authors: [] }, { id: 4, authors: [{ id: 7 }] }];
+  assert.deepEqual(core.rankByFollowing(mods, following).map(m => m.id), [2, 4, 1, 3]);
+  assert.equal(core.rankByFollowing(mods, []), mods);
+});

@@ -14,6 +14,7 @@ const cf = {
   classes: null,
   classesError: null,
   classId: 0,
+  authorId: 0,
   sortField: 2,
   query: '',
   index: 0,
@@ -84,7 +85,7 @@ async function searchCurseForge() {
   cf.error = null;
   if (state.page === 'curseforge') render();
   try {
-    const result = await callDesktop(cfApi.search, { query: cf.query, classId: cf.classId || undefined, sortField: cf.sortField, sortOrder: cf.sortField === 4 ? 'asc' : 'desc', index: cf.index, pageSize: cf.pageSize });
+    const result = await callDesktop(cfApi.search, { query: cf.query, classId: cf.classId || undefined, authorId: cf.authorId || undefined, sortField: cf.sortField, sortOrder: cf.sortField === 4 ? 'asc' : 'desc', index: cf.index, pageSize: cf.pageSize });
     if (request !== cf.request) return;
     cf.results = result;
   } catch (error) {
@@ -118,7 +119,8 @@ function curseForgeQueryChanged(query) {
 /* ---------- Page ---------- */
 function cfCard(mod) {
   const authors = mod.authors.map(a => a.name).filter(Boolean).join(', ');
-  return `<article class="cc-card cf-card">${cfThumb(mod.logo)}<div class="card-body"><h3><button class="card-title-button" data-cf-detail="${mod.id}">${esc(mod.name)}</button></h3><div class="card-creator">${authors ? esc(format(t('cfBy'), { name: authors })) : ''}</div><p class="cf-summary">${esc(mod.summary)}</p><div class="card-meta"><span class="meta-stat" title="${esc(t('cfDownloads'))}">${icon('download')}${compactNumber(mod.downloadCount)}</span>${mod.dateModified ? `<span class="meta-stat">${esc(shortDate(mod.dateModified))}</span>` : ''}${mod.categories[0] ? `<span class="meta-pill meta-pill-quiet">${esc(mod.categories[0].name)}</span>` : ''}</div></div></article>`;
+  const followed = mod.authors.some(a => isFollowing(a.id));
+  return `<article class="cc-card cf-card ${followed ? 'is-followed' : ''}">${followed ? `<span class="followed-badge" data-tip="${esc(t('cfFollowedBadge'))}">${icon('heart')}<span class="visually-hidden">${esc(t('cfFollowedBadge'))}</span></span>` : ''}${cfThumb(mod.logo)}<div class="card-body"><h3><button class="card-title-button" data-cf-detail="${mod.id}">${esc(mod.name)}</button></h3><div class="card-creator">${authors ? esc(format(t('cfBy'), { name: authors })) : ''}</div><p class="cf-summary">${esc(mod.summary)}</p><div class="card-meta"><span class="meta-stat" title="${esc(t('cfDownloads'))}">${icon('download')}${compactNumber(mod.downloadCount)}</span>${mod.dateModified ? `<span class="meta-stat">${esc(shortDate(mod.dateModified))}</span>` : ''}${mod.categories[0] ? `<span class="meta-pill meta-pill-quiet">${esc(mod.categories[0].name)}</span>` : ''}</div></div></article>`;
 }
 function cfSkeleton(count = 8) {
   return `<div class="card-grid" aria-hidden="true">${Array.from({ length: count }, () => '<div class="cc-card skeleton-card"><span class="skeleton skeleton-thumb"></span><div class="card-body"><span class="skeleton skeleton-line"></span><span class="skeleton skeleton-line short"></span></div></div>').join('')}</div>`;
@@ -129,21 +131,24 @@ function cfBrowse() {
     : cf.classesError
       ? ''
       : '<div class="filter-bar"><span class="skeleton skeleton-line"></span></div>';
+  const followedChips = state.followingCreators.length
+    ? `<div class="toolbar-row followed-row">${chipGroup({ name: 'cf-author', label: t('cfFollowedFilter'), options: [['0', t('cfAllCreators')], ...state.followingCreators.map(f => [String(f.id), f.name])], selected: String(cf.authorId), size: 'sm' })}</div>`
+    : '';
   let body = '';
   if (cf.loading && !cf.results) body = `<p class="visually-hidden" role="status">${t('loading')}</p>${cfSkeleton()}`;
   else if (cf.error) body = cfErrorState(cf.error, 'cf-retry-search');
-  else if (cf.results && !cf.results.mods.length) body = empty(t('cfNoResults'), cf.query ? format(t('cfNoResultsFor'), { query: esc(cf.query) }) : '', cf.query || cf.classId ? `<button class="secondary-btn" id="cf-clear-search">${t('resetFilters')}</button>` : '');
+  else if (cf.results && !cf.results.mods.length) body = empty(t('cfNoResults'), cf.query ? format(t('cfNoResultsFor'), { query: esc(cf.query) }) : '', cf.query || cf.classId || cf.authorId ? `<button class="secondary-btn" id="cf-clear-search">${t('resetFilters')}</button>` : '');
   else if (cf.results) {
     const { index, pageSize, reachable, totalCount } = cf.results.pagination;
     const pages = Math.max(1, Math.ceil(reachable / pageSize));
     const page = Math.floor(index / pageSize) + 1;
-    body = `<p class="result-count" role="status">${esc(format(t('cfResultCount'), { count: compactNumber(totalCount) }))}${cf.loading ? ` · ${t('loading')}` : ''}</p><div class="card-grid ${cf.loading ? 'is-refreshing' : ''}">${cf.results.mods.map(cfCard).join('')}</div>${
+    body = `<p class="result-count" role="status">${esc(format(t('cfResultCount'), { count: compactNumber(totalCount) }))}${cf.loading ? ` · ${t('loading')}` : ''}</p><div class="card-grid ${cf.loading ? 'is-refreshing' : ''}">${rankByFollowing(cf.results.mods, state.followingCreators).map(cfCard).join('')}</div>${
       pages > 1
         ? `<nav class="pager" aria-label="${esc(mt('pagination'))}"><button class="secondary-btn small-chip" data-cf-page="-1" ${page <= 1 || cf.loading ? 'disabled' : ''}>← ${t('previous')}</button><span>${esc(format(mt('pageOf'), { page: n(page), pages: n(pages) }))}</span><button class="secondary-btn small-chip" data-cf-page="1" ${page >= pages || cf.loading ? 'disabled' : ''}>${t('next')} →</button></nav>`
         : ''
     }`;
   }
-  return `${classes}${body}`;
+  return `${classes}${followedChips}${body}`;
 }
 function cfErrorState(error, retryId) {
   const rate = error?.code === 'CF_RATE_LIMITED';
@@ -174,7 +179,7 @@ function cfInstalled() {
   return `<div class="toolbar-row"><button class="secondary-btn" id="cf-check-updates" ${cf.checking ? 'disabled' : ''}>${icon('refresh')}<span>${cf.checking ? t('cfChecking') : t('cfCheckUpdates')}</span></button>${cf.updates ? `<span class="muted-note">${esc(format(t('cfUpdatesFound'), { count: n(cf.updates.updates.length) }))}</span>` : ''}</div><ul class="list-panel">${rows}</ul>`;
 }
 function renderCurseForge() {
-  const header = pageHeader(t('curseforge'), { meta: `<span class="attribution">${t('cfAttribution')}</span>`, actions: `<a class="tertiary-btn" href="https://www.curseforge.com/sims4" target="_blank" rel="noopener noreferrer">${t('cfOpenSite')} ${icon('external')}</a>` });
+  const header = pageHeader(t('explore'), { meta: `<span class="attribution">${t('cfAttribution')}</span>`, actions: `<a class="tertiary-btn" href="https://www.curseforge.com/sims4" target="_blank" rel="noopener noreferrer">${t('cfOpenSite')} ${icon('external')}</a>` });
   if (!cfApi) {
     content.innerHTML = `${header}${empty(mt('desktopOnlyTitle'), t('desktopOnly'))}`;
     return;
@@ -350,6 +355,7 @@ const CF_CLICK_ACTIONS = {
   'cf-clear-search': () => {
     cf.query = '';
     cf.classId = 0;
+    cf.authorId = 0;
     cf.index = 0;
     state.query = '';
     search.value = '';
@@ -402,6 +408,11 @@ document.addEventListener('click', async event => {
     searchCurseForge();
     document.querySelector('.main-area')?.scrollTo?.(0, 0);
     return;
+  }
+  if (target.dataset.filter === 'cf-author') {
+    cf.authorId = Number(target.dataset.value) || 0;
+    cf.index = 0;
+    return searchCurseForge();
   }
   if (target.dataset.filter === 'cf-class') {
     cf.classId = Number(target.dataset.value) || 0;

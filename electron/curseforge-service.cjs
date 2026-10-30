@@ -97,6 +97,7 @@ function summarizeMod(mod) {
     slug: text(mod.slug, 200),
     summary: text(mod.summary, 600),
     authors: (Array.isArray(mod.authors) ? mod.authors : []).slice(0, 8).map(author => ({
+      id: Number(author?.id) || 0,
       name: text(author?.name, 120),
       url: isCurseForgePage(author?.url) ? author.url : ''
     })),
@@ -341,6 +342,7 @@ function createCurseForgeService({
         gameId: id,
         classId: int(options.classId, undefined, 1, 2 ** 31),
         categoryId: int(options.categoryId, undefined, 1, 2 ** 31),
+        authorId: int(options.authorId, undefined, 1, 2 ** 31),
         searchFilter: text(options.query, 100).trim() || undefined,
         sortField,
         sortOrder: options.sortOrder === 'asc' ? 'asc' : 'desc',
@@ -354,6 +356,27 @@ function createCurseForgeService({
       mods: (Array.isArray(result?.data) ? result.data : []).map(summarizeMod).filter(Boolean),
       pagination: { index, pageSize, resultCount: Number(pagination.resultCount) || 0, totalCount, reachable: Math.min(totalCount, MAX_RESULT_WINDOW) }
     };
+  }
+
+  // Popular creators: CurseForge has no creator ranking, so this groups the authors of the most popular Sims 4
+  // projects and ranks them by those projects' downloads. Only data the API returns is used (no avatars exist
+  // in the API, so the card shows the creator's most downloaded project image).
+  async function popularCreators({ limit = 12 } = {}) {
+    const wanted = int(limit, 12, 1, 24);
+    const pages = await Promise.all([0, MAX_PAGE_SIZE].map(index => search({ sortField: 2, pageSize: MAX_PAGE_SIZE, index })));
+    const byAuthor = new Map();
+    for (const project of pages.flatMap(page => page.mods)) {
+      for (const author of project.authors.slice(0, 2)) {
+        if (!author.name) continue;
+        const key = author.id ? `id:${author.id}` : `name:${author.name.toLowerCase()}`;
+        const entry = byAuthor.get(key) || { id: author.id, name: author.name, url: author.url, downloads: 0, projectCount: 0, projects: [] };
+        entry.downloads += project.downloadCount;
+        entry.projectCount++;
+        if (entry.projects.length < 3) entry.projects.push({ id: project.id, name: project.name, logo: project.logo, summary: project.summary, downloadCount: project.downloadCount, websiteUrl: project.websiteUrl });
+        byAuthor.set(key, entry);
+      }
+    }
+    return [...byAuthor.values()].sort((a, b) => b.downloads - a.downloads).slice(0, wanted);
   }
 
   async function mod(modId) {
@@ -678,7 +701,7 @@ function createCurseForgeService({
     });
   }
 
-  return { isConfigured, searchMods, getModFiles, getDownloadUrl, request, sims4GameId, classes, categories, search, details, files, install, installs, checkUpdates, testConnection, diagnostics, clearCache: () => cache.clear() };
+  return { isConfigured, searchMods, getModFiles, getDownloadUrl, request, sims4GameId, classes, categories, search, popularCreators, details, files, install, installs, checkUpdates, testConnection, diagnostics, clearCache: () => cache.clear() };
 }
 
 module.exports = { createCurseForgeService, summarizeMod, summarizeFile, newestFile, htmlToText, folderNameForMod, isDownloadUrl, isImageUrl, isCurseForgePage };
