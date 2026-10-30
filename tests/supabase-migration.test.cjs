@@ -51,7 +51,8 @@ test('functions run with an empty search path; only the username check is open t
 });
 
 test('the account service and the migration agree on columns, categories and buckets', () => {
-  const service = fs.readFileSync(path.join(__dirname, '../electron/account-service.cjs'), 'utf8');
+  // Posts and profiles live in community-service.cjs since 0.12.1; the account service re-exports them.
+  const service = ['account-service.cjs', 'community-service.cjs'].map(name => fs.readFileSync(path.join(__dirname, '../electron', name), 'utf8')).join('\n');
   const { POST_CATEGORIES, FEEDBACK_CATEGORIES } = require('../electron/account-service.cjs');
   for (const column of ['username', 'avatar_url', 'image_path', 'caption', 'category', 'message', 'created_at']) {
     assert.ok(service.includes(column), `service uses ${column}`);

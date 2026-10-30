@@ -4,25 +4,20 @@
    Passwords go straight to Supabase and are never stored by SimmerSpace. The session is kept in the user-data
    folder, encrypted with the operating system's protection (Electron safeStorage); when that is not available
    it is kept in memory only and the player signs in again next time. */
-const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { AppError } = require('./errors.cjs');
+const { createCommunityService } = require('./community-service.cjs');
 
 const SESSION_FILE = 'account-session.json';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[a-z0-9_.]{3,24}$/;
 const MIN_PASSWORD = 8;
 const AVATAR_BUCKET = 'avatars';
-const POST_BUCKET = 'inspiration';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-const POST_MAX_BYTES = 10 * 1024 * 1024;
 const AVATAR_TYPES = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' };
-const POST_TYPES = { ...AVATAR_TYPES, 'image/gif': 'gif' };
 const POST_CATEGORIES = ['cas', 'build', 'gameplay', 'story', 'other'];
 const FEEDBACK_CATEGORIES = ['suggestion', 'bug_report', 'feature_request', 'donation_feedback', 'other'];
-const PAGE_SIZE = 24;
-const SIGNED_URL_SECONDS = 60 * 60;
 const USERNAME_CHANGE_DAYS = 30;
 
 // Supabase error codes (https://supabase.com/docs/guides/auth/debugging/error-codes) mapped to our own.
@@ -427,97 +422,8 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     });
   }
 
-  /* ---------- Inspiration ---------- */
-  async function signedUrls(sb, paths) {
-    if (!paths.length) return new Map();
-    const { data, error } = await sb.storage.from(POST_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
-    if (error) throw error;
-    return new Map((data || []).filter(item => item.signedUrl && !item.error).map(item => [item.path, item.signedUrl]));
-  }
-
-  // One page of the community feed, newest first. `before` is the created_at of the last post already shown.
-  async function listPosts({ before, category, userId, limit } = {}) {
-    const size = Number.isInteger(limit) && limit > 0 && limit <= 48 ? limit : PAGE_SIZE;
-    return run(async sb => {
-      const me = await requireUser(sb);
-      let query = sb.from('inspiration_posts').select('id, user_id, image_path, caption, category, created_at').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(size + 1);
-      if (POST_CATEGORIES.includes(category)) query = query.eq('category', category);
-      if (typeof userId === 'string' && /^[0-9a-f-]{36}$/i.test(userId)) query = query.eq('user_id', userId);
-      if (typeof before === 'string' && !Number.isNaN(Date.parse(before))) query = query.lt('created_at', before);
-      const { data, error } = await query;
-      if (error) throw error;
-      const rows = (data || []).slice(0, size);
-      const ids = [...new Set(rows.map(row => row.user_id))];
-      const [authors, urls] = await Promise.all([
-        ids.length ? sb.from('profiles').select('id, username, avatar_url').in('id', ids) : Promise.resolve({ data: [] }),
-        signedUrls(sb, rows.map(row => row.image_path))
-      ]);
-      if (authors.error) throw authors.error;
-      const byId = new Map((authors.data || []).map(row => [row.id, row]));
-      return {
-        posts: rows.map(row => ({
-          id: row.id,
-          userId: row.user_id,
-          author: { username: byId.get(row.user_id)?.username || '', avatarUrl: avatarUrl(sb, byId.get(row.user_id)?.avatar_url) },
-          imageUrl: urls.get(row.image_path) || '',
-          caption: row.caption || '',
-          category: POST_CATEGORIES.includes(row.category) ? row.category : 'other',
-          createdAt: row.created_at,
-          own: row.user_id === me.id
-        })),
-        nextBefore: (data || []).length > size ? rows.at(-1).created_at : null
-      };
-    });
-  }
-
-  async function getProfile({ userId } = {}) {
-    if (typeof userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(userId)) throw new AppError('INVALID_INPUT', 'A profile id was expected.');
-    return run(async sb => {
-      await requireUser(sb);
-      const [profile, posts] = await Promise.all([
-        sb.from('profiles').select('id, username, avatar_url, created_at').eq('id', userId).maybeSingle(),
-        sb.from('inspiration_posts').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-      ]);
-      if (profile.error) throw profile.error;
-      if (!profile.data) throw new AppError('NOT_FOUND', 'This profile does not exist.');
-      return { id: profile.data.id, username: profile.data.username || '', avatarUrl: avatarUrl(sb, profile.data.avatar_url), createdAt: profile.data.created_at, postCount: posts.count || 0 };
-    });
-  }
-
-  // Images go to inspiration/<user id>/<random id>.<ext>. If saving the post fails, the image is removed again.
-  async function createPost(input = {}) {
-    const image = checkImage(input, POST_TYPES, POST_MAX_BYTES);
-    const caption = cleanText(input.caption, 500);
-    const category = POST_CATEGORIES.includes(input.category) ? input.category : 'other';
-    return run(async sb => {
-      const user = await requireUser(sb);
-      const objectPath = `${user.id}/${crypto.randomUUID()}.${image.ext}`;
-      const bucket = sb.storage.from(POST_BUCKET);
-      const uploaded = await bucket.upload(objectPath, image.body, { contentType: image.type, upsert: false, cacheControl: '86400' });
-      if (uploaded.error) throw uploaded.error;
-      const saved = await sb.from('inspiration_posts').insert({ user_id: user.id, image_path: objectPath, caption, category }).select('id').single();
-      if (saved.error) {
-        await bucket.remove([objectPath]);
-        throw saved.error;
-      }
-      return { id: saved.data.id };
-    });
-  }
-
-  // Deletes the post and its image. Row-level security only lets the author do this.
-  async function deletePost({ id } = {}) {
-    if (typeof id !== 'string' && !Number.isInteger(id)) throw new AppError('INVALID_INPUT', 'A post id was expected.');
-    return run(async sb => {
-      const user = await requireUser(sb);
-      const found = await sb.from('inspiration_posts').select('id, image_path').eq('id', id).eq('user_id', user.id).maybeSingle();
-      if (found.error) throw found.error;
-      if (!found.data) throw new AppError('ACCOUNT_FORBIDDEN', 'Only the author can delete this post.');
-      const removed = await sb.from('inspiration_posts').delete().eq('id', id).eq('user_id', user.id);
-      if (removed.error) throw removed.error;
-      const image = await sb.storage.from(POST_BUCKET).remove([found.data.image_path]);
-      return { deleted: true, imageRemoved: !image.error };
-    });
-  }
+  /* ---------- Inspiration (community-service.cjs) ---------- */
+  const community = createCommunityService({ run, requireUser, avatarUrl });
 
   /* ---------- Feedback ---------- */
   async function sendFeedback({ category, message, email } = {}) {
@@ -558,10 +464,7 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     updateProfile,
     uploadAvatar,
     removeAvatar,
-    listPosts,
-    getProfile,
-    createPost,
-    deletePost,
+    ...community,
     sendFeedback,
     proxyToken
   };

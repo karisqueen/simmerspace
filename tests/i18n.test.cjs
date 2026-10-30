@@ -30,7 +30,7 @@ test('every literal text key used by the interface exists', () => {
 });
 
 test('every error code the desktop app can send has a translation', () => {
-  const electron = ['errors.cjs', 'mods-service.cjs', 'ipc.cjs', 'curseforge-service.cjs', 'account-service.cjs', 'game-launcher.cjs', 'zip-reader.cjs', 'main.cjs'].map(name => read(`electron/${name}`)).join('\n');
+  const electron = ['errors.cjs', 'mods-service.cjs', 'ipc.cjs', 'curseforge-service.cjs', 'account-service.cjs', 'community-service.cjs', 'game-launcher.cjs', 'zip-reader.cjs', 'main.cjs'].map(name => read(`electron/${name}`)).join('\n');
   const codes = new Set([...electron.matchAll(/AppError\('([A-Z_]+)'/g), ...electron.matchAll(/:\s*'([A-Z_]{4,})'/g)].map(match => match[1]));
   codes.add('FORBIDDEN');
   codes.add('UNKNOWN');

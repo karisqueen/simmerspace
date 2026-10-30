@@ -68,6 +68,8 @@ test('config: a development .env.local fills unset variables, and Supabase secre
 });
 
 // A stand-in for supabase-js that records calls. No network, no real project.
+// Social tables (0.12.1 migration) answer "not found" unless `social` is true, like a project without the migration.
+const SOCIAL_TABLES = ['inspiration_tags', 'inspiration_post_tags', 'inspiration_boards', 'inspiration_board_posts', 'inspiration_comments', 'user_follows'];
 function fakeSupabase({ signUpSession = null, taken = [], identities = null, verifyError = null } = {}) {
   const calls = [];
   let session = null;
@@ -81,6 +83,7 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null, ver
     let values = null;
     const run = () => {
       calls.push([op, name, values, filters.slice()]);
+      if (SOCIAL_TABLES.includes(name)) return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}'` } };
       if (name === 'profiles' && op === 'update') {
         const id = filters.find(f => f[0] === 'id')[1];
         if (values.username && [...profiles.values()].some(p => p.id !== id && p.username === values.username)) return { error: { code: '23505' } };
@@ -116,6 +119,8 @@ function fakeSupabase({ signUpSession = null, taken = [], identities = null, ver
       eq: (k, v) => (filters.push([k, v]), chain),
       in: (k, v) => (filters.push([k, v, 'in']), chain),
       lt: (k, v) => (filters.push([k, v, 'lt']), chain),
+      is: (k, v) => (filters.push([k, v]), chain),
+      range: () => chain,
       order: () => chain,
       limit: () => chain,
       single: () => Promise.resolve(run()),
@@ -297,6 +302,40 @@ test('inspiration: posts upload into the author folder, list with authors and si
   await assert.rejects(service.deletePost({ id: 'p999' }), { code: 'ACCOUNT_FORBIDDEN' });
 });
 
+test('inspiration before the 0.12.1 migration: the feed still works and social actions say so clearly', async t => {
+  const fake = fakeSupabase();
+  const service = accountWith(t, await tempDir(t), fake);
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  await service.createPost({ ...webp(8), caption: 'Hi', tags: ['Maxis Match'] }).then(result => assert.equal(result.tagsSaved, false));
+  const page = await service.listPosts();
+  assert.equal(page.social, false);
+  assert.deepEqual(page.posts[0].tags, []);
+  assert.equal(page.posts[0].commentCount, 0);
+  assert.deepEqual(await service.listBoards(), { boards: [], social: false });
+  assert.deepEqual(await service.listComments({ postId: '00000000-0000-0000-0000-0000000000f1' }), { comments: [], social: false });
+  await assert.rejects(service.follow({ userId: '00000000-0000-0000-0000-0000000000b2' }), { code: 'COMMUNITY_NOT_READY' });
+  await assert.rejects(service.createBoard({ name: 'Cocinas' }), { code: 'COMMUNITY_NOT_READY' });
+  await assert.rejects(service.listPosts({ tags: ['maxis-match'] }), { code: 'COMMUNITY_NOT_READY' });
+  const profile = await service.getProfile({ userId: '00000000-0000-0000-0000-00000000000a' });
+  assert.equal(profile.social, false);
+  assert.equal(profile.followers, null);
+});
+
+test('inspiration input checks happen before contacting the server', async t => {
+  const fake = fakeSupabase();
+  const service = accountWith(t, await tempDir(t), fake);
+  await service.signIn({ email: 'ana@example.com', password: 'correct horse 1' });
+  const before = fake.calls.length;
+  await assert.rejects(service.follow({ userId: '00000000-0000-0000-0000-00000000000a' }), { code: 'INVALID_INPUT' });
+  await assert.rejects(service.addComment({ postId: '00000000-0000-0000-0000-0000000000f1', body: '   ' }), { code: 'COMMENT_EMPTY' });
+  await assert.rejects(service.addComment({ postId: '00000000-0000-0000-0000-0000000000f1', body: 'x'.repeat(1001) }), { code: 'COMMENT_TOO_LONG' });
+  await assert.rejects(service.createBoard({ name: '  ' }), { code: 'BOARD_NAME_REQUIRED' });
+  await assert.rejects(service.updatePost({ id: 'not-a-uuid', caption: 'x' }), { code: 'INVALID_INPUT' });
+  await assert.rejects(service.updatePost({ id: '00000000-0000-0000-0000-0000000000f1', tags: Array.from({ length: 9 }, (_, i) => `tag ${i}`) }), { code: 'TOO_MANY_TAGS' });
+  await assert.rejects(service.createPost({ ...webp(8), tags: ['x'.repeat(33)] }), { code: 'TAG_TOO_LONG' });
+  assert.equal(fake.calls.slice(before).filter(c => c[0] !== 'signIn').length, 0);
+});
+
 test('feedback: only known categories, a message is required, and the sender is the signed-in user', async t => {
   const dir = await tempDir(t);
   const fake = fakeSupabase();
@@ -352,4 +391,14 @@ test('Launch Game starts TS4_x64.exe from the chosen game folder and explains wh
   assert.deepEqual(opened, [path.join(dir, 'Game', 'Bin', 'TS4_x64.exe')]);
   const failing = createGameLauncher({ getGameFolder: async () => dir, openPath: async () => 'Access denied' });
   await assert.rejects(failing.launch(), { code: 'GAME_LAUNCH_FAILED' });
+});
+
+test('tags: one readable name per search form, accents and # ignored', () => {
+  const { tagSlug, cleanTags } = require('../electron/community-service.cjs');
+  assert.equal(tagSlug('  Long Curly HAIR '), 'long-curly-hair');
+  assert.equal(tagSlug('Vestido victoriano ñandú'), 'vestido-victoriano-nandu');
+  assert.equal(tagSlug('Build/Buy'), 'build-buy');
+  assert.deepEqual(cleanTags(['Maxis Match', 'maxis-match', '#Cottagecore', ' ', 'x', 'Pelo  rizado']), ['Maxis Match', 'Cottagecore', 'Pelo rizado']);
+  assert.deepEqual(cleanTags(undefined), []);
+  assert.throws(() => cleanTags('hair'), { code: 'INVALID_INPUT' });
 });

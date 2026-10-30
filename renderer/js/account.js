@@ -19,7 +19,7 @@ const account = {
 };
 // The player's own posts and counts on the profile page, loaded when it opens.
 function freshProfile(userId) {
-  return { userId, posts: [], postCount: null, more: false, loaded: false, loading: false, error: null };
+  return { userId, posts: [], postCount: null, followers: null, following: null, more: false, loaded: false, loading: false, error: null };
 }
 
 function accountUser() {
@@ -227,7 +227,9 @@ async function loadOwnProfile() {
   profile.loading = true;
   try {
     const [page, info] = await Promise.all([callDesktop(inspirationApi.list, { userId: user.id, limit: PROFILE_POSTS }), callDesktop(inspirationApi.profile, { userId: user.id })]);
-    Object.assign(profile, { posts: page.posts, more: !!page.nextBefore, postCount: info.postCount, error: null });
+    // The viewer and the edit dialog look posts up by id, so own posts join the shared cache.
+    rememberPosts(page.posts);
+    Object.assign(profile, { posts: page.posts, more: !!page.nextBefore, postCount: info.postCount, followers: info.followers ?? null, following: info.following ?? null, error: null });
   } catch (error) {
     profile.error = error;
   } finally {
@@ -244,8 +246,9 @@ function profileTile(post) {
   const label = post.caption || t('postNoCaption');
   return `<div class="profile-tile"><button class="profile-tile-image" data-post-view="${esc(post.id)}" aria-label="${esc(label)}">${post.imageUrl ? `<img src="${esc(post.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="post-missing">${icon('inspiration')}</span>`}<span class="profile-tile-caption">${esc(post.caption || t(`inspCat_${post.category}`))}</span></button><button class="icon-btn icon-btn-sm profile-tile-delete" data-post-delete="${esc(post.id)}" aria-label="${esc(t('postDelete'))}" data-tip="${esc(t('postDelete'))}">${icon('trash')}</button></div>`;
 }
-function profileStat(value, label, page = '') {
+function profileStat(value, label, page = '', attrs = '') {
   const inner = `<b>${esc(value)}</b><span>${esc(label)}</span>`;
+  if (attrs) return `<button class="profile-stat" ${attrs}>${inner}</button>`;
   return page ? `<button class="profile-stat" data-page="${page}">${inner}</button>` : `<div class="profile-stat">${inner}</div>`;
 }
 function renderAccount() {
@@ -260,7 +263,9 @@ function renderAccount() {
   const busy = account.avatarBusy;
   const count = value => (value === null ? '—' : Number(value).toLocaleString(state.lang));
   const since = user.memberSince ? format(t('profileMemberSince'), { date: longDate(user.memberSince) }) : '';
-  const hero = `<section class="profile-hero panel"><div class="profile-cover" aria-hidden="true"></div><div class="profile-main"><div class="profile-avatar">${avatarMarkup(user, 'avatar-profile')}${busy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}<button class="profile-avatar-btn" id="avatar-change" aria-label="${esc(t('avatarChange'))}" data-tip="${esc(t('avatarChange'))}" ${busy ? 'disabled' : ''}>${icon('upload')}</button><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="profile-identity"><div class="profile-name-row"><h1 class="profile-name">@${esc(user.username)}</h1><button class="icon-btn icon-btn-sm profile-rename" id="username-change" aria-label="${esc(t('usernameChange'))}" data-tip="${esc(t('usernameChange'))}">${icon('edit')}</button></div>${since ? `<p class="profile-meta">${icon('sparkle')}<span>${esc(since)}</span></p>` : ''}</div><div class="profile-actions"><button class="primary-btn" id="post-new">${icon('upload')}<span>${t('postNew')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn" id="avatar-remove" ${busy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}</div></div><div class="profile-stats">${profileStat(count(p.postCount), t('profilePosts'))}${profileStat(count(state.collections.length), t('collectionsTitle'), 'collections')}${profileStat(count(state.followingCreators.length), t('profileFollowing'), 'creators')}</div></section>`;
+  const hero = `<section class="profile-hero panel"><div class="profile-cover" aria-hidden="true"></div><div class="profile-main"><div class="profile-avatar">${avatarMarkup(user, 'avatar-profile')}${busy ? `<span class="avatar-busy" role="status">${t('working')}</span>` : ''}<button class="profile-avatar-btn" id="avatar-change" aria-label="${esc(t('avatarChange'))}" data-tip="${esc(t('avatarChange'))}" ${busy ? 'disabled' : ''}>${icon('upload')}</button><input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" hidden></div><div class="profile-identity"><div class="profile-name-row"><h1 class="profile-name">@${esc(user.username)}</h1><button class="icon-btn icon-btn-sm profile-rename" id="username-change" aria-label="${esc(t('usernameChange'))}" data-tip="${esc(t('usernameChange'))}">${icon('edit')}</button></div>${since ? `<p class="profile-meta">${icon('sparkle')}<span>${esc(since)}</span></p>` : ''}</div><div class="profile-actions"><button class="primary-btn" id="post-new">${icon('upload')}<span>${t('postNew')}</span></button>${user.avatarUrl ? `<button class="tertiary-btn" id="avatar-remove" ${busy ? 'disabled' : ''}>${t('avatarRemove')}</button>` : ''}</div></div><div class="profile-stats">${profileStat(count(p.postCount), t('profilePosts'))}${
+    p.followers === null ? '' : `${profileStat(count(p.followers), t('followersLabelTitle'), '', `data-follow-list="followers" data-follow-user="${esc(user.id)}"`)}${profileStat(count(p.following), t('followingLabelTitle'), '', `data-follow-list="following" data-follow-user="${esc(user.id)}"`)}`
+  }${profileStat(count(state.collections.length), t('collectionsTitle'), 'collections')}${profileStat(count(state.followingCreators.length), t('profileFollowing'), 'creators')}</div></section>`;
   let posts;
   if (!p.loaded) posts = `<div class="profile-grid">${'<span class="profile-tile skeleton"></span>'.repeat(6)}</div>`;
   else if (p.error) posts = `<div class="empty-state"><b>${t('profilePostsError')}</b><p>${esc(errorMessage(p.error))}</p><button class="secondary-btn" id="profile-retry">${mt('tryAgain')}</button></div>`;
