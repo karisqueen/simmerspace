@@ -1,30 +1,74 @@
-/* App shell: sidebar, top bar, content area and the responsive navigation rail. */
+/* App shell: icon rail sidebar, top bar and content area. */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
   min-height: 100vh;
 }
 
-/* ---------- Sidebar ---------- */
+/* ---------- Sidebar ----------
+   A narrow icon rail that expands over the content while the pointer (after a short pause) or keyboard focus
+   is inside it, so the page never shifts. On touch screens the menu button toggles .is-open instead. */
+.sidebar-slot {
+  position: relative;
+}
 .sidebar {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
+  width: var(--rail-w);
   height: 100vh;
-  padding: 18px 12px 14px;
+  padding: 14px 12px 12px;
   overflow-x: hidden;
   overflow-y: auto;
   border-right: 1px solid var(--sidebar-line);
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
+  transition:
+    width var(--dur) var(--ease) 0ms,
+    box-shadow var(--dur) var(--ease) 0ms;
+}
+@media (hover: hover) {
+  .sidebar:hover {
+    width: var(--sidebar-w);
+    box-shadow: var(--shadow-lg);
+    transition-delay: 160ms;
+  }
+}
+.sidebar:focus-within,
+.sidebar.is-open {
+  width: var(--sidebar-w);
+  box-shadow: var(--shadow-lg);
+}
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.sidebar-toggle {
+  display: none;
+  color: var(--sidebar-text);
+}
+@media (hover: none) {
+  .sidebar-toggle {
+    display: inline-grid;
+  }
+  .sidebar-top .brand {
+    display: none;
+  }
+  .sidebar.is-open .sidebar-top .brand {
+    display: flex;
+  }
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 8px 6px;
+  min-width: 0;
+  padding: 4px 5px;
   border-radius: var(--r-md);
   color: inherit;
   text-decoration: none;
@@ -32,7 +76,6 @@
 .side-nav {
   display: grid;
   align-content: start;
-  gap: var(--sp-4);
   flex: 1;
 }
 .side-nav,
@@ -43,10 +86,50 @@
 }
 .nav-group {
   display: grid;
+  gap: 3px;
+}
+/* Labels and secondary details appear only when the rail is open. */
+.sidebar .nav-label,
+.sidebar .nav-count,
+.nav-collections {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.nav-collections {
+  display: none;
+}
+@media (hover: hover) {
+  .sidebar:hover .nav-label,
+  .sidebar:hover .nav-count,
+  .sidebar:hover .nav-collections {
+    opacity: 1;
+    transition-delay: 200ms;
+  }
+  .sidebar:hover .nav-collections {
+    display: grid;
+  }
+}
+.sidebar:focus-within :is(.nav-label, .nav-count, .nav-collections),
+.sidebar.is-open :is(.nav-label, .nav-count, .nav-collections) {
+  opacity: 1;
+}
+.sidebar:focus-within .nav-collections,
+.sidebar.is-open .nav-collections {
+  display: grid;
+}
+.nav-collections {
   gap: 2px;
+  max-height: 30vh;
+  margin: 0 0 4px 22px;
+  padding-left: 8px;
+  overflow-y: auto;
+  border-left: 1px dashed var(--sidebar-line);
+}
+.nav-subtle {
+  color: color-mix(in oklab, var(--sidebar-text) 80%, transparent);
 }
 .nav-heading {
-  padding: 0 10px 4px;
+  padding: 0 8px 2px;
   color: color-mix(in oklab, var(--sidebar-text) 78%, transparent);
   font-size: 11px;
   font-weight: var(--fw-semibold);
@@ -68,6 +151,7 @@
   border: 0;
   border-radius: var(--r-sm);
   background: none;
+  white-space: nowrap;
 }
 .nav-disclosure:hover {
   color: var(--sidebar-strong);
@@ -91,7 +175,7 @@
 .nav-collection-list {
   display: grid;
   gap: 2px;
-  max-height: 34vh;
+  max-height: 30vh;
   overflow-y: auto;
 }
 .nav-item,
@@ -100,50 +184,59 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  min-height: 38px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 13px;
   border: 0;
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: none;
   color: var(--sidebar-text);
   font-size: var(--fs-md);
   font-weight: var(--fw-medium);
   text-align: left;
+  white-space: nowrap;
   transition:
     background-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
+}
+.nav-collection {
+  min-height: 34px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
 }
 .nav-item:hover,
 .account-chip:hover {
   background: var(--sidebar-hover);
   color: var(--sidebar-strong);
 }
+/* The active page keeps a filled pill and a pop-colored marker, visible in the rail and when expanded. */
 .nav-item.is-active,
 .account-chip.is-active {
   background: var(--sidebar-active);
-  color: var(--sidebar-strong);
+  color: var(--accent-text);
   font-weight: var(--fw-semibold);
 }
-/* Active page marker in the second accent. */
-.nav-item.is-active::before {
+.nav-item.is-active .nav-icon {
+  color: var(--accent);
+}
+.nav-item.is-active:not(.nav-collection)::before {
   content: '';
   position: absolute;
-  top: 9px;
-  bottom: 9px;
+  top: 10px;
+  bottom: 10px;
   left: -12px;
   width: 4px;
   border-radius: 0 4px 4px 0;
   background: var(--highlight);
 }
 .nav-item .nav-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 .nav-collection .plumbob.nav-icon {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 20px;
 }
 .nav-label {
   flex: 1;
@@ -156,15 +249,11 @@
   min-width: 22px;
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--highlight) 16%, transparent);
-  color: var(--sidebar-strong);
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
   font-size: 11px;
   font-weight: var(--fw-semibold);
   text-align: center;
-}
-.nav-subtle {
-  color: color-mix(in oklab, var(--sidebar-text) 80%, transparent);
-  font-size: var(--fs-sm);
 }
 .sidebar-footer {
   display: grid;
@@ -174,22 +263,18 @@
 }
 /* Launch Game: the one filled button in the sidebar. */
 .launch-button {
-  justify-content: center;
   margin-bottom: 4px;
   background: var(--accent);
   color: var(--on-accent);
   font-weight: var(--fw-semibold);
   box-shadow: var(--shadow-sm);
 }
-.launch-button .nav-label {
-  flex: none;
-}
 .launch-button:hover {
   background: var(--accent-hover);
 }
 .account-chip {
-  min-height: 46px;
-  padding: 0 8px;
+  min-height: 48px;
+  padding: 0 7px;
 }
 .account-copy {
   display: grid;
@@ -211,17 +296,23 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--highlight));
   color: var(--on-accent);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
 }
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .avatar-lg {
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   font-size: var(--fs-xl);
 }
 .sidebar :focus-visible {
@@ -323,52 +414,7 @@
 }
 
 /* ---------- Responsive ---------- */
-/* Below 980px the sidebar becomes an icon rail; labels stay available as tooltips and accessible names. */
 @media (max-width: 980px) {
-  .app-shell {
-    grid-template-columns: 68px minmax(0, 1fr);
-  }
-  .sidebar {
-    align-items: center;
-    padding: 14px 8px;
-  }
-  .brand .wordmark,
-  .sidebar .nav-label,
-  .sidebar .nav-count,
-  .nav-heading,
-  .nav-heading-row .icon-btn {
-    display: none;
-  }
-  .nav-heading-row {
-    justify-content: center;
-  }
-  .nav-heading-row .nav-heading.nav-disclosure {
-    display: inline-flex;
-  }
-  .nav-disclosure span {
-    display: none;
-  }
-  .side-nav,
-  .nav-group,
-  .nav-collection-list,
-  .sidebar-footer {
-    justify-items: center;
-    width: 100%;
-  }
-  .nav-group + .nav-group {
-    padding-top: var(--sp-3);
-    border-top: 1px solid var(--sidebar-line);
-  }
-  .nav-item,
-  .launch-button,
-  .account-chip {
-    justify-content: center;
-    width: 44px;
-    padding: 0;
-  }
-  .nav-item.is-active::before {
-    left: -8px;
-  }
   .topbar,
   .content-wrap,
   .footer-note {

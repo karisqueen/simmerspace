@@ -16,7 +16,7 @@ function normalizeCollections(list) {
 }
 
 const state = {
-  page: 'discover',
+  page: 'home',
   parent: 'all',
   sub: 'All',
   parts: [],
@@ -35,6 +35,7 @@ const state = {
   groupMode: safeGet('group-mode') === 'creator' ? 'creator' : 'category',
   moreFilters: safeRead('more-filters-open', false) === true,
   navCollectionsOpen: safeRead('nav-collections-open', true) !== false,
+  tooltips: safeRead('tooltips', true) !== false,
   favorites: safeRead('favorites', []),
   collections: normalizeCollections(safeRead('collections', SEED_COLLECTIONS)),
   statuses: safeRead('statuses', {}),
@@ -154,60 +155,70 @@ function art(item, extra = '') {
 function wordmark() {
   return `<span class="wordmark">simmerspace</span>`;
 }
-function navButton(id, iconName, extra = '') {
-  const active = state.page === id;
-  return `<button class="nav-item ${active ? 'is-active' : ''}" data-page="${id}" ${active ? 'aria-current="page"' : ''} title="${esc(t(id))}">${icon(iconName, 'nav-icon')}<span class="nav-label">${t(id)}</span>${extra}</button>`;
+// `tip` is the short explanation shown by the delayed tooltip (see ui.js); the label is the accessible name.
+function navButton(id, iconName, { extra = '', label = t(id), tip = '' } = {}) {
+  const active = state.page === id || (id === 'collections' && state.page === 'collection');
+  return `<button class="nav-item ${active ? 'is-active' : ''}" data-page="${id}" ${active ? 'aria-current="page"' : ''} aria-label="${esc(label)}" ${tip ? `data-tip="${esc(tip)}"` : ''}>${icon(iconName, 'nav-icon')}<span class="nav-label">${esc(label)}</span>${extra}</button>`;
 }
+// The sidebar is a narrow icon rail. It expands over the page (never pushing it) while the pointer or keyboard
+// focus is inside it; on touch screens the menu button opens and closes it.
 function nav() {
+  const sidebar = document.getElementById('sidebar');
   const modsCount = typeof scannedModCount === 'function' ? scannedModCount() : null;
   const count = modsCount === null ? '' : `<span class="nav-count" title="${esc(t('navModsCount'))}">${modsCount.toLocaleString(state.lang)}</span>`;
-  const open = state.navCollectionsOpen;
   const collections = state.collections
     .map(c => {
       const active = state.page === 'collection' && state.activeCollection === c.id;
-      return `<button class="nav-item nav-collection ${active ? 'is-active' : ''}" data-collection="${esc(c.id)}" ${active ? 'aria-current="page"' : ''} title="${esc(collectionLabel(c))}">${plumbob(c.color, { className: 'nav-icon' })}<span class="nav-label">${esc(collectionLabel(c))}</span><span class="nav-count">${c.items.length}</span></button>`;
+      return `<button class="nav-item nav-collection ${active ? 'is-active' : ''}" data-collection="${esc(c.id)}" ${active ? 'aria-current="page"' : ''} aria-label="${esc(collectionLabel(c))}">${plumbob(c.color, { className: 'nav-icon' })}<span class="nav-label">${esc(collectionLabel(c))}</span><span class="nav-count">${c.items.length}</span></button>`;
     })
     .join('');
   const user = typeof accountUser === 'function' ? accountUser() : null;
-  document.getElementById('sidebar').innerHTML = `<a class="brand" href="#" data-page="discover" aria-label="SimmerSpace">${brandMark()}${wordmark()}</a>
+  const name = user?.username || user?.displayName || '';
+  const avatar = typeof avatarMarkup === 'function' ? avatarMarkup(user) : `<span class="avatar" aria-hidden="true">${esc((name || 'S').slice(0, 1).toUpperCase())}</span>`;
+  sidebar.innerHTML = `<div class="sidebar-top"><button class="icon-btn sidebar-toggle" id="sidebar-toggle" aria-expanded="${sidebar.classList.contains('is-open')}" aria-controls="sidebar" aria-label="${esc(t('navToggle'))}">${icon('menu')}</button><a class="brand" href="#" data-page="home" aria-label="simmerspace · ${esc(t('home'))}">${brandMark()}<span class="nav-label">${wordmark()}</span></a></div>
     <nav class="side-nav" aria-label="${esc(t('mainNavigation'))}">
-      <div class="nav-group"><div class="nav-heading">${t('navBrowse')}</div>${navButton('discover', 'discover')}${navButton('curseforge', 'curseforge')}</div>
-      <div class="nav-group"><div class="nav-heading">${t('navLibrary')}</div>${navButton('mycc', 'library', count)}${navButton('favorites', 'heart')}${navButton('creators', 'creators')}${navButton('inspiration', 'inspiration')}</div>
-      <div class="nav-group nav-collections ${open ? '' : 'is-collapsed'}">
-        <div class="nav-heading-row"><button class="nav-heading nav-disclosure" id="toggle-nav-collections" aria-expanded="${open}" aria-controls="nav-collection-list">${icon('chevron', 'disclosure-icon')}<span>${t('collectionsNav')}</span></button><button class="icon-btn icon-btn-sm" id="new-collection" aria-label="${esc(t('newCollection'))}" title="${esc(t('newCollection'))}">${icon('plus')}</button></div>
-        <div class="nav-collection-list" id="nav-collection-list" ${open ? '' : 'hidden'}>${collections}<button class="nav-item nav-subtle" id="show-all-collections" title="${esc(t('viewAllCollections'))}">${icon('folder', 'nav-icon')}<span class="nav-label">${t('viewAllCollections')}</span></button></div>
+      <div class="nav-group">
+        ${navButton('home', 'home', { tip: t('tipHome') })}
+        ${navButton('curseforge', 'explore', { label: t('explore'), tip: t('tipExplore') })}
+        ${navButton('mycc', 'library', { extra: count, tip: t('tipLibrary') })}
+        ${navButton('creators', 'creators', { tip: t('tipCreators') })}
+        ${navButton('collections', 'collections', { label: t('collectionsTitle'), tip: t('tipCollections') })}
+        <div class="nav-collections" id="nav-collection-list">${collections}<button class="nav-item nav-collection nav-subtle" id="new-collection" aria-label="${esc(t('newCollection'))}" data-tip="${esc(t('tipNewCollection'))}">${icon('plus', 'nav-icon')}<span class="nav-label">${t('newCollection')}</span></button></div>
+        ${navButton('inspiration', 'inspiration', { tip: t('tipInspiration') })}
       </div>
     </nav>
     <div class="sidebar-footer">
-      <button class="launch-button" id="launch-game" title="${esc(t('launchGame'))}">${icon('play', 'nav-icon')}<span class="nav-label">${t('launchGame')}</span></button>
-      ${navButton('settings', 'settings')}
-      <button class="account-chip ${state.page === 'account' ? 'is-active' : ''}" data-page="account" ${state.page === 'account' ? 'aria-current="page"' : ''} title="${esc(t('accountTitle'))}"><span class="avatar" aria-hidden="true">${esc((user?.displayName || 'S').slice(0, 1).toUpperCase())}</span><span class="nav-label account-copy"><strong>${esc(user?.displayName || t('guest'))}</strong><small>${user ? t('accountSignedInShort') : t('guestLocal')}</small></span></button>
+      <button class="launch-button" id="launch-game" aria-label="${esc(t('launchGame'))}" data-tip="${esc(t('tipLaunchGame'))}">${icon('play', 'nav-icon')}<span class="nav-label">${t('launchGame')}</span></button>
+      ${navButton('settings', 'settings', { tip: t('tipSettings') })}
+      <button class="account-chip ${state.page === 'account' ? 'is-active' : ''}" data-page="account" ${state.page === 'account' ? 'aria-current="page"' : ''} aria-label="${esc(t('accountTitle'))}" data-tip="${esc(t('tipAccount'))}">${avatar}<span class="nav-label account-copy"><strong>${esc(name || t('accountTitle'))}</strong><small>${esc(user?.email || t('accountSignedOutShort'))}</small></span></button>
     </div>`;
 }
-const PAGE_TITLES = { discover: 'discover', mycc: 'mycc', inspiration: 'inspiration', creators: 'creators', settings: 'settings', collections: 'collectionsTitle', favorites: 'favorites', curseforge: 'curseforge', account: 'accountTitle' };
+const PAGE_TITLES = { home: 'home', discover: 'discover', mycc: 'mycc', inspiration: 'inspiration', creators: 'creators', settings: 'settings', collections: 'collectionsTitle', favorites: 'favorites', curseforge: 'explore', account: 'accountTitle' };
 function pageName() {
   if (state.page === 'collection') {
     const c = state.collections.find(x => x.id === state.activeCollection);
     return c ? collectionLabel(c) : t('collectionsTitle');
   }
-  return t(PAGE_TITLES[state.page] || 'discover');
+  return t(PAGE_TITLES[state.page] || 'home');
 }
 function setShell() {
   applyAppearance(state.appearance);
   document.body.classList.toggle('dialog-open', !overlay.hidden);
   document.documentElement.lang = state.lang;
   nav();
-  document.getElementById('topbar-title').textContent = pageName();
+  // The page's own heading names the page, so the top bar does not repeat it.
+  document.getElementById('topbar-title').textContent = '';
   document.getElementById('footer-copy').textContent = t('footer');
   document.getElementById('footer-version').textContent = `SimmerSpace ${APP_VERSION} · ${t('preBeta')}`;
   document.title = `${pageName()} · SimmerSpace`;
   search.placeholder = state.page === 'curseforge' ? t('cfSearchPlaceholder') : t('search');
   search.setAttribute('aria-label', search.placeholder);
+  search.closest('.search-field').dataset.tip = t('tipSearch');
   const toggle = document.getElementById('theme-toggle');
   const dark = document.documentElement.dataset.mode === 'dark';
   toggle.innerHTML = icon(dark ? 'sun' : 'moon');
   toggle.setAttribute('aria-label', t(dark ? 'switchToLight' : 'switchToDark'));
-  toggle.title = t(dark ? 'switchToLight' : 'switchToDark');
+  toggle.dataset.tip = t('tipThemeToggle');
   const profile = document.getElementById('profile-button');
   const user = typeof accountUser === 'function' ? accountUser() : null;
   profile.innerHTML = user ? `<span class="avatar" aria-hidden="true">${esc(user.displayName.slice(0, 1).toUpperCase())}</span>` : icon('user');
@@ -289,6 +300,22 @@ function filteredItems() {
 }
 
 /* ---------- Pages ---------- */
+// Home: a summary built only from real data on this PC (scan results, collections, followed creators).
+function renderHome() {
+  const user = typeof accountUser === 'function' ? accountUser() : null;
+  const name = user?.username || user?.displayName || '';
+  const modsCount = typeof scannedModCount === 'function' ? scannedModCount() : null;
+  const stat = (iconName, tone, value, label, page) =>
+    `<button class="stat-card stat-${tone}" data-page="${page}">${icon(iconName, 'stat-icon')}<span class="stat-value">${value}</span><span class="stat-label">${esc(label)}</span></button>`;
+  const stats = `<section class="stat-row" aria-label="${esc(t('homeSummary'))}">${stat('library', 'accent', modsCount === null ? '—' : modsCount.toLocaleString(state.lang), modsCount === null ? t('homeNotScanned') : t('homeModsFound'), 'mycc')}${stat('collections', 'pop', state.collections.length.toLocaleString(state.lang), t('collectionsTitle'), 'collections')}${stat('creators', 'sun', state.followingCreators.length.toLocaleString(state.lang), t('homeFollowing'), 'creators')}</section>`;
+  const action = (id, iconName, title, text) => `<button class="action-tile" id="${id}" data-tip="${esc(text)}">${icon(iconName, 'action-icon')}<span><b>${esc(title)}</b><small>${esc(text)}</small></span></button>`;
+  const actions = `<section class="section"><div class="section-head"><h2 class="section-title">${t('homeQuickActions')}</h2></div><div class="action-grid">${action('home-scan', 'search', mt('scan'), t('tipScan'))}${action('home-import-files', 'import', mt('importFiles'), t('tipImportFiles'))}${action('home-import-folder', 'folder', mt('importFolder'), t('tipImportFolder'))}${action('home-explore', 'explore', t('explore'), t('tipExplore'))}</div></section>`;
+  const recent = [...state.collections].sort((a, b) => (Number(b.opened) || Number(b.updated) || 0) - (Number(a.opened) || Number(a.updated) || 0)).slice(0, 4);
+  const collections = recent.length
+    ? `<section class="section"><div class="section-head"><h2 class="section-title">${t('homeRecentCollections')}</h2><button class="text-link" data-page="collections">${t('viewAllCollections')} →</button></div><div class="collection-grid">${recent.map(c => `<button class="collection-tile" data-collection="${esc(c.id)}">${collectionPreview(c)}<span class="collection-tile-info">${plumbob(c.color)}<strong>${esc(collectionLabel(c))}</strong><span>${c.items.length}</span></span></button>`).join('')}</div></section>`
+    : '';
+  content.innerHTML = `${pageHeader(name ? esc(format(t('homeGreeting'), { name })) : t('home'))}${stats}${actions}${collections}`;
+}
 function renderDiscover() {
   const items = filteredItems();
   const parents = [
@@ -485,8 +512,8 @@ function collectionCards(c) {
 function renderCollection() {
   const c = state.collections.find(x => x.id === state.activeCollection);
   if (!c) {
-    state.page = 'discover';
-    return renderDiscover();
+    state.page = 'collections';
+    return renderCollections();
   }
   const cards = collectionCards(c);
   content.innerHTML = `${pageHeader(esc(collectionLabel(c)), {
@@ -549,8 +576,9 @@ function renderSettings() {
   const isOpen = id => (openPanels && typeof openPanels === 'object' ? openPanels[id] !== false && (id in openPanels || id === 'personalization') : id === 'personalization');
   const personalization = `<div class="setting-row"><span class="setting-label" id="family-label">${t('theme')}</span><div class="theme-cards" role="radiogroup" aria-labelledby="family-label">${THEME_FAMILIES.map(themeCard).join('')}</div></div>${segmented('mode', t('mode'), [['light', t('modeLight')], ['dark', t('modeDark')], ['system', t('modeSystem')]], a.mode)}<p class="setting-help">${t('themeFamilyNote')}</p>${segmented('density', t('density'), [['comfortable', t('densityComfortable')], ['compact', t('densityCompact')]], a.density)}${segmented('motion', t('motion'), [['system', t('motionSystem')], ['reduced', t('motionReduced')], ['full', t('motionFull')]], a.motion)}<div class="setting-row"><span class="setting-label">${t('preview')}</span><div class="preview-row"><button class="primary-btn" tabindex="-1">${t('previewPrimary')}</button><button class="secondary-btn" tabindex="-1">${t('previewSecondary')}</button><span class="chip is-selected">${t('previewChip')}</span><span class="badge">3</span></div></div>`;
   const general = `<div class="setting-row"><span class="setting-label" id="language-label">${t('language')}</span><div class="segmented" role="radiogroup" aria-labelledby="language-label"><button class="segment ${state.lang === 'es' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'es'}" data-language="es" lang="es">Español</button><button class="segment ${state.lang === 'en' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'en'}" data-language="en" lang="en">English</button></div></div><div class="setting-row"><label class="setting-label" for="group-mode-settings">${t('groupBy')}</label><label class="select-field"><select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></div>`;
+  const help = `<label class="switch-row"><span><b>${t('prefTooltips')}</b><small>${t('prefTooltipsNote')}</small></span><input type="checkbox" class="switch" id="pref-tooltips" ${state.tooltips ? 'checked' : ''}></label><div class="setting-row"><span class="setting-label">${t('tutorialTitle')}</span><div class="button-row"><button class="secondary-btn" id="replay-tour" data-tip="${esc(t('tipReplayTour'))}">${icon('help')}<span>${t('tutorialReplay')}</span></button></div></div>`;
   const about = `<dl class="facts"><div><dt>${t('version')}</dt><dd>${APP_VERSION} ${t('preBeta')}</dd></div><div><dt>${t('compatibility')}</dt><dd>${t('windows')}</dd></div></dl><p class="setting-help">${t('privacyNote')}</p><div class="button-row"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="tertiary-btn" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div>`;
-  content.innerHTML = `${pageHeader(t('settingsTitle'))}<div class="settings-stack">${settingsPanel('personalization', t('personalization'), personalization, { open: isOpen('personalization'), summary: t('personalizationSummary') })}${settingsPanel('general', t('general'), general, { open: isOpen('general'), summary: t('generalSummary') })}${settingsPanel('folders', t('folderRoutes'), folderSettingsSection(), { open: isOpen('folders'), summary: t('foldersSummary') })}${settingsPanel('account-settings', t('accountTitle'), typeof accountSettingsSection === 'function' ? accountSettingsSection() : '', { open: isOpen('account-settings'), summary: t('accountSummary') })}${settingsPanel('curseforge-settings', t('curseforgeConnection'), typeof curseForgeSettingsSection === 'function' ? curseForgeSettingsSection() : '', { open: isOpen('curseforge-settings'), summary: t('curseforgeSummary') })}${settingsPanel('about', t('about'), about, { open: isOpen('about') })}${state.appInfo.developer && typeof developerSection === 'function' ? settingsPanel('developer', t('developerTools'), developerSection(), { open: isOpen('developer'), summary: t('developerSummary') }) : ''}</div>`;
+  content.innerHTML = `${pageHeader(t('settingsTitle'))}<div class="settings-stack">${settingsPanel('personalization', t('personalization'), personalization, { open: isOpen('personalization'), summary: t('personalizationSummary') })}${settingsPanel('help-settings', t('helpSettings'), help, { open: isOpen('help-settings'), summary: t('helpSettingsSummary') })}${settingsPanel('general', t('general'), general, { open: isOpen('general'), summary: t('generalSummary') })}${settingsPanel('folders', t('folderRoutes'), folderSettingsSection(), { open: isOpen('folders'), summary: t('foldersSummary') })}${settingsPanel('account-settings', t('accountTitle'), typeof accountSettingsSection === 'function' ? accountSettingsSection() : '', { open: isOpen('account-settings'), summary: t('accountSummary') })}${settingsPanel('curseforge-settings', t('curseforgeConnection'), typeof curseForgeSettingsSection === 'function' ? curseForgeSettingsSection() : '', { open: isOpen('curseforge-settings'), summary: t('curseforgeSummary') })}${settingsPanel('about', t('about'), about, { open: isOpen('about') })}${state.appInfo.developer && typeof developerSection === 'function' ? settingsPanel('developer', t('developerTools'), developerSection(), { open: isOpen('developer'), summary: t('developerSummary') }) : ''}</div>`;
 }
 function renderFavorites() {
   const items = ITEMS.filter(i => state.favorites.includes(i.id));
@@ -558,6 +586,7 @@ function renderFavorites() {
 }
 
 const PAGES = {
+  home: renderHome,
   discover: renderDiscover,
   mycc: renderLibrary,
   inspiration: renderInspiration,
@@ -572,7 +601,7 @@ const PAGES = {
 function render() {
   withFocusPreserved(() => {
     setShell();
-    (PAGES[state.page] || renderDiscover)();
+    (PAGES[state.page] || renderHome)();
   });
   const pageKey = `${state.page}:${state.activeCollection || ''}`;
   if (pageKey !== renderedPage) {
@@ -581,8 +610,15 @@ function render() {
     window.scrollTo(0, 0);
   }
 }
+// Touch screens have no hover, so the rail opens with its menu button and closes after choosing a page.
+function setSidebarOpen(open) {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('is-open', open);
+  document.getElementById('sidebar-toggle')?.setAttribute('aria-expanded', String(open));
+}
 function goTo(page) {
-  if (!PAGES[page]) page = 'discover';
+  setSidebarOpen(false);
+  if (!PAGES[page]) page = 'home';
   state.page = page;
   state.query = '';
   search.value = '';
@@ -810,6 +846,21 @@ const CLICK_ACTIONS = {
   'confirm-save': el => saveSelection(el.dataset.item),
   'theme-toggle': () => setAppearance({ mode: document.documentElement.dataset.mode === 'dark' ? 'light' : 'dark' }),
   'launch-game': launchGame,
+  'replay-tour': () => startTour({ replay: true }),
+  'sidebar-toggle': () => setSidebarOpen(!document.getElementById('sidebar').classList.contains('is-open')),
+  'home-scan': async () => {
+    goTo('mycc');
+    if (typeof scanManagedMods === 'function') await scanManagedMods();
+  },
+  'home-import-files': async () => {
+    goTo('mycc');
+    if (typeof importManagedMods === 'function') await importManagedMods('files');
+  },
+  'home-import-folder': async () => {
+    goTo('mycc');
+    if (typeof importManagedMods === 'function') await importManagedMods('folder');
+  },
+  'home-explore': () => goTo('curseforge'),
   'toggle-nav-collections': () => {
     state.navCollectionsOpen = !state.navCollectionsOpen;
     safeWrite('nav-collections-open', state.navCollectionsOpen);
@@ -1038,6 +1089,12 @@ document.addEventListener(
 
 document.addEventListener('change', event => {
   const target = event.target;
+  if (target.id === 'pref-tooltips') {
+    state.tooltips = target.checked;
+    safeWrite('tooltips', state.tooltips);
+    if (!state.tooltips) hideTooltip();
+    return toast(t(state.tooltips ? 'tooltipsOn' : 'tooltipsOff'));
+  }
   if (target.id === 'group-mode' || target.id === 'group-mode-settings') {
     state.groupMode = target.value === 'creator' ? 'creator' : 'category';
     safeSet('group-mode', state.groupMode);
@@ -1137,7 +1194,12 @@ search.addEventListener('input', () => {
       state.query = search.value;
       if (state.page === 'curseforge') return curseForgeQueryChanged(state.query);
       if (state.page === 'mycc') state.libraryQuery = '';
-      if (!['discover', 'mycc', 'creators'].includes(state.page)) state.page = 'discover';
+      // Pages without their own search send the query to Explore, which searches the real CurseForge catalog.
+      if (!['discover', 'mycc', 'creators'].includes(state.page)) {
+        state.page = 'curseforge';
+        render();
+        return curseForgeQueryChanged(state.query);
+      }
       render();
     },
     state.page === 'curseforge' ? 450 : 120

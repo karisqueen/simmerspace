@@ -6,7 +6,7 @@ const { DICT, MODS_TEXT } = require('../renderer/js/i18n.js');
 
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js', 'appearance.js', 'curseforge.js', 'account.js'].map(name => read(`renderer/js/${name}`)).join('\n');
+const rendererCode = ['app.js', 'mods-manager.js', 'organizer.js', 'folders.js', 'ui.js', 'main.js', 'appearance.js', 'curseforge.js', 'account.js', 'tour.js'].map(name => read(`renderer/js/${name}`)).join('\n');
 
 test('English and Spanish have the same keys and no empty text', () => {
   for (const [name, table] of [['DICT', DICT], ['MODS_TEXT', MODS_TEXT]]) {
@@ -22,6 +22,8 @@ test('every literal text key used by the interface exists', () => {
   for (const [, key] of rendererCode.matchAll(/\bmtC?o?u?n?t?\('([A-Za-z_]+)'/g)) assert.ok(key in MODS_TEXT.en, `mt('${key}') is missing`);
   // Keys passed through t(...) inside lists and helpers (labels for chips, sorts, accents and pages).
   for (const [, key] of rendererCode.matchAll(/\[\s*\d+,\s*'(cf[A-Za-z]+)'\s*\]/g)) assert.ok(key in DICT.en, `sort label '${key}' is missing`);
+  // Tutorial steps name their text keys in TOUR_STEPS.
+  for (const [, key] of read('renderer/js/tour.js').matchAll(/(?:title|text): '([A-Za-z]+)'/g)) assert.ok(key in DICT.en, `tour key '${key}' is missing`);
   for (const [, body] of rendererCode.matchAll(/const (?:PART_KEYS|OCCULT_KEYS|THEME_LABEL_KEYS|PAGE_TITLES) = \{([^}]*)\}/g)) {
     for (const [, key] of body.matchAll(/:\s*'([A-Za-z]+)'/g)) assert.ok(key in DICT.en, `label key '${key}' is missing`);
   }

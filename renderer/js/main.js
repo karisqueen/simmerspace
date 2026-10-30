@@ -11,6 +11,7 @@ async function boot() {
   if (routeRecords.mods?.path) await loadModCatalog();
   render();
   offerSharedCollection();
+  maybeStartTour();
 }
 
 render();

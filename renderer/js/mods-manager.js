@@ -282,8 +282,8 @@ function renderModsIntro() {
 function renderModsToolbar() {
   const scanButton = mods.busy
     ? `<button class="secondary-btn" id="cancel-managed-scan">${mt('cancelScan')}</button>`
-    : `<button class="primary-btn" id="managed-scan-mods" ${mods.working ? 'disabled' : ''}>${mods.result ? mt('rescan') : mt('scan')}</button>`;
-  return `<div class="mods-toolbar"><div class="mods-toolbar-group" role="group" aria-labelledby="mods-safe-label"><span class="mods-group-label" id="mods-safe-label"><i class="safe-dot" aria-hidden="true"></i>${mt('safeGroup')}</span><div class="mods-group-buttons">${scanButton}<button class="secondary-btn" id="manage-mod-categories">${mt('addCategory')}</button><button class="secondary-btn" id="manage-mod-creators">${mt('addCreator')}</button></div></div><div class="mods-toolbar-group" role="group" aria-labelledby="mods-add-label"><span class="mods-group-label" id="mods-add-label"><i class="copy-dot" aria-hidden="true"></i>${mt('addGroup')}</span><div class="mods-group-buttons"><button class="secondary-btn" id="import-mod-files" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFiles')}</button><button class="secondary-btn" id="import-mod-folder" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFolder')}</button></div></div></div>`;
+    : `<button class="primary-btn" id="managed-scan-mods" data-tip="${esc(t('tipScan'))}" ${mods.working ? 'disabled' : ''}>${mods.result ? mt('rescan') : mt('scan')}</button>`;
+  return `<div class="mods-toolbar"><div class="mods-toolbar-group" role="group" aria-labelledby="mods-safe-label"><span class="mods-group-label" id="mods-safe-label"><i class="safe-dot" aria-hidden="true"></i>${mt('safeGroup')}</span><div class="mods-group-buttons">${scanButton}<button class="secondary-btn" id="manage-mod-categories" data-tip="${esc(t('tipCategoriesFolders'))}">${mt('addCategory')}</button><button class="secondary-btn" id="manage-mod-creators" data-tip="${esc(t('tipCreatorsManage'))}">${mt('addCreator')}</button></div></div><div class="mods-toolbar-group" role="group" aria-labelledby="mods-add-label"><span class="mods-group-label" id="mods-add-label"><i class="copy-dot" aria-hidden="true"></i>${mt('addGroup')}</span><div class="mods-group-buttons"><button class="secondary-btn" id="import-mod-files" data-tip="${esc(t('tipImportFiles'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFiles')}</button><button class="secondary-btn" id="import-mod-folder" data-tip="${esc(t('tipImportFolder'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFolder')}</button></div></div></div>`;
 }
 function renderModsProgress() {
   if (!mods.busy) return '';
@@ -556,7 +556,7 @@ function openRenameModDialog(relativePath) {
 }
 function openAddCategoryDialog() {
   openDialog(
-    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('custom')}</div><h2 id="dialog-title">${mt('newCategory')}</h2><label>${mt('categoryName')}<input id="new-mod-category" maxlength="120"></label><div class="detail-actions"><button class="primary-btn" id="save-new-mod-category">${mt('createCategory')}</button><button class="secondary-btn" id="manage-mod-categories">${t('cancel')}</button></div></div>`
+    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('custom')}</div><h2 id="dialog-title">${mt('newCategory')}</h2><label>${mt('categoryName')}<input id="new-mod-category" maxlength="120"></label><div class="detail-actions"><button class="primary-btn" id="save-new-mod-category">${mt('createCategory')}</button><button class="secondary-btn" id="manage-mod-categories" data-tip="${esc(t('tipCategoriesFolders'))}">${t('cancel')}</button></div></div>`
   );
 }
 function openCategoriesDialog() {
@@ -586,7 +586,7 @@ function openCreatorsDialog() {
 function openCreatorEditor(creatorId = '') {
   const creator = mods.catalog.creators.find(item => item.id === creatorId);
   openDialog(
-    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('creatorTitle')}</div><h2 id="dialog-title">${creator ? mt('rename') : mt('newCreator')}</h2><label>${mt('creatorName')}<input id="edit-mod-creator-name" maxlength="120" value="${esc(creator?.name || '')}"></label><div class="detail-actions"><button class="primary-btn" id="save-mod-creator" data-creator-id="${esc(creatorId)}">${mt('saveCreator')}</button><button class="secondary-btn" id="manage-mod-creators">${t('cancel')}</button></div></div>`
+    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('creatorTitle')}</div><h2 id="dialog-title">${creator ? mt('rename') : mt('newCreator')}</h2><label>${mt('creatorName')}<input id="edit-mod-creator-name" maxlength="120" value="${esc(creator?.name || '')}"></label><div class="detail-actions"><button class="primary-btn" id="save-mod-creator" data-creator-id="${esc(creatorId)}">${mt('saveCreator')}</button><button class="secondary-btn" id="manage-mod-creators" data-tip="${esc(t('tipCreatorsManage'))}">${t('cancel')}</button></div></div>`
   );
 }
 

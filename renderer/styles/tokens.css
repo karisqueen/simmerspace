@@ -50,7 +50,8 @@
   --card-pad: 14px;
   --panel-pad: 20px;
   --gap: 16px;
-  --sidebar-w: 248px;
+  --sidebar-w: 252px;
+  --rail-w: 72px;
 
   /* Motion */
   --dur-fast: 120ms;
