@@ -33,7 +33,7 @@
       "target": [
         "nsis"
       ],
-      "signAndEditExecutable": false,
+      "signAndEditExecutable": true,
       "icon": "build/icon.png"
     },
     "nsis": {
