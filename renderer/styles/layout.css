@@ -137,9 +137,6 @@
   border-radius: 0 4px 4px 0;
   background: var(--highlight);
 }
-[data-family='sims-blue'] .nav-item.is-active::before {
-  background: #8fd0ff;
-}
 .nav-item .nav-icon {
   width: 18px;
   height: 18px;
@@ -165,9 +162,6 @@
   font-weight: var(--fw-semibold);
   text-align: center;
 }
-[data-family='sims-blue'] .nav-count {
-  background: rgb(255 255 255 / 0.14);
-}
 .nav-subtle {
   color: color-mix(in oklab, var(--sidebar-text) 80%, transparent);
   font-size: var(--fs-sm);
@@ -192,13 +186,6 @@
 }
 .launch-button:hover {
   background: var(--accent-hover);
-}
-[data-family='sims-blue'][data-mode='light'] .launch-button {
-  background: #ffffff;
-  color: #0b417e;
-}
-[data-family='sims-blue'][data-mode='light'] .launch-button:hover {
-  background: #e6f1ff;
 }
 .account-chip {
   min-height: 46px;

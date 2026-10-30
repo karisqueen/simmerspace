@@ -150,8 +150,9 @@ function art(item, extra = '') {
 }
 
 /* ---------- Shell ---------- */
+// The wordmark is always one lowercase word.
 function wordmark() {
-  return `<span class="wordmark"><span class="wm-simmer">Simmer</span><span class="wm-space">Space</span></span>`;
+  return `<span class="wordmark">simmerspace</span>`;
 }
 function navButton(id, iconName, extra = '') {
   const active = state.page === id;
@@ -527,25 +528,17 @@ function renderCollections() {
 }
 
 /* ---------- Settings ---------- */
-const ACCENT_LABEL_KEYS = { rose: 'rose', lavender: 'lavender', sage: 'sage', blue: 'simsBlue' };
 function segmented(name, label, options, value) {
   return `<div class="setting-row"><span class="setting-label" id="${name}-label">${label}</span><div class="segmented" role="radiogroup" aria-labelledby="${name}-label">${options
     .map(([optionValue, text]) => `<button class="segment ${value === optionValue ? 'is-selected' : ''}" role="radio" aria-checked="${value === optionValue}" data-appearance="${name}" data-value="${optionValue}">${esc(text)}</button>`)
     .join('')}</div></div>`;
 }
-function accentPicker(name, label, value, { allowNone = false, exclude = '' } = {}) {
-  const options = [...(allowNone ? [['', t('accentNone')]] : []), ...ACCENTS.map(a => [a, t(ACCENT_LABEL_KEYS[a])])];
-  return `<div class="setting-row"><span class="setting-label" id="${name}-label">${label}</span><div class="swatch-row" role="radiogroup" aria-labelledby="${name}-label">${options
-    .map(([accent, text]) => {
-      const selected = value === accent;
-      const disabled = accent && accent === exclude;
-      return `<button class="swatch ${selected ? 'is-selected' : ''}" role="radio" aria-checked="${selected}" data-appearance="${name}" data-value="${accent}" ${disabled ? `disabled title="${esc(t('accentSameAsPrimary'))}"` : ''}><i class="swatch-dot" data-swatch="${accent || 'none'}" aria-hidden="true"></i><span>${esc(text)}</span></button>`;
-    })
-    .join('')}</div></div>`;
-}
-function themeCard(family, title, description) {
+const THEME_LABEL_KEYS = { pink: 'themePink', purple: 'themePurple', green: 'themeGreen', blue: 'themeBlue' };
+// Each preview is painted by the real theme tokens: the data attributes on the preview select them.
+function themeCard(family) {
   const selected = state.appearance.family === family;
-  return `<button class="theme-card ${selected ? 'is-selected' : ''}" role="radio" aria-checked="${selected}" data-appearance="family" data-value="${family}"><span class="theme-preview theme-preview-${family}" aria-hidden="true"><i></i><i></i><i></i></span><span class="theme-card-copy"><b>${esc(title)}</b><small>${esc(description)}</small></span></button>`;
+  const mode = document.documentElement.dataset.mode || 'light';
+  return `<button class="theme-card ${selected ? 'is-selected' : ''}" role="radio" aria-checked="${selected}" data-appearance="family" data-value="${family}"><span class="theme-preview" data-family="${family}" data-mode="${mode}" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="theme-card-copy"><b>${esc(t(THEME_LABEL_KEYS[family]))}</b></span></button>`;
 }
 function settingsPanel(id, title, body, { open = true, summary = '' } = {}) {
   return `<details class="panel settings-panel" id="${id}" ${open ? 'open' : ''}><summary class="panel-summary"><span><b>${title}</b>${summary ? `<small>${summary}</small>` : ''}</span>${icon('chevron', 'disclosure-icon')}</summary><div class="panel-body">${body}</div></details>`;
@@ -554,7 +547,7 @@ function renderSettings() {
   const a = state.appearance;
   const openPanels = safeRead('settings-open', { personalization: true });
   const isOpen = id => (openPanels && typeof openPanels === 'object' ? openPanels[id] !== false && (id in openPanels || id === 'personalization') : id === 'personalization');
-  const personalization = `<div class="setting-row"><span class="setting-label" id="family-label">${t('theme')}</span><div class="theme-cards" role="radiogroup" aria-labelledby="family-label">${themeCard('soft', t('themeSoft'), t('themeSoftNote'))}${themeCard('sims-blue', t('themeSimsBlue'), t('themeSimsBlueNote'))}</div></div>${segmented('mode', t('mode'), [['light', t('modeLight')], ['dark', t('modeDark')], ['system', t('modeSystem')]], a.mode)}${accentPicker('primary', t('primaryAccent'), a.primary)}${accentPicker('secondary', t('secondaryAccent'), a.secondary, { allowNone: true, exclude: a.primary })}<p class="setting-help">${t('accentRules')}</p>${segmented('density', t('density'), [['comfortable', t('densityComfortable')], ['compact', t('densityCompact')]], a.density)}${segmented('motion', t('motion'), [['system', t('motionSystem')], ['reduced', t('motionReduced')], ['full', t('motionFull')]], a.motion)}<div class="setting-row"><span class="setting-label">${t('preview')}</span><div class="preview-row"><button class="primary-btn" tabindex="-1">${t('previewPrimary')}</button><button class="secondary-btn" tabindex="-1">${t('previewSecondary')}</button><span class="chip is-selected">${t('previewChip')}</span><span class="badge">3</span></div></div>`;
+  const personalization = `<div class="setting-row"><span class="setting-label" id="family-label">${t('theme')}</span><div class="theme-cards" role="radiogroup" aria-labelledby="family-label">${THEME_FAMILIES.map(themeCard).join('')}</div></div>${segmented('mode', t('mode'), [['light', t('modeLight')], ['dark', t('modeDark')], ['system', t('modeSystem')]], a.mode)}<p class="setting-help">${t('themeFamilyNote')}</p>${segmented('density', t('density'), [['comfortable', t('densityComfortable')], ['compact', t('densityCompact')]], a.density)}${segmented('motion', t('motion'), [['system', t('motionSystem')], ['reduced', t('motionReduced')], ['full', t('motionFull')]], a.motion)}<div class="setting-row"><span class="setting-label">${t('preview')}</span><div class="preview-row"><button class="primary-btn" tabindex="-1">${t('previewPrimary')}</button><button class="secondary-btn" tabindex="-1">${t('previewSecondary')}</button><span class="chip is-selected">${t('previewChip')}</span><span class="badge">3</span></div></div>`;
   const general = `<div class="setting-row"><span class="setting-label" id="language-label">${t('language')}</span><div class="segmented" role="radiogroup" aria-labelledby="language-label"><button class="segment ${state.lang === 'es' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'es'}" data-language="es" lang="es">Español</button><button class="segment ${state.lang === 'en' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'en'}" data-language="en" lang="en">English</button></div></div><div class="setting-row"><label class="setting-label" for="group-mode-settings">${t('groupBy')}</label><label class="select-field"><select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></div>`;
   const about = `<dl class="facts"><div><dt>${t('version')}</dt><dd>${APP_VERSION} ${t('preBeta')}</dd></div><div><dt>${t('compatibility')}</dt><dd>${t('windows')}</dd></div></dl><p class="setting-help">${t('privacyNote')}</p><div class="button-row"><button class="secondary-btn" id="send-feedback">${t('feedback')}</button><button class="tertiary-btn" id="donate-button">${t('donate')} · ${t('comingSoon')}</button></div>`;
   content.innerHTML = `${pageHeader(t('settingsTitle'))}<div class="settings-stack">${settingsPanel('personalization', t('personalization'), personalization, { open: isOpen('personalization'), summary: t('personalizationSummary') })}${settingsPanel('general', t('general'), general, { open: isOpen('general'), summary: t('generalSummary') })}${settingsPanel('folders', t('folderRoutes'), folderSettingsSection(), { open: isOpen('folders'), summary: t('foldersSummary') })}${settingsPanel('account-settings', t('accountTitle'), typeof accountSettingsSection === 'function' ? accountSettingsSection() : '', { open: isOpen('account-settings'), summary: t('accountSummary') })}${settingsPanel('curseforge-settings', t('curseforgeConnection'), typeof curseForgeSettingsSection === 'function' ? curseForgeSettingsSection() : '', { open: isOpen('curseforge-settings'), summary: t('curseforgeSummary') })}${settingsPanel('about', t('about'), about, { open: isOpen('about') })}${state.appInfo.developer && typeof developerSection === 'function' ? settingsPanel('developer', t('developerTools'), developerSection(), { open: isOpen('developer'), summary: t('developerSummary') }) : ''}</div>`;

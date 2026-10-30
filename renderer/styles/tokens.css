@@ -1,15 +1,13 @@
 /* SimmerSpace design tokens.
    Every color, radius, size and duration in the interface comes from here. Themes are chosen with data
    attributes on <html> (set by renderer/js/appearance.js):
-     data-family   soft | sims-blue        surfaces and neutrals
+     data-family   pink | purple | green | blue   the theme's colors
      data-mode     light | dark            resolved from the Light / Dark / Match Windows setting
-     data-accent   rose | lavender | sage | blue   primary accent
-     data-accent2  same values             second accent (equals the primary when none is chosen)
      data-density  comfortable | compact
      data-motion   system | reduced | full
-   Accent rules: --accent (primary) marks actions, selection, focus and links. --highlight (second accent)
-   is only used for decoration: the active page marker, counts and badges, section markers and the logo's
-   "Space". With one accent both are the same color, so every screen works with a single choice. */
+   Color rules: --accent (primary) marks actions, selection, focus and links. --highlight (the pop color)
+   and --sun are only used for small decorative notes: the active page marker, counts and badges, category
+   accents and the brand sparkle. */
 
 :root {
   /* Type */
@@ -58,17 +56,6 @@
   --dur-fast: 120ms;
   --dur: 180ms;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-
-  /* Accent presets: a strong value for light mode (white text passes WCAG AA on it) and a light value for
-     dark mode (dark text passes on it). */
-  --rose-light: #a83f66;
-  --rose-dark: #f3a5c1;
-  --lavender-light: #7350a6;
-  --lavender-dark: #c9b2ee;
-  --sage-light: #457550;
-  --sage-dark: #a5d3ad;
-  --blue-light: #1462c4;
-  --blue-dark: #7db8f7;
 }
 
 [data-density='compact'] {
@@ -92,90 +79,57 @@
   }
 }
 
-/* ---------- Accents ---------- */
-[data-mode='light'][data-accent='rose'] { --a1: var(--rose-light); }
-[data-mode='light'][data-accent='lavender'] { --a1: var(--lavender-light); }
-[data-mode='light'][data-accent='sage'] { --a1: var(--sage-light); }
-[data-mode='light'][data-accent='blue'] { --a1: var(--blue-light); }
-[data-mode='dark'][data-accent='rose'] { --a1: var(--rose-dark); }
-[data-mode='dark'][data-accent='lavender'] { --a1: var(--lavender-dark); }
-[data-mode='dark'][data-accent='sage'] { --a1: var(--sage-dark); }
-[data-mode='dark'][data-accent='blue'] { --a1: var(--blue-dark); }
-[data-mode='light'][data-accent2='rose'] { --a2: var(--rose-light); }
-[data-mode='light'][data-accent2='lavender'] { --a2: var(--lavender-light); }
-[data-mode='light'][data-accent2='sage'] { --a2: var(--sage-light); }
-[data-mode='light'][data-accent2='blue'] { --a2: var(--blue-light); }
-[data-mode='dark'][data-accent2='rose'] { --a2: var(--rose-dark); }
-[data-mode='dark'][data-accent2='lavender'] { --a2: var(--lavender-dark); }
-[data-mode='dark'][data-accent2='sage'] { --a2: var(--sage-dark); }
-[data-mode='dark'][data-accent2='blue'] { --a2: var(--blue-dark); }
+/* ---------- Theme colors: four families × light/dark = eight themes ----------
+   --a1  primary: actions, selection, focus, links. Light values carry white text at WCAG AA; dark values
+         carry dark text.
+   --a2  pop: a complementary color used sparingly (active page marker, counts, badges, category accents)
+         so a single-hue theme never looks flat.
+   --a3  sun: a warm third note for highlights such as "new", updates and the brand sparkle. */
+[data-family='pink'][data-mode='light'] { --a1: #b03466; --a2: #17776f; --a3: #9a5c08; --tint: #fff4f8; }
+[data-family='pink'][data-mode='dark'] { --a1: #f4a3c3; --a2: #7dd3c8; --a3: #f1c36a; --tint: #1a1117; }
+[data-family='purple'][data-mode='light'] { --a1: #6a45b0; --a2: #b2442f; --a3: #237458; --tint: #f8f5ff; }
+[data-family='purple'][data-mode='dark'] { --a1: #c6b0f3; --a2: #ff9e8c; --a3: #86d8b6; --tint: #15111d; }
+[data-family='green'][data-mode='light'] { --a1: #2b7150; --a2: #a03e6c; --a3: #8a5f00; --tint: #f4faf5; }
+[data-family='green'][data-mode='dark'] { --a1: #8fd4a9; --a2: #f2a5c6; --a3: #efc760; --tint: #0f1612; }
+[data-family='blue'][data-mode='light'] { --a1: #1560c0; --a2: #237d33; --a3: #ad4a22; --tint: #f3f8ff; }
+[data-family='blue'][data-mode='dark'] { --a1: #80b9f7; --a2: #8fe08f; --a3: #ffaf86; --tint: #0d141f; }
 
-/* ---------- Surfaces: Simmer Soft ---------- */
-[data-family='soft'][data-mode='light'] {
+/* ---------- Surfaces, tinted by the family's primary ---------- */
+[data-mode='light'] {
   color-scheme: light;
-  --bg: color-mix(in oklab, var(--a1) 5%, #f8f7f5);
+  --bg: color-mix(in oklab, var(--a1) 6%, #f8f7f5);
   --surface: #ffffff;
-  --surface-2: color-mix(in oklab, var(--a1) 4%, #f6f5f3);
-  --surface-3: color-mix(in oklab, var(--a1) 8%, #eeecea);
-  --line: color-mix(in oklab, var(--a1) 9%, #e5e2df);
-  --line-strong: color-mix(in oklab, var(--a1) 16%, #cdc8c4);
-  --text: #221f27;
-  --text-2: #57515f;
-  --text-3: #6c6574;
-  --sidebar-bg: color-mix(in oklab, var(--a1) 3%, #ffffff);
+  --surface-2: color-mix(in oklab, var(--a1) 4%, #f7f6f4);
+  --surface-3: color-mix(in oklab, var(--a1) 9%, #eeecea);
+  --line: color-mix(in oklab, var(--a1) 10%, #e4e1de);
+  --line-strong: color-mix(in oklab, var(--a1) 18%, #cbc6c2);
+  --text: color-mix(in oklab, var(--a1) 10%, #1d1a21);
+  --text-2: color-mix(in oklab, var(--a1) 10%, #514b58);
+  --text-3: color-mix(in oklab, var(--a1) 8%, #67606f);
+  --sidebar-bg: color-mix(in oklab, var(--a1) 5%, var(--tint));
   --sidebar-text: var(--text-2);
+  --sidebar-strong: var(--text);
+  --sidebar-hover: color-mix(in oklab, var(--a1) 8%, transparent);
+  --sidebar-active: color-mix(in oklab, var(--a1) 14%, #ffffff);
+  --sidebar-line: var(--line);
 }
-[data-family='soft'][data-mode='dark'] {
+[data-mode='dark'] {
   color-scheme: dark;
-  --bg: color-mix(in oklab, var(--a1) 6%, #141217);
-  --surface: color-mix(in oklab, var(--a1) 5%, #1d1a21);
-  --surface-2: color-mix(in oklab, var(--a1) 6%, #242129);
-  --surface-3: color-mix(in oklab, var(--a1) 9%, #2d2932);
-  --line: color-mix(in oklab, var(--a1) 10%, #34303a);
-  --line-strong: color-mix(in oklab, var(--a1) 18%, #4a4551);
-  --text: #f2eff5;
-  --text-2: #c3bdc9;
-  --text-3: #a59fac;
-  --sidebar-bg: color-mix(in oklab, var(--a1) 4%, #19161c);
+  --bg: color-mix(in oklab, var(--a1) 5%, #111014);
+  --surface: color-mix(in oklab, var(--a1) 6%, #1a181e);
+  --surface-2: color-mix(in oklab, var(--a1) 7%, #211f26);
+  --surface-3: color-mix(in oklab, var(--a1) 10%, #2a2730);
+  --line: color-mix(in oklab, var(--a1) 11%, #312d37);
+  --line-strong: color-mix(in oklab, var(--a1) 20%, #47424f);
+  --text: #f3f0f6;
+  --text-2: color-mix(in oklab, var(--a1) 8%, #c4bfca);
+  --text-3: color-mix(in oklab, var(--a1) 8%, #a29ca9);
+  --sidebar-bg: color-mix(in oklab, var(--a1) 4%, var(--tint));
   --sidebar-text: var(--text-2);
-}
-
-/* ---------- Surfaces: Sims Blue ---------- */
-[data-family='sims-blue'][data-mode='light'] {
-  color-scheme: light;
-  --bg: #edf3fa;
-  --surface: #ffffff;
-  --surface-2: #f3f7fc;
-  --surface-3: #e2ecf8;
-  --line: #d5e1ef;
-  --line-strong: #b4c7de;
-  --text: #0f2138;
-  --text-2: #415470;
-  --text-3: #566984;
-  --sidebar-bg: linear-gradient(180deg, #11589f 0%, #0b417e 100%);
-  --sidebar-text: #dbe9fb;
-  --sidebar-strong: #ffffff;
-  --sidebar-hover: rgb(255 255 255 / 0.1);
-  --sidebar-active: rgb(255 255 255 / 0.16);
-  --sidebar-line: rgb(255 255 255 / 0.14);
-}
-[data-family='sims-blue'][data-mode='dark'] {
-  color-scheme: dark;
-  --bg: #0b1420;
-  --surface: #111d2c;
-  --surface-2: #162436;
-  --surface-3: #1d2f45;
-  --line: #22354c;
-  --line-strong: #345171;
-  --text: #e9f1fb;
-  --text-2: #b2c3d8;
-  --text-3: #93a6be;
-  --sidebar-bg: linear-gradient(180deg, #0d2747 0%, #0a1d35 100%);
-  --sidebar-text: #bcd2ec;
-  --sidebar-strong: #ffffff;
-  --sidebar-hover: rgb(255 255 255 / 0.07);
-  --sidebar-active: rgb(255 255 255 / 0.12);
-  --sidebar-line: rgb(255 255 255 / 0.1);
+  --sidebar-strong: var(--text);
+  --sidebar-hover: color-mix(in oklab, var(--a1) 10%, transparent);
+  --sidebar-active: color-mix(in oklab, var(--a1) 18%, #1a181e);
+  --sidebar-line: var(--line);
 }
 
 /* ---------- Derived roles (all themes) ---------- */
@@ -189,6 +143,9 @@
   --highlight: var(--a2);
   --highlight-soft: color-mix(in oklab, var(--a2) 14%, var(--surface));
   --highlight-text: color-mix(in oklab, var(--a2) 80%, var(--text));
+  --sun: var(--a3);
+  --sun-soft: color-mix(in oklab, var(--a3) 15%, var(--surface));
+  --sun-text: color-mix(in oklab, var(--a3) 82%, var(--text));
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--a1);
   --shadow-sm: 0 1px 2px rgb(20 16 28 / 0.06);
   --shadow-md: 0 6px 18px rgb(20 16 28 / 0.08);
@@ -220,12 +177,6 @@
   --shadow-md: 0 8px 22px rgb(0 0 0 / 0.32);
   --shadow-lg: 0 22px 56px rgb(0 0 0 / 0.5);
   --overlay: rgb(4 3 8 / 0.62);
-}
-[data-family='soft'] {
-  --sidebar-strong: var(--text);
-  --sidebar-hover: var(--surface-2);
-  --sidebar-active: var(--accent-soft);
-  --sidebar-line: var(--line);
 }
 
 /* Names used by the 0.7 Mods panel stylesheet (mods-manager.css), mapped onto the tokens above. */

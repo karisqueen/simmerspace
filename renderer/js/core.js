@@ -122,42 +122,34 @@
   }
 
   /* ---------- Appearance ---------- */
-  // Accent presets. Rose, lavender and sage come from earlier versions; Sims blue is new in 0.8.0.
-  const ACCENTS = ['rose', 'lavender', 'sage', 'blue'];
-  const THEME_FAMILIES = ['soft', 'sims-blue'];
+  // Eight themes: four color families, each in light and dark. Versions 0.8–0.10 used a "soft" or
+  // "sims-blue" family plus a chosen accent; those accents map onto the family with the same color.
+  const THEME_FAMILIES = ['pink', 'purple', 'green', 'blue'];
+  const LEGACY_ACCENT_FAMILY = Object.freeze({ rose: 'pink', lavender: 'purple', sage: 'green', blue: 'blue' });
   const MODES = ['light', 'dark', 'system'];
   const DENSITIES = ['comfortable', 'compact'];
   const MOTION = ['system', 'reduced', 'full'];
-  const DEFAULT_APPEARANCE = Object.freeze({ family: 'soft', mode: 'light', primary: 'lavender', secondary: '', density: 'comfortable', motion: 'system' });
+  const DEFAULT_APPEARANCE = Object.freeze({ family: 'purple', mode: 'light', density: 'comfortable', motion: 'system' });
 
-  // Reads saved appearance settings. Anything missing or unknown falls back to a default, and the single
-  // theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark") and the main and second colors
-  // saved by 0.8.x and 0.9.x ("primary-hue", "secondary-hue") are carried over.
+  // Reads saved appearance settings. Anything missing or unknown falls back to a default. Carried over:
+  // the single theme value saved by 0.7.x and earlier ("soft-rose", "dark-sage", "dark"), the main color
+  // saved by 0.8.x and 0.9.x ("primary-hue") and the family + accent saved by 0.10.0.
   function normalizeAppearance(raw, legacyTheme, legacyHues = {}) {
     const result = { ...DEFAULT_APPEARANCE };
     if (typeof legacyTheme === 'string') {
       const [tone, hue] = legacyTheme === 'dark' ? ['dark', 'lavender'] : legacyTheme.split('-');
-      if (['soft', 'dark'].includes(tone) && ACCENTS.includes(hue)) Object.assign(result, { mode: tone === 'dark' ? 'dark' : 'light', primary: hue });
+      if (['soft', 'dark'].includes(tone) && LEGACY_ACCENT_FAMILY[hue]) Object.assign(result, { mode: tone === 'dark' ? 'dark' : 'light', family: LEGACY_ACCENT_FAMILY[hue] });
     }
-    if (ACCENTS.includes(legacyHues?.primary)) result.primary = legacyHues.primary;
-    if (ACCENTS.includes(legacyHues?.secondary)) result.secondary = legacyHues.secondary;
+    if (LEGACY_ACCENT_FAMILY[legacyHues?.primary]) result.family = LEGACY_ACCENT_FAMILY[legacyHues.primary];
     const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     if (THEME_FAMILIES.includes(source.family)) result.family = source.family;
+    else if (source.family === 'sims-blue') result.family = 'blue';
+    else if (LEGACY_ACCENT_FAMILY[source.primary]) result.family = LEGACY_ACCENT_FAMILY[source.primary];
     if (MODES.includes(source.mode)) result.mode = source.mode;
-    if (ACCENTS.includes(source.primary)) result.primary = source.primary;
-    if (source.secondary === '' || ACCENTS.includes(source.secondary)) result.secondary = source.secondary;
     if (DENSITIES.includes(source.density)) result.density = source.density;
     if (MOTION.includes(source.motion)) result.motion = source.motion;
-    if (result.secondary === result.primary) result.secondary = '';
     return result;
   }
-
-  // Which accent drives what. The primary accent marks everything you can act on or have selected; the
-  // secondary accent (when chosen) only adds highlights, so a single accent always works on its own.
-  const ACCENT_ROLES = Object.freeze({
-    primary: ['primary buttons', 'selected chips and tabs', 'focus rings', 'links', 'checkboxes and progress'],
-    secondary: ['active page marker in the sidebar', 'counts and badges', 'section markers', 'the "Space" in the logo']
-  });
 
   /* ---------- Collections ---------- */
   const COLLECTION_COLORS = ['#d16f91', '#8f6fc1', '#5f9a6a', '#2f7fe0', '#d99a3d', '#3fa3a3'];
@@ -258,10 +250,9 @@
     summarizeModFiles,
     unwrapDesktopResult,
     isCurseForgeItem,
-    ACCENTS,
+    LEGACY_ACCENT_FAMILY,
     THEME_FAMILIES,
     DEFAULT_APPEARANCE,
-    ACCENT_ROLES,
     normalizeAppearance,
     COLLECTION_COLORS,
     COLLECTION_PASTELS,

@@ -471,6 +471,11 @@ const DICT = {
     coverSaved: "Cover image saved.",
     coverRemoved: "Cover image removed.",
     coverTooLarge: "The cover could not be saved on this PC. Try a smaller image.",
+    themePink: "Pink",
+    themePurple: "Purple",
+    themeGreen: "Green",
+    themeBlue: "Blue",
+    themeFamilyNote: "Each theme adds a few complementary color notes so screens never look flat.",
   },
 
   es: {
@@ -944,6 +949,11 @@ const DICT = {
     coverSaved: "Portada guardada.",
     coverRemoved: "Portada quitada.",
     coverTooLarge: "No se pudo guardar la portada en este PC. Prueba con una imagen más pequeña.",
+    themePink: "Rosa",
+    themePurple: "Morado",
+    themeGreen: "Verde",
+    themeBlue: "Azul",
+    themeFamilyNote: "Cada tema añade unos toques de color complementarios para que nada se vea plano.",
   },
 };
 

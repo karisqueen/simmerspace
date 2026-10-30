@@ -8,34 +8,28 @@ const vm = require('node:vm');
 // demo-data.js is a plain browser script; run it in a sandbox to read its catalog.
 const { ITEMS, SUBS } = vm.runInNewContext(`${fs.readFileSync(path.join(__dirname, '../renderer/js/demo-data.js'), 'utf8')}\n;({ ITEMS, SUBS })`, {});
 
-test('appearance falls back to safe defaults and keeps a single accent valid', () => {
+test('appearance falls back to safe defaults and accepts the eight themes', () => {
   assert.deepEqual(core.normalizeAppearance(null), core.DEFAULT_APPEARANCE);
-  assert.deepEqual(core.normalizeAppearance({ family: 'neon', mode: 'x', primary: 'red', secondary: 'pink', density: 'tiny', motion: 'fast' }), core.DEFAULT_APPEARANCE);
+  assert.deepEqual(core.normalizeAppearance({ family: 'neon', mode: 'x', primary: 'red', density: 'tiny', motion: 'fast' }), core.DEFAULT_APPEARANCE);
   assert.deepEqual(core.normalizeAppearance('nonsense'), core.DEFAULT_APPEARANCE);
-  const single = core.normalizeAppearance({ primary: 'sage', secondary: '' });
-  assert.equal(single.primary, 'sage');
-  assert.equal(single.secondary, '');
-  // A second accent equal to the first means "one accent".
-  assert.equal(core.normalizeAppearance({ primary: 'rose', secondary: 'rose' }).secondary, '');
-  assert.deepEqual(core.normalizeAppearance({ family: 'sims-blue', mode: 'system', primary: 'blue', secondary: 'rose', density: 'compact', motion: 'reduced' }), {
-    family: 'sims-blue',
-    mode: 'system',
-    primary: 'blue',
-    secondary: 'rose',
-    density: 'compact',
-    motion: 'reduced'
-  });
+  assert.deepEqual(core.THEME_FAMILIES, ['pink', 'purple', 'green', 'blue']);
+  for (const family of core.THEME_FAMILIES) {
+    for (const mode of ['light', 'dark']) assert.deepEqual(core.normalizeAppearance({ family, mode }), { ...core.DEFAULT_APPEARANCE, family, mode });
+  }
+  assert.deepEqual(core.normalizeAppearance({ family: 'green', mode: 'system', density: 'compact', motion: 'reduced' }), { family: 'green', mode: 'system', density: 'compact', motion: 'reduced' });
 });
 
-test('appearance settings from 0.7.x and 0.8.x / 0.9.x are carried over', () => {
-  assert.deepEqual(core.normalizeAppearance(null, 'dark-sage'), { ...core.DEFAULT_APPEARANCE, mode: 'dark', primary: 'sage' });
-  assert.deepEqual(core.normalizeAppearance(null, 'soft-rose'), { ...core.DEFAULT_APPEARANCE, mode: 'light', primary: 'rose' });
-  assert.deepEqual(core.normalizeAppearance(null, 'dark'), { ...core.DEFAULT_APPEARANCE, mode: 'dark', primary: 'lavender' });
+test('appearance settings from 0.7.x, 0.8.x / 0.9.x and 0.10.0 are carried over', () => {
+  assert.deepEqual(core.normalizeAppearance(null, 'dark-sage'), { ...core.DEFAULT_APPEARANCE, mode: 'dark', family: 'green' });
+  assert.deepEqual(core.normalizeAppearance(null, 'soft-rose'), { ...core.DEFAULT_APPEARANCE, mode: 'light', family: 'pink' });
+  assert.deepEqual(core.normalizeAppearance(null, 'dark'), { ...core.DEFAULT_APPEARANCE, mode: 'dark', family: 'purple' });
   // 0.8.0 and 0.9.0 saved "soft-blue" / "dark-blue" plus separate main and second colors.
-  assert.deepEqual(core.normalizeAppearance(null, 'dark-blue', { primary: 'blue', secondary: 'rose' }), { ...core.DEFAULT_APPEARANCE, mode: 'dark', primary: 'blue', secondary: 'rose' });
-  assert.equal(core.normalizeAppearance(null, 'soft-lavender', { primary: 'bogus', secondary: 'bogus' }).primary, 'lavender');
-  // A setting saved by 0.10.0 wins over the older values.
-  assert.equal(core.normalizeAppearance({ primary: 'sage' }, 'dark-blue', { primary: 'blue' }).primary, 'sage');
+  assert.deepEqual(core.normalizeAppearance(null, 'dark-blue', { primary: 'blue', secondary: 'rose' }), { ...core.DEFAULT_APPEARANCE, mode: 'dark', family: 'blue' });
+  assert.equal(core.normalizeAppearance(null, 'soft-lavender', { primary: 'bogus', secondary: 'bogus' }).family, 'purple');
+  // 0.10.0 saved a family ("soft" or "sims-blue") plus an accent; it wins over the older values.
+  assert.equal(core.normalizeAppearance({ family: 'soft', primary: 'sage' }, 'dark-blue', { primary: 'blue' }).family, 'green');
+  assert.equal(core.normalizeAppearance({ family: 'sims-blue', primary: 'rose', mode: 'dark' }).family, 'blue');
+  assert.deepEqual(Object.keys(core.normalizeAppearance({ family: 'soft', primary: 'rose', secondary: 'sage' })).sort(), ['density', 'family', 'mode', 'motion']);
 });
 
 test('collection colors accept only #rrggbb and fall back to the palette', () => {

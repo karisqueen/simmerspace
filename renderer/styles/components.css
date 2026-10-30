@@ -352,14 +352,6 @@
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
 }
-[data-mode='light'] .swatch-dot[data-swatch='rose'] { background: var(--rose-light); }
-[data-mode='light'] .swatch-dot[data-swatch='lavender'] { background: var(--lavender-light); }
-[data-mode='light'] .swatch-dot[data-swatch='sage'] { background: var(--sage-light); }
-[data-mode='light'] .swatch-dot[data-swatch='blue'] { background: var(--blue-light); }
-[data-mode='dark'] .swatch-dot[data-swatch='rose'] { background: var(--rose-dark); }
-[data-mode='dark'] .swatch-dot[data-swatch='lavender'] { background: var(--lavender-dark); }
-[data-mode='dark'] .swatch-dot[data-swatch='sage'] { background: var(--sage-dark); }
-[data-mode='dark'] .swatch-dot[data-swatch='blue'] { background: var(--blue-dark); }
 .swatch-dot[data-swatch='none'] {
   background: linear-gradient(135deg, transparent 45%, var(--line-strong) 45% 55%, transparent 55%), var(--surface-2);
 }
@@ -372,7 +364,7 @@
 /* ---------- Theme cards ---------- */
 .theme-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--sp-3);
   flex: 1;
   min-width: 0;
@@ -405,35 +397,22 @@
 }
 .theme-preview {
   display: grid;
-  grid-template-columns: 28% 1fr;
+  grid-template-columns: 26% 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 6px;
   height: 74px;
   padding: 6px;
   border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--line);
 }
 .theme-preview i {
   border-radius: 6px;
 }
-.theme-preview i:first-child {
-  grid-row: 1 / 3;
-}
-.theme-preview-soft {
-  background: #f4f1f6;
-}
-.theme-preview-soft i:nth-child(1) { background: #ffffff; }
-.theme-preview-soft i:nth-child(2) { background: #d9c9ee; }
-.theme-preview-soft i:nth-child(3) { background: #f6d2df; }
-.theme-preview-sims-blue {
-  background: #e6eef8;
-}
-.theme-preview-sims-blue i:nth-child(1) { background: linear-gradient(180deg, #11589f, #0b417e); }
-.theme-preview-sims-blue i:nth-child(2) { background: #ffffff; }
-.theme-preview-sims-blue i:nth-child(3) { background: #7db8f7; }
-[data-mode='dark'] .theme-preview-soft { background: #1d1a21; }
-[data-mode='dark'] .theme-preview-soft i:nth-child(1) { background: #2a2630; }
-[data-mode='dark'] .theme-preview-sims-blue { background: #0b1420; }
-[data-mode='dark'] .theme-preview-sims-blue i:nth-child(2) { background: #162436; }
+.theme-preview i:nth-child(1) { grid-row: 1 / 3; background: var(--sidebar-bg); box-shadow: inset 0 0 0 1px var(--line); }
+.theme-preview i:nth-child(2) { grid-column: 2 / 4; background: var(--surface); }
+.theme-preview i:nth-child(3) { background: var(--a1); }
+.theme-preview i:nth-child(4) { background: linear-gradient(90deg, var(--a2) 50%, var(--a3) 50%); }
 
 /* ---------- Fields ---------- */
 .field {
@@ -1060,42 +1039,36 @@ details[open] > summary .disclosure-icon {
   height: 30px;
 }
 .brand-mark {
-  width: 28px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   flex: none;
+  overflow: visible;
 }
 .brand-mark .bm-a {
   fill: var(--accent);
 }
 .brand-mark .bm-b {
   fill: var(--highlight);
-  opacity: 0.85;
+}
+.brand-mark .bm-edge {
+  fill: none;
+  stroke: var(--text);
+  stroke-opacity: 0.22;
+  stroke-width: 0.7;
+  stroke-linejoin: round;
 }
 .brand-mark .bm-spark {
-  fill: var(--highlight);
+  fill: var(--sun);
 }
-/* "Simmer" is the warm, rounded brand face; "Space" is set lighter and wider in the second accent. */
+/* "simmerspace": one lowercase word in the rounded brand face. */
 .wordmark {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 1px;
   font-family: var(--font-brand);
-  font-size: 21px;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-.wm-simmer {
-  color: var(--sidebar-strong);
+  font-size: 22px;
   font-weight: 600;
-}
-.wm-space {
-  color: var(--highlight-text);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
-[data-family='sims-blue'] .wm-space {
-  color: #bfe0ff;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: var(--sidebar-strong);
+  white-space: nowrap;
 }
 
 /* ---------- Cards and illustrations ---------- */

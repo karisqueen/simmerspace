@@ -22,7 +22,7 @@ test('every literal text key used by the interface exists', () => {
   for (const [, key] of rendererCode.matchAll(/\bmtC?o?u?n?t?\('([A-Za-z_]+)'/g)) assert.ok(key in MODS_TEXT.en, `mt('${key}') is missing`);
   // Keys passed through t(...) inside lists and helpers (labels for chips, sorts, accents and pages).
   for (const [, key] of rendererCode.matchAll(/\[\s*\d+,\s*'(cf[A-Za-z]+)'\s*\]/g)) assert.ok(key in DICT.en, `sort label '${key}' is missing`);
-  for (const [, body] of rendererCode.matchAll(/const (?:PART_KEYS|OCCULT_KEYS|ACCENT_LABEL_KEYS|PAGE_TITLES) = \{([^}]*)\}/g)) {
+  for (const [, body] of rendererCode.matchAll(/const (?:PART_KEYS|OCCULT_KEYS|THEME_LABEL_KEYS|PAGE_TITLES) = \{([^}]*)\}/g)) {
     for (const [, key] of body.matchAll(/:\s*'([A-Za-z]+)'/g)) assert.ok(key in DICT.en, `label key '${key}' is missing`);
   }
 });
