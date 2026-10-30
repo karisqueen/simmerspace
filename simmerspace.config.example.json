@@ -1,0 +1,12 @@
+{
+  "curseforge": {
+    "apiKey": "your-curseforge-api-key",
+    "baseUrl": "https://api.curseforge.com",
+    "proxyUrl": "",
+    "gameId": 0
+  },
+  "supabase": {
+    "url": "https://your-project-ref.supabase.co",
+    "publishableKey": "your-supabase-publishable-key"
+  }
+}

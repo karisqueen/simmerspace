@@ -1,0 +1,198 @@
+/* SimmerSpace design tokens.
+   Every color, radius, size and duration in the interface comes from here. Themes are chosen with data
+   attributes on <html> (set by renderer/js/appearance.js):
+     data-family   pink | purple | green | blue   the theme's colors
+     data-mode     light | dark            resolved from the Light / Dark / Match Windows setting
+     data-density  comfortable | compact
+     data-motion   system | reduced | full
+   Color rules: --accent (primary) marks actions, selection, focus and links. --highlight (the pop color)
+   and --sun are only used for small decorative notes: the active page marker, counts and badges, category
+   accents and the brand sparkle. */
+
+:root {
+  /* Type */
+  --font-ui: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-brand: 'Fredoka', 'DM Sans', system-ui, sans-serif;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --lh-tight: 1.25;
+  --lh: 1.5;
+  --fw-regular: 420;
+  --fw-medium: 540;
+  --fw-semibold: 640;
+  --fw-bold: 720;
+
+  /* Shape */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  /* Space (4px grid) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* Density-dependent sizes */
+  --control-h: 38px;
+  --control-h-sm: 32px;
+  --control-h-xs: 26px;
+  --card-pad: 14px;
+  --panel-pad: 20px;
+  --gap: 16px;
+  --sidebar-w: 252px;
+  --rail-w: 72px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-density='compact'] {
+  --control-h: 32px;
+  --control-h-sm: 28px;
+  --control-h-xs: 24px;
+  --card-pad: 10px;
+  --panel-pad: 14px;
+  --gap: 12px;
+  --fs-md: 13.5px;
+}
+
+[data-motion='reduced'] {
+  --dur-fast: 0ms;
+  --dur: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-motion='system'] {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}
+
+/* ---------- Theme colors: four families × light/dark = eight themes ----------
+   --a1  primary: actions, selection, focus, links. Light values carry white text at WCAG AA; dark values
+         carry dark text.
+   --a2  pop: a complementary color used sparingly (active page marker, counts, badges, category accents)
+         so a single-hue theme never looks flat.
+   --a3  sun: a warm third note for highlights such as "new", updates and the brand sparkle. */
+[data-family='pink'][data-mode='light'] { --a1: #b03466; --a2: #17776f; --a3: #9a5c08; --tint: #fff4f8; }
+[data-family='pink'][data-mode='dark'] { --a1: #f4a3c3; --a2: #7dd3c8; --a3: #f1c36a; --tint: #1a1117; }
+[data-family='purple'][data-mode='light'] { --a1: #6a45b0; --a2: #b2442f; --a3: #237458; --tint: #f8f5ff; }
+[data-family='purple'][data-mode='dark'] { --a1: #c6b0f3; --a2: #ff9e8c; --a3: #86d8b6; --tint: #15111d; }
+[data-family='green'][data-mode='light'] { --a1: #2b7150; --a2: #a03e6c; --a3: #8a5f00; --tint: #f4faf5; }
+[data-family='green'][data-mode='dark'] { --a1: #8fd4a9; --a2: #f2a5c6; --a3: #efc760; --tint: #0f1612; }
+[data-family='blue'][data-mode='light'] { --a1: #1560c0; --a2: #237d33; --a3: #ad4a22; --tint: #f3f8ff; }
+[data-family='blue'][data-mode='dark'] { --a1: #80b9f7; --a2: #8fe08f; --a3: #ffaf86; --tint: #0d141f; }
+
+/* ---------- Surfaces, tinted by the family's primary ---------- */
+[data-mode='light'] {
+  color-scheme: light;
+  --bg: color-mix(in oklab, var(--a1) 6%, #f8f7f5);
+  --surface: #ffffff;
+  --surface-2: color-mix(in oklab, var(--a1) 4%, #f7f6f4);
+  --surface-3: color-mix(in oklab, var(--a1) 9%, #eeecea);
+  --line: color-mix(in oklab, var(--a1) 10%, #e4e1de);
+  --line-strong: color-mix(in oklab, var(--a1) 18%, #cbc6c2);
+  --text: color-mix(in oklab, var(--a1) 10%, #1d1a21);
+  --text-2: color-mix(in oklab, var(--a1) 10%, #514b58);
+  --text-3: color-mix(in oklab, var(--a1) 8%, #67606f);
+  --sidebar-bg: color-mix(in oklab, var(--a1) 5%, var(--tint));
+  --sidebar-text: var(--text-2);
+  --sidebar-strong: var(--text);
+  --sidebar-hover: color-mix(in oklab, var(--a1) 8%, transparent);
+  --sidebar-active: color-mix(in oklab, var(--a1) 14%, #ffffff);
+  --sidebar-line: var(--line);
+}
+[data-mode='dark'] {
+  color-scheme: dark;
+  --bg: color-mix(in oklab, var(--a1) 5%, #111014);
+  --surface: color-mix(in oklab, var(--a1) 6%, #1a181e);
+  --surface-2: color-mix(in oklab, var(--a1) 7%, #211f26);
+  --surface-3: color-mix(in oklab, var(--a1) 10%, #2a2730);
+  --line: color-mix(in oklab, var(--a1) 11%, #312d37);
+  --line-strong: color-mix(in oklab, var(--a1) 20%, #47424f);
+  --text: #f3f0f6;
+  --text-2: color-mix(in oklab, var(--a1) 8%, #c4bfca);
+  --text-3: color-mix(in oklab, var(--a1) 8%, #a29ca9);
+  --sidebar-bg: color-mix(in oklab, var(--a1) 4%, var(--tint));
+  --sidebar-text: var(--text-2);
+  --sidebar-strong: var(--text);
+  --sidebar-hover: color-mix(in oklab, var(--a1) 10%, transparent);
+  --sidebar-active: color-mix(in oklab, var(--a1) 18%, #1a181e);
+  --sidebar-line: var(--line);
+}
+
+/* ---------- Derived roles (all themes) ---------- */
+:root {
+  --accent: var(--a1);
+  --accent-hover: color-mix(in oklab, var(--a1) 88%, var(--text));
+  --accent-soft: color-mix(in oklab, var(--a1) 11%, var(--surface));
+  --accent-soft-2: color-mix(in oklab, var(--a1) 19%, var(--surface));
+  --accent-line: color-mix(in oklab, var(--a1) 45%, var(--line));
+  --accent-text: color-mix(in oklab, var(--a1) 86%, var(--text));
+  --highlight: var(--a2);
+  --highlight-soft: color-mix(in oklab, var(--a2) 14%, var(--surface));
+  --highlight-text: color-mix(in oklab, var(--a2) 80%, var(--text));
+  --sun: var(--a3);
+  --sun-soft: color-mix(in oklab, var(--a3) 15%, var(--surface));
+  --sun-text: color-mix(in oklab, var(--a3) 82%, var(--text));
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--a1);
+  --shadow-sm: 0 1px 2px rgb(20 16 28 / 0.06);
+  --shadow-md: 0 6px 18px rgb(20 16 28 / 0.08);
+  --shadow-lg: 0 18px 48px rgb(20 16 28 / 0.18);
+  --overlay: rgb(16 12 22 / 0.42);
+}
+[data-mode='light'] {
+  --on-accent: #ffffff;
+  --success: #2e7a4f;
+  --success-soft: #e3f3e9;
+  --warning: #8a5a12;
+  --warning-soft: #fbf0db;
+  --danger: #b3364d;
+  --danger-hover: #9c2c41;
+  --danger-soft: #fbe7ea;
+  --skeleton: color-mix(in oklab, var(--a1) 6%, #ecebe9);
+}
+[data-mode='dark'] {
+  --on-accent: #16131a;
+  --success: #8fd8ae;
+  --success-soft: #1e3a2b;
+  --warning: #f1c983;
+  --warning-soft: #3b3020;
+  --danger: #f39aab;
+  --danger-hover: #f7b5c2;
+  --danger-soft: #45222b;
+  --skeleton: color-mix(in oklab, var(--a1) 8%, #2a272f);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 8px 22px rgb(0 0 0 / 0.32);
+  --shadow-lg: 0 22px 56px rgb(0 0 0 / 0.5);
+  --overlay: rgb(4 3 8 / 0.62);
+}
+
+/* Names used by the 0.7 Mods panel stylesheet (mods-manager.css), mapped onto the tokens above. */
+:root {
+  --muted: var(--text-2);
+  --lav: var(--accent-soft);
+  --lav-strong: var(--accent-text);
+  --pink: var(--highlight-soft);
+  --shadow: var(--shadow-md);
+  --success-bg: var(--success-soft);
+  --success-fg: var(--success);
+  --warning-bg: var(--warning-soft);
+  --warning-fg: var(--warning);
+  --danger-bg: var(--danger-soft);
+  --danger-fg: var(--danger);
+  --danger-btn: var(--danger);
+  --btn-bg: var(--accent);
+}

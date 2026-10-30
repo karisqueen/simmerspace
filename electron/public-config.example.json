@@ -1,0 +1,9 @@
+{
+  "supabase": {
+    "url": "https://your-project-ref.supabase.co",
+    "publishableKey": "your-supabase-publishable-key"
+  },
+  "curseforge": {
+    "proxyUrl": "https://your-project-ref.supabase.co/functions/v1/curseforge-proxy"
+  }
+}

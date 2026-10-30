@@ -57,6 +57,27 @@ const validators = {
     }
     return [args[0], args[1]];
   },
+  optionalObject: args => {
+    if (args[0] === undefined || args[0] === null) return [{}];
+    if (typeof args[0] !== 'object' || Array.isArray(args[0])) throw new AppError('INVALID_INPUT', 'Options were expected.');
+    return [args[0]];
+  },
+  id: args => {
+    if (!Number.isInteger(args[0]) || args[0] < 1) throw new AppError('INVALID_INPUT', 'An id was expected.');
+    return [args[0]];
+  },
+  idAndObject: args => {
+    if (!Number.isInteger(args[0]) || args[0] < 1 || (args[1] !== undefined && (typeof args[1] !== 'object' || args[1] === null || Array.isArray(args[1])))) {
+      throw new AppError('INVALID_INPUT', 'An id and options were expected.');
+    }
+    return [args[0], args[1] || {}];
+  },
+  twoIdsAndObject: args => {
+    if (!Number.isInteger(args[0]) || args[0] < 1 || !Number.isInteger(args[1]) || args[1] < 1 || (args[2] !== undefined && (typeof args[2] !== 'object' || args[2] === null || Array.isArray(args[2])))) {
+      throw new AppError('INVALID_INPUT', 'Two ids were expected.');
+    }
+    return [args[0], args[1], args[2] || {}];
+  },
   object: args => {
     if (!args[0] || typeof args[0] !== 'object' || Array.isArray(args[0])) throw new AppError('INVALID_INPUT', 'Data was expected.');
     return [args[0]];

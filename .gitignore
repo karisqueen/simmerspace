@@ -17,6 +17,10 @@ release-assets/
 .env.*
 !.env.example
 *.local
+simmerspace.config.json
+electron/public-config.json
+supabase/.temp/
+supabase/.env
 
 # Internal planning and collaboration notes (keep local, do not publish)
 ROADMAP.md

@@ -1,6 +1,6 @@
 {
   "name": "simmerspace",
-  "version": "0.8.0",
+  "version": "0.11.0",
   "private": true,
   "description": "A cozy, bilingual Sims 4 mods and custom content manager for Windows.",
   "main": "electron/main.cjs",
@@ -21,7 +21,8 @@
     "productName": "SimmerSpace",
     "asar": true,
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "package.json",
@@ -32,7 +33,8 @@
       "target": [
         "nsis"
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": true,
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -44,5 +46,8 @@
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
     }
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.3"
   }
 }

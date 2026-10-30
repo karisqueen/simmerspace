@@ -197,3 +197,83 @@ document.addEventListener('keydown', event => {
   }
   trapDialogFocus(event);
 });
+
+/* ---------- Delayed tooltips ----------
+   Any control with data-tip="…" explains itself after the pointer rests on it for about two seconds, or
+   shortly after it gets keyboard focus. The text says what the control does, not its name. Players can turn
+   this off in Settings (state.tooltips). Tooltips never hold essential information: every control also
+   has a visible label or an accessible name. */
+const TIP_DELAY_POINTER = 2000;
+const TIP_DELAY_KEYBOARD = 700;
+let tipTimer = null;
+let tipTarget = null;
+let tipElement = null;
+
+function tooltipsEnabled() {
+  return typeof state === 'undefined' || state.tooltips !== false;
+}
+function hideTooltip() {
+  clearTimeout(tipTimer);
+  tipTimer = null;
+  if (tipTarget?.getAttribute('aria-describedby') === 'app-tooltip') tipTarget.removeAttribute('aria-describedby');
+  tipTarget = null;
+  if (tipElement) tipElement.hidden = true;
+}
+function showTooltip(target) {
+  if (!target.isConnected || !tooltipsEnabled()) return;
+  const text = target.dataset.tip;
+  if (!text) return;
+  if (!tipElement) {
+    tipElement = document.createElement('div');
+    tipElement.id = 'app-tooltip';
+    tipElement.className = 'tooltip';
+    tipElement.setAttribute('role', 'tooltip');
+    document.body.append(tipElement);
+  }
+  tipElement.textContent = text;
+  tipElement.hidden = false;
+  target.setAttribute('aria-describedby', 'app-tooltip');
+  // Beside the control in the sidebar (so it never covers the next item), otherwise below or above it.
+  const box = target.getBoundingClientRect();
+  const tip = tipElement.getBoundingClientRect();
+  const gap = 8;
+  let left;
+  let top;
+  if (target.closest('.sidebar')) {
+    left = box.right + gap;
+    top = box.top + (box.height - tip.height) / 2;
+  } else {
+    left = box.left + (box.width - tip.width) / 2;
+    top = box.bottom + gap;
+    if (top + tip.height > window.innerHeight - gap) top = box.top - tip.height - gap;
+  }
+  tipElement.style.left = `${Math.round(Math.max(gap, Math.min(left, window.innerWidth - tip.width - gap)))}px`;
+  tipElement.style.top = `${Math.round(Math.max(gap, Math.min(top, window.innerHeight - tip.height - gap)))}px`;
+}
+function scheduleTooltip(target, delay) {
+  if (target === tipTarget) return;
+  hideTooltip();
+  if (!tooltipsEnabled()) return;
+  tipTarget = target;
+  tipTimer = setTimeout(() => showTooltip(target), delay);
+}
+document.addEventListener('pointerover', event => {
+  if (event.pointerType === 'touch') return;
+  const target = event.target.closest?.('[data-tip]');
+  if (target) scheduleTooltip(target, TIP_DELAY_POINTER);
+  else if (tipTarget) hideTooltip();
+});
+document.addEventListener('pointerout', event => {
+  if (tipTarget && !tipTarget.contains(event.relatedTarget)) hideTooltip();
+});
+document.addEventListener('focusin', event => {
+  const target = event.target.closest?.('[data-tip]');
+  if (target && target.matches(':focus-visible')) scheduleTooltip(target, TIP_DELAY_KEYBOARD);
+});
+document.addEventListener('focusout', hideTooltip);
+document.addEventListener('pointerdown', hideTooltip);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && tipTarget) hideTooltip();
+});
+window.addEventListener('scroll', hideTooltip, true);
+window.addEventListener('blur', hideTooltip);

@@ -176,21 +176,18 @@ async function onModsFolderChanged() {
 /* ---------- Derived lists ---------- */
 function filteredModFiles() {
   const files = mods.result?.files || [];
-  const key = [mods.resultVersion, mods.catalogVersion, state.lang, mods.query, mods.stateFilter, mods.categoryFilter].join('\u0000');
+  const key = [mods.resultVersion, mods.catalogVersion, installIndex().version, state.lang, mods.query, mods.stateFilter, mods.categoryFilter, library.creatorFilter, library.origin].join('\u0000');
   if (mods.cache.key !== key) {
     mods.cache = {
       key,
-      files: filterModFiles(
-        files,
-        { query: mods.query, state: mods.stateFilter, categoryId: mods.categoryFilter },
-        { tags: tagsForMod, categoryName: categoryNameForMod, creatorName: id => creatorForMod(id)?.name || '' }
-      )
+      files: filterModFiles(files, { query: mods.query, state: mods.stateFilter, categoryId: mods.categoryFilter, creatorKey: library.creatorFilter, origin: library.origin }, modLookup())
     };
   }
   return mods.cache.files;
 }
 function setScanResult(result) {
   mods.result = result;
+  mods.scannedAt = Date.now();
   mods.byPath = new Map(result.files.map(file => [file.relativePath, file]));
   mods.resultVersion++;
 }
@@ -276,14 +273,16 @@ function creatorsDatalist(id) {
 }
 const n = value => Number(value || 0).toLocaleString(state.lang);
 
+// The page heading is "My CC"; the folder facts sit under it and the library section is titled "Library".
 function renderModsIntro() {
-  return `<div class="mods-head"><div><div class="eyebrow">${t('mycc')}</div><h2 id="mods-title">${mt('title')}</h2><p>${mt('intro')}</p></div></div>`;
+  return `${libraryFolderStrip()}<div class="library-head"><h2 class="library-title" id="mods-title">${t('libraryTitle')}</h2>${mods.result ? libraryViewSwitch() : ''}</div>`;
 }
 function renderModsToolbar() {
+  const pendingCount = mods.busy ? 0 : pendingClassification().length;
   const scanButton = mods.busy
     ? `<button class="secondary-btn" id="cancel-managed-scan">${mt('cancelScan')}</button>`
-    : `<button class="primary-btn" id="managed-scan-mods" ${mods.working ? 'disabled' : ''}>${mods.result ? mt('rescan') : mt('scan')}</button>`;
-  return `<div class="mods-toolbar"><div class="mods-toolbar-group" role="group" aria-labelledby="mods-safe-label"><span class="mods-group-label" id="mods-safe-label"><i class="safe-dot" aria-hidden="true"></i>${mt('safeGroup')}</span><div class="mods-group-buttons">${scanButton}<button class="secondary-btn" id="manage-mod-categories">${mt('addCategory')}</button><button class="secondary-btn" id="manage-mod-creators">${mt('addCreator')}</button></div></div><div class="mods-toolbar-group" role="group" aria-labelledby="mods-add-label"><span class="mods-group-label" id="mods-add-label"><i class="copy-dot" aria-hidden="true"></i>${mt('addGroup')}</span><div class="mods-group-buttons"><button class="secondary-btn" id="import-mod-files" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFiles')}</button><button class="secondary-btn" id="import-mod-folder" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFolder')}</button></div></div></div>`;
+    : `<button class="primary-btn" id="managed-scan-mods" data-tip="${esc(t('tipScan'))}" ${mods.working ? 'disabled' : ''}>${mods.result ? mt('rescan') : mt('scan')}</button>`;
+  return `<div class="mods-toolbar"><div class="mods-toolbar-group" role="group" aria-labelledby="mods-safe-label"><span class="mods-group-label" id="mods-safe-label"><i class="safe-dot" aria-hidden="true"></i>${mt('safeGroup')}</span><div class="mods-group-buttons">${scanButton}<button class="secondary-btn" id="manage-mod-categories" data-tip="${esc(t('tipCategoriesFolders'))}">${mt('addCategory')}</button><button class="secondary-btn" id="manage-mod-creators" data-tip="${esc(t('tipCreatorsManage'))}">${mt('addCreator')}</button>${pendingCount ? `<button class="secondary-btn classify-open" id="classify-open" data-tip="${esc(t('tipClassify'))}">${icon('tag')}<span>${esc(format(t('classifyOpen'), { count: n(pendingCount) }))}</span></button>` : ''}</div></div><div class="mods-toolbar-group" role="group" aria-labelledby="mods-add-label"><span class="mods-group-label" id="mods-add-label"><i class="copy-dot" aria-hidden="true"></i>${mt('addGroup')}</span><div class="mods-group-buttons"><button class="secondary-btn" id="import-mod-files" data-tip="${esc(t('tipImportFiles'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFiles')}</button><button class="secondary-btn" id="import-mod-folder" data-tip="${esc(t('tipImportFolder'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${mt('importFolder')}</button></div></div></div>`;
 }
 function renderModsProgress() {
   if (!mods.busy) return '';
@@ -334,7 +333,7 @@ function renderModsFilters(filtered) {
     .map(([id, key]) => `<button class="small-chip ${mods.stateFilter === id ? 'active' : ''}" data-mod-filter="${id}" aria-pressed="${mods.stateFilter === id}">${mt(key)}</button>`)
     .join('');
   const categories = `<label class="mods-category-filter"><span>${mt('category')}</span><select id="mod-category-filter"><option value="">${mt('allCategories')}</option><option value="__none__" ${mods.categoryFilter === '__none__' ? 'selected' : ''}>${mt('noCategory')}</option>${categoryOptions(mods.categoryFilter).replace(/^<option value="" [^>]*>[^<]*<\/option>/, '')}</select></label>`;
-  return `<div class="mods-search-row"><div class="library-search-bar scan-search"><label><span aria-hidden="true">⌕</span><input id="scan-search" type="search" value="${esc(mods.query)}" placeholder="${esc(mt('search'))}" aria-label="${esc(mt('search'))}"></label></div></div><div class="mods-filter-row"><div class="subtabs mods-filter-tabs" role="group" aria-label="${esc(mt('stateFilterLabel'))}">${tabs}</div>${categories}</div><div class="mods-select-row"><span class="mods-result-count" role="status">${esc(format(mt('resultCount'), { count: n(filtered.length) }))}</span><button class="text-link" id="select-mod-page">${mt('selectPage')}</button><button class="text-link" id="select-mod-results">${esc(format(mt('selectResults'), { count: n(filtered.length) }))}</button>${mods.selected.size ? `<button class="text-link" id="clear-mod-selection">${mt('clearSelection')}</button>` : ''}</div>`;
+  return `<div class="mods-search-row"><div class="library-search-bar scan-search"><label><span aria-hidden="true">⌕</span><input id="scan-search" type="search" value="${esc(mods.query)}" placeholder="${esc(mt('search'))}" aria-label="${esc(mt('search'))}"></label></div></div><div class="mods-filter-row"><div class="subtabs mods-filter-tabs" role="group" aria-label="${esc(mt('stateFilterLabel'))}">${tabs}</div>${originFilter()}${categories}</div><div class="mods-select-row"><span class="mods-result-count" role="status">${esc(format(mt('resultCount'), { count: n(filtered.length) }))}</span><button class="text-link" id="select-mod-page">${mt('selectPage')}</button><button class="text-link" id="select-mod-results">${esc(format(mt('selectResults'), { count: n(filtered.length) }))}</button>${mods.selected.size ? `<button class="text-link" id="clear-mod-selection">${mt('clearSelection')}</button>` : ''}</div>`;
 }
 function renderBulkTools() {
   if (!mods.selected.size) return '';
@@ -344,14 +343,14 @@ function renderBulkTools() {
 function renderModRow(file) {
   const tags = tagsForMod(file.relativePath);
   const category = categoryNameForMod(tags.categoryId);
-  const creator = creatorForMod(tags.creatorId)?.name || '';
+  const creator = modLookup().creatorLabel(file);
   const dims = [tags.gender && mt(MOD_GENDERS.find(([value]) => value === tags.gender)?.[1] || 'neutral'), tags.age && mt(MOD_AGES.find(([value]) => value === tags.age)?.[1] || 'unknownAge')]
     .filter(Boolean)
     .join(' · ');
   const warning = modDepthWarning(file);
   const path = esc(file.relativePath);
   const name = esc(file.name);
-  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}"><span class="scan-file-icon" aria-hidden="true" title="${file.extension === 'ts4script' ? mt('scriptFile') : mt('packageFile')}">${file.extension === 'ts4script' ? '⚙' : '✧'}</span><span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags"><i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="small-chip" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}">${mt('editTags')}</button><button class="small-chip" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${file.enabled ? mt('disable') : mt('enable')}</button><button class="small-chip" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${mt('rename')}</button><button class="small-chip danger-quiet icon-only" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" title="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>🗑</button></span></li>`;
+  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}"><span class="scan-file-icon" aria-hidden="true" title="${file.extension === 'ts4script' ? mt('scriptFile') : mt('packageFile')}">${file.extension === 'ts4script' ? '⚙' : '✧'}</span><span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags">${originBadge(file)}<i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="small-chip" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}">${mt('editTags')}</button><button class="small-chip" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${file.enabled ? mt('disable') : mt('enable')}</button><button class="small-chip" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" ${mods.working ? 'disabled' : ''}>${mt('rename')}</button><button class="small-chip danger-quiet icon-only" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" title="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>🗑</button></span></li>`;
 }
 function renderModsList(filtered) {
   const pages = Math.max(1, Math.ceil(filtered.length / MODS_PAGE_SIZE));
@@ -371,7 +370,7 @@ function renderManagedModsPanel() {
   const files = mods.result?.files || [];
   const filtered = mods.result ? filteredModFiles() : [];
   const body = mods.result
-    ? `${renderModsSummary(summarizeModFiles(files))}${renderFolderSettings()}${renderModsFilters(filtered)}${renderBulkTools()}${renderModsList(filtered)}`
+    ? `${renderModsSummary(summarizeModFiles(files))}${libraryFolders()}<section class="library-list ${library.listOpen ? 'is-open' : ''}"><button class="library-list-toggle" id="toggle-library-list" aria-expanded="${library.listOpen}" aria-controls="library-list-body">${icon('chevron', 'disclosure-icon')}<b>${t('libFileList')}</b><span class="badge">${n(filtered.length)}</span>${filtered.length !== files.length ? `<small>${esc(format(t('libOfTotal'), { total: n(files.length) }))}</small>` : ''}</button><div class="library-list-body" id="library-list-body" ${library.listOpen ? '' : 'hidden'}>${renderFolderSettings()}${renderModsFilters(filtered)}${renderBulkTools()}${renderModsList(filtered)}</div></section>`
     : renderModsEmptyState();
   const errorBox = mods.error
     ? `<div class="scan-error" role="alert"><b>${mt('scanError')}</b> <span>${esc(errorMessage(mods.error))}</span>${
@@ -408,6 +407,7 @@ async function scanManagedMods() {
     mods.page = 0;
     mods.selected.clear();
     toast(result.cancelled ? mt('scanCancelledPartial') : format(mt('scanDone'), { count: n(result.files.length) }));
+    setTimeout(offerClassification, 400);
   } catch (error) {
     mods.error = error;
   } finally {
@@ -586,7 +586,7 @@ function openCreatorsDialog() {
 function openCreatorEditor(creatorId = '') {
   const creator = mods.catalog.creators.find(item => item.id === creatorId);
   openDialog(
-    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('creatorTitle')}</div><h2 id="dialog-title">${creator ? mt('rename') : mt('newCreator')}</h2><label>${mt('creatorName')}<input id="edit-mod-creator-name" maxlength="120" value="${esc(creator?.name || '')}"></label><div class="detail-actions"><button class="primary-btn" id="save-mod-creator" data-creator-id="${esc(creatorId)}">${mt('saveCreator')}</button><button class="secondary-btn" id="manage-mod-creators">${t('cancel')}</button></div></div>`
+    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('creatorTitle')}</div><h2 id="dialog-title">${creator ? mt('rename') : mt('newCreator')}</h2><label>${mt('creatorName')}<input id="edit-mod-creator-name" maxlength="120" value="${esc(creator?.name || '')}"></label><div class="detail-actions"><button class="primary-btn" id="save-mod-creator" data-creator-id="${esc(creatorId)}">${mt('saveCreator')}</button><button class="secondary-btn" id="manage-mod-creators" data-tip="${esc(t('tipCreatorsManage'))}">${t('cancel')}</button></div></div>`
   );
 }
 
@@ -649,6 +649,7 @@ const MOD_CLICK_ACTIONS = {
   },
   'reset-mod-filters': () => {
     Object.assign(mods, { query: '', stateFilter: 'all', categoryFilter: '', page: 0 });
+    Object.assign(library, { origin: 'all', creatorFilter: '' });
     renderModsPanel();
   },
   'apply-mod-tags': applyBulkTags,

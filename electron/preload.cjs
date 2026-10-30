@@ -9,8 +9,49 @@ contextBridge.exposeInMainWorld(
     appInfo: invoke('app:info'),
     loadRoutes: invoke('settings:load-routes'),
     chooseFolder: invoke('folders:choose'),
-    chooseCoverImage: invoke('collections:choose-cover'),
+    setWindowBackground: invoke('app:set-window-background'),
+    integrationStatus: invoke('integrations:status'),
+    openConfigFolder: invoke('integrations:open-config-folder'),
     launchGame: invoke('game:launch'),
+    chooseCoverImage: invoke('collections:choose-cover'),
+    curseforge: Object.freeze({
+      test: invoke('cf:test'),
+      classes: invoke('cf:classes'),
+      categories: invoke('cf:categories'),
+      search: invoke('cf:search'),
+      creators: invoke('cf:creators'),
+      details: invoke('cf:details'),
+      files: invoke('cf:files'),
+      install: invoke('cf:install'),
+      installs: invoke('cf:installs'),
+      checkUpdates: invoke('cf:check-updates')
+    }),
+    account: Object.freeze({
+      status: invoke('account:status'),
+      signUp: invoke('account:sign-up'),
+      verifyEmail: invoke('account:verify-email'),
+      signIn: invoke('account:sign-in'),
+      signOut: invoke('account:sign-out'),
+      requestReset: invoke('account:request-reset'),
+      completeReset: invoke('account:complete-reset'),
+      checkUsername: invoke('account:check-username'),
+      resendConfirmation: invoke('account:resend-confirmation'),
+      updateProfile: invoke('account:update-profile'),
+      uploadAvatar: invoke('account:upload-avatar'),
+      removeAvatar: invoke('account:remove-avatar'),
+      sendFeedback: invoke('account:send-feedback'),
+      onChange: callback => {
+        const listener = (_event, status) => callback(status);
+        ipcRenderer.on('account:changed', listener);
+        return () => ipcRenderer.removeListener('account:changed', listener);
+      }
+    }),
+    inspiration: Object.freeze({
+      list: invoke('inspiration:list'),
+      profile: invoke('inspiration:profile'),
+      create: invoke('inspiration:create'),
+      remove: invoke('inspiration:delete')
+    }),
     manageMods: Object.freeze({
       scan: invoke('mods:scan'),
       cancelScan: () => ipcRenderer.send('mods:cancel-scan'),
