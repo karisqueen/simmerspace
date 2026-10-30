@@ -12,7 +12,6 @@ const account = {
   notice: '',
   email: '',
   username: { value: '', state: 'idle' }, // idle | checking | invalid | taken | free | error
-  resendAt: 0,
   devBypass: false,
   tourOffered: false,
   avatarBusy: false,
@@ -120,9 +119,9 @@ function authField(name, label, { type = 'text', autocomplete = '', value = '', 
 function authForm(id, title, lead, body, submit, footer = '') {
   return `<form class="account-form" id="${id}" novalidate><h1 class="auth-title">${title}</h1>${lead ? `<p class="auth-lead">${lead}</p>` : ''}${account.notice ? `<p class="field-notice" role="status">${esc(account.notice)}</p>` : ''}${account.error ? `<p class="field-error" role="alert">${esc(account.error)}</p>` : ''}${body}<button class="primary-btn auth-submit" type="submit" ${account.busy ? 'disabled' : ''}>${account.busy ? t('working') : submit}</button>${footer ? `<div class="auth-footer">${footer}</div>` : ''}</form>`;
 }
-function resendButton() {
-  const wait = Math.max(0, Math.ceil((account.resendAt - Date.now()) / 1000));
-  return `<button class="text-link" type="button" id="auth-resend" ${wait ? 'disabled' : ''}>${wait ? esc(format(t('resendIn'), { seconds: wait })) : t('resendCode')}</button>`;
+// After sign-up Supabase emails a confirmation LINK (not a code). These steps say what to do with it.
+function verifySteps() {
+  return `<ol class="verify-steps">${['verifyStepOpen', 'verifyStepClick', 'verifyStepReturn'].map(key => `<li>${esc(t(key))}</li>`).join('')}</ol>`;
 }
 
 const AUTH_VIEWS = {
@@ -148,10 +147,10 @@ const AUTH_VIEWS = {
     authForm(
       'auth-verify',
       t('verifyTitle'),
-      esc(format(t('verifyText'), { email: account.email })),
-      authField('code', t('emailCode'), { autocomplete: 'one-time-code', attrs: 'inputmode="numeric" maxlength="12" required class="code-input"' }),
+      `${esc(t('verifyText'))} <b class="verify-email">${esc(account.email)}</b>`,
+      `<div class="verify-mail" aria-hidden="true">${icon('mail')}</div>${verifySteps()}<p class="setting-help">${esc(t('verifySpamNote'))}</p>`,
       t('verifyButton'),
-      `${resendButton()}<button class="text-link" type="button" data-auth-view="signup">${t('changeEmail')}</button><button class="text-link" type="button" data-auth-view="signin">${t('backToSignIn')}</button>`
+      `<button class="text-link" type="button" data-auth-view="signup">${t('changeEmail')}</button><button class="text-link" type="button" data-auth-view="signin">${t('backToSignIn')}</button>`
     ),
   reset: () =>
     authForm(
@@ -424,20 +423,17 @@ const ACCOUNT_FORMS = {
       const result = await callDesktop(accountApi.signUp, { email: account.email, password: formValue(form, 'password'), username: formValue(form, 'username') });
       if (result.needsConfirmation) {
         account.view = 'verify';
-        account.resendAt = Date.now() + 60000;
-        account.notice = t('accountCreatedCheckEmail');
+        account.notice = '';
       } else if (result.user) signedIn(result.user);
     }),
   'auth-verify': form =>
     accountAction(async () => {
-      const result = await callDesktop(accountApi.verifyEmail, { email: account.email, code: formValue(form, 'code') });
-      await loadAccountStatus();
-      if (result.alreadyConfirmed) toast(t('alreadyConfirmed'));
-      if (accountUser()) signedIn(accountUser());
-      else {
+      const result = await callDesktop(accountApi.checkConfirmation, { email: account.email });
+      if (result.user) return signedIn(result.user);
+      if (result.needsSignIn) {
         account.view = 'signin';
-        account.notice = result.user ? '' : t('emailConfirmed');
-      }
+        account.notice = t('verifySignInNow');
+      } else account.notice = t('verifyNotYet');
     }),
   'auth-reset': form =>
     accountAction(async () => {
@@ -484,7 +480,6 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   if (event.target.id === 'avatar-file') changeAvatar(event.target.files?.[0]);
 });
-let resendTimer = 0;
 document.addEventListener('click', async event => {
   const target = event.target.closest('button');
   if (!target) return;
@@ -513,22 +508,6 @@ document.addEventListener('click', async event => {
     case 'auth-dev-bypass':
       account.devBypass = true;
       return render();
-    case 'auth-resend':
-      return accountAction(async () => {
-        const result = await callDesktop(accountApi.resendConfirmation, { email: account.email });
-        if (result.user) {
-          signedIn(result.user);
-          return toast(t('alreadyConfirmed'));
-        }
-        account.resendAt = Date.now() + 60000;
-        account.notice = t('codeResent');
-        clearInterval(resendTimer);
-        resendTimer = setInterval(() => {
-          const button = document.getElementById('auth-resend');
-          if (!button || Date.now() >= account.resendAt) clearInterval(resendTimer);
-          if (button) button.outerHTML = resendButton();
-        }, 1000);
-      });
     case 'auth-reset-again':
       return accountAction(async () => {
         await callDesktop(accountApi.requestReset, { email: account.email });

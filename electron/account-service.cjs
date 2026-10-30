@@ -161,13 +161,17 @@ function createSessionStorage({ userDataPath, safeStorage, installId = '' }) {
   };
 }
 
+// Where the confirmation link in the sign-up email lands: a page on the project site that says the account is ready and
+// the player can go back to the app. It must be listed under Authentication > URL Configuration in Supabase.
+const EMAIL_CONFIRMED_URL = 'https://karisqueen.github.io/simmerspace/cuenta-confirmada.html';
+
 function createAccountService({ getConfig, userDataPath, safeStorage, installId = '', createClient, onChange = () => {} }) {
   const storage = createSessionStorage({ userDataPath, safeStorage, installId });
   let client = null;
   let clientKey = '';
   let pendingEmail = '';
-  // Password of the sign-up waiting for its email code, kept only in memory. If the email was already confirmed
-  // (for example through the link in the email), it lets the app sign in instead of asking for a code again.
+  // Password of the sign-up waiting for its confirmation link, kept only in memory, so that once the link was opened
+  // the app can sign in without asking for it again.
   let pendingPassword = '';
   let profileCache = null; // { id, username, avatar_url } of the signed-in user
 
@@ -287,7 +291,7 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     return run(async sb => {
       const free = await sb.rpc('username_available', { name });
       if (!free.error && free.data === false) throw new AppError('ACCOUNT_USERNAME_TAKEN', 'That username is taken.');
-      const { data, error } = await sb.auth.signUp({ email: address, password: secret, options: { data: { username: name } } });
+      const { data, error } = await sb.auth.signUp({ email: address, password: secret, options: { data: { username: name }, emailRedirectTo: EMAIL_CONFIRMED_URL } });
       if (error) throw error;
       // With "confirm email" on, Supabase answers an existing address with a user that has no identities.
       if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new AppError('ACCOUNT_EXISTS', 'There is already an account with this email.');
@@ -307,31 +311,15 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     return publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true }));
   }
 
-  async function verifyEmail({ email, code } = {}) {
-    const address = checkEmail(email || pendingEmail);
-    const token = checkCode(code);
-    return run(async sb => {
-      const { data, error } = await sb.auth.verifyOtp({ email: address, token, type: 'email' });
-      if (error) {
-        const user = await signInIfConfirmed(sb, address);
-        if (user) return { user, alreadyConfirmed: true };
-        throw error;
-      }
-      pendingEmail = '';
-      pendingPassword = '';
-      return { user: data.user ? publicUser(sb, data.user, await loadProfile(sb, data.user, { refresh: true })) : null };
-    });
-  }
-
-  // Supabase answers a resend for an address that is already confirmed without sending anything, so check first.
-  async function resendConfirmation({ email } = {}) {
+  // Supabase confirms the email through the link in the message, in the browser; the app cannot see that happen.
+  // "I confirmed my email" asks again: it signs in with the sign-up typed in this session, or, when the app was
+  // closed in between (the password is never stored), it asks for a normal sign-in.
+  async function checkConfirmation({ email } = {}) {
     const address = checkEmail(email || pendingEmail);
     return run(async sb => {
+      if (!pendingPassword || address !== pendingEmail) return { confirmed: false, needsSignIn: true };
       const user = await signInIfConfirmed(sb, address);
-      if (user) return { sent: false, alreadyConfirmed: true, user };
-      const { error } = await sb.auth.resend({ type: 'signup', email: address });
-      if (error) throw error;
-      return { sent: true };
+      return user ? { confirmed: true, user } : { confirmed: false, needsSignIn: false };
     });
   }
 
@@ -562,8 +550,7 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     status,
     checkUsername,
     signUp,
-    verifyEmail,
-    resendConfirmation,
+    checkConfirmation,
     signIn,
     signOut,
     requestPasswordReset,
@@ -580,4 +567,4 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
   };
 }
 
-module.exports = { createAccountService, createSessionStorage, accountError, passwordProblems, MIN_PASSWORD, POST_CATEGORIES, FEEDBACK_CATEGORIES };
+module.exports = { createAccountService, EMAIL_CONFIRMED_URL, createSessionStorage, accountError, passwordProblems, MIN_PASSWORD, POST_CATEGORIES, FEEDBACK_CATEGORIES };

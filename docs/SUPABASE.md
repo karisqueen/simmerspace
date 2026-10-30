@@ -88,12 +88,21 @@ psql -d prueba -f supabase/migrations/20261030000000_simmerspace_community.sql  
 psql -d prueba -f supabase/tests/community-check.sql                          # "community checks passed"
 ```
 
-## 4. Plantillas de correo
+## 4. Correos y URL de confirmación
 
-SimmerSpace usa **códigos de 6 dígitos**, no enlaces. En **Authentication → Email Templates**, las plantillas
-**Confirm signup** y **Reset password** deben incluir `{{ .Token }}`, por ejemplo:
-`Tu código de SimmerSpace es {{ .Token }}`. El correo incluido en el plan gratuito envía pocos mensajes por hora;
-para usuarios reales configura un SMTP propio.
+Desde 0.12.1 el registro usa el **enlace de confirmación** que Supabase manda por defecto (la app ya no pide un código
+para crear la cuenta ni ofrece «reenviar»). Al abrirlo, Supabase confirma la cuenta y lleva al jugador a
+`https://karisqueen.github.io/simmerspace/cuenta-confirmada.html`, que le dice que vuelva a la app.
+
+1. **Authentication → URL Configuration → Redirect URLs**: añade
+   `https://karisqueen.github.io/simmerspace/cuenta-confirmada.html`. Sin esto Supabase ignora la dirección y usa la
+   *Site URL* (si sigue en `http://localhost:3000`, el jugador ve una página rota aunque la cuenta sí se confirme).
+   También puedes poner esa misma dirección como *Site URL*.
+2. **Email Templates → Confirm signup**: deja `{{ .ConfirmationURL }}` (el enlace). No hace falta `{{ .Token }}`.
+3. **Email Templates → Reset password**: la recuperación de contraseña de la app sí pide el **código de 6 dígitos**,
+   así que esta plantilla debe incluir `{{ .Token }}`, por ejemplo: `Tu código de simmerspace es {{ .Token }}`.
+
+El correo incluido en el plan gratuito envía pocos mensajes por hora; para usuarios reales configura un SMTP propio.
 
 ## 5. Conectar la app
 

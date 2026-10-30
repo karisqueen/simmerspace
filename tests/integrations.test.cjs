@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { loadAppConfig, describeConfig } = require('../electron/app-config.cjs');
-const { createAccountService, createSessionStorage, passwordProblems } = require('../electron/account-service.cjs');
+const { createAccountService, createSessionStorage, passwordProblems, EMAIL_CONFIRMED_URL } = require('../electron/account-service.cjs');
 const { createGameLauncher } = require('../electron/game-launcher.cjs');
 
 async function tempDir(t) {
@@ -193,33 +193,35 @@ test('accounts: sign-up checks email, password rules and username before contact
   assert.equal(result.needsConfirmation, true);
   assert.deepEqual(fake.calls.find(c => c[0] === 'signUp')[1].options.data, { username: 'bea_sims' });
   assert.equal((await service.status()).pendingEmail, 'b@example.com');
-  await service.resendConfirmation({});
-  assert.deepEqual(fake.calls.at(-1), ['resend', { type: 'signup', email: 'b@example.com' }]);
-  await service.verifyEmail({ code: '123 456' });
-  assert.deepEqual(fake.calls.find(c => c[0] === 'verifyOtp')[1], { email: 'b@example.com', token: '123456', type: 'email' });
+  // The email carries a confirmation link that lands on the project page; the app never asks for a code.
+  assert.equal(fake.calls.find(c => c[0] === 'signUp')[1].options.emailRedirectTo, EMAIL_CONFIRMED_URL);
+  assert.equal(service.verifyEmail, undefined);
+  assert.equal(service.resendConfirmation, undefined);
   await assert.rejects(accountWith(t, dir, fakeSupabase({ identities: [] })).signUp({ email: 'c@example.com', password: 'long enough 1', username: 'cee' }), { code: 'ACCOUNT_EXISTS' });
 });
 
-test('accounts: an email confirmed through its link signs in instead of resending or failing the code', async t => {
+test('accounts: after opening the confirmation link, "I confirmed it" signs in without asking again', async t => {
   const dir = await tempDir(t);
   const fake = fakeSupabase();
   const service = accountWith(t, dir, fake);
   await service.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
-  const resent = await service.resendConfirmation({});
-  assert.equal(resent.alreadyConfirmed, true);
-  assert.equal(resent.user.username, 'ana');
-  assert.ok(!fake.calls.some(c => c[0] === 'resend'));
+  const checked = await service.checkConfirmation({});
+  assert.equal(checked.confirmed, true);
+  assert.equal(checked.user.username, 'ana');
+  assert.ok(!fake.calls.some(c => c[0] === 'resend' || c[0] === 'verifyOtp'));
   assert.equal((await service.status()).pendingEmail, '');
 
-  const expired = fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } });
-  const second = accountWith(t, await tempDir(t), expired);
-  await second.signUp({ email: 'ana@example.com', password: 'correct horse 1', username: 'ana' });
-  const verified = await second.verifyEmail({ code: '123456' });
-  assert.equal(verified.alreadyConfirmed, true);
-  // A wrong code for an address that is not confirmed yet still fails.
-  const third = accountWith(t, await tempDir(t), fakeSupabase({ verifyError: { code: 'otp_expired', status: 403 } }));
-  await third.signUp({ email: 'bea@example.com', password: 'long enough 1', username: 'bea' });
-  await assert.rejects(third.verifyEmail({ code: '123456' }));
+  // Not confirmed yet: no session, and the sign-up stays pending so the player can try again.
+  const pending = fakeSupabase();
+  const second = accountWith(t, await tempDir(t), pending);
+  await second.signUp({ email: 'bea@example.com', password: 'long enough 1', username: 'bea' });
+  assert.deepEqual(await second.checkConfirmation({}), { confirmed: false, needsSignIn: false });
+  assert.equal((await second.status()).user, null);
+  assert.equal((await second.status()).pendingEmail, 'bea@example.com');
+
+  // After a restart the password is gone (it is never stored), so the player signs in normally.
+  const third = accountWith(t, await tempDir(t), fakeSupabase());
+  assert.deepEqual(await third.checkConfirmation({ email: 'ana@example.com' }), { confirmed: false, needsSignIn: true });
 });
 
 test('accounts: sign-in loads (or recovers) the profile; reset uses a code then sets the new password', async t => {

@@ -56,6 +56,13 @@ const ICON_PATHS = {
   trash: '<path class="d" d="M7 7l1 12.5h8L17 7z"/><path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>',
   edit: '<path class="d" d="m15.5 5 3.5 3.5L9 18.5H5.5V15z"/><path d="m15.5 5 3.5 3.5L9 18.5H5.5V15zM13.5 7l3.5 3.5"/>',
   menu: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>',
+  mail: '<rect class="d" x="3.5" y="5.5" width="17" height="13" rx="2.5"/><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4.5 7.5 7.5 5.5 7.5-5.5"/>',
+  comment: '<path class="d" d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5z"/><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5z"/><path d="M8 10h8M8 13h5"/>',
+  reply: '<path d="M9.5 6 4 11.5 9.5 17"/><path d="M4.5 11.5h9a6 6 0 0 1 6 6v1"/>',
+  bookmark: '<path class="d" d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1z"/><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1z"/>',
+  grid: '<rect class="d" x="4" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/>',
+  list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="5" cy="6.5" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17.5" r="1.2"/>',
+  lock: '<rect class="d" x="5" y="10.5" width="14" height="10" rx="2.5"/><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   pin: '<path d="M9 4.5h6M10 4.5v5L7 13h10l-3-3.5v-5M12 13v6.5"/>'
 };
 // Older names kept so existing screens keep working.

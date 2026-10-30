@@ -160,6 +160,36 @@ body.is-locked .app-shell {
   right: 6px;
   transform: translateY(-50%);
 }
+/* Sign-up: "check your email" screen (a confirmation link, never a code). */
+.verify-email {
+  color: var(--text);
+  word-break: break-all;
+}
+.verify-mail {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 0;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--a1);
+}
+.verify-mail svg {
+  width: 30px;
+  height: 30px;
+}
+.verify-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 0 1.3em;
+  color: var(--text-2);
+}
+.verify-steps li::marker {
+  color: var(--a1);
+  font-weight: var(--fw-bold, 700);
+}
 .code-input {
   font-size: 22px !important;
   letter-spacing: 0.4em;
