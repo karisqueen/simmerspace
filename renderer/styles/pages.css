@@ -841,3 +841,57 @@
 .profile-menu-item[data-danger] .icon {
   color: var(--danger);
 }
+
+/* ---------- 0.12.1 creators and Explore tags ---------- */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 6px;
+}
+.creator-avatar {
+  position: relative;
+  overflow: hidden;
+}
+.creator-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.creator-avatar:not(.has-image) img {
+  display: none;
+}
+.creator-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.style-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.style-pill.style-maxis {
+  background: var(--highlight-soft);
+  color: var(--highlight-text);
+}
+.style-pill.style-alpha {
+  background: var(--sun-soft);
+  color: var(--sun-text);
+}
+.style-pill.style-both {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.creator-filters {
+  margin-bottom: var(--sp-4);
+}

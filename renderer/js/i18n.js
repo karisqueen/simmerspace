@@ -626,6 +626,12 @@ const DICT = {
     organizeFolders: "Organize folders",
     libShowingFolder: "Showing the {name} folder",
     libShowAllFolders: "See every folder",
+    styleMaxis: "Maxis Match",
+    styleAlpha: "Alpha",
+    styleBoth: "Maxis Match and Alpha",
+    styleUnknown: "Unclassified",
+    tipCreatorStyle: "Taken from the categories of this creator's projects on CurseForge. “Unclassified” means none of them says.",
+    creatorStyleFilter: "Style",
   },
 
   es: {
@@ -1254,6 +1260,12 @@ const DICT = {
     organizeFolders: "Organizar carpetas",
     libShowingFolder: "Mostrando la carpeta {name}",
     libShowAllFolders: "Ver todas las carpetas",
+    styleMaxis: "Maxis Match",
+    styleAlpha: "Alpha",
+    styleBoth: "Maxis Match y Alpha",
+    styleUnknown: "Sin clasificar",
+    tipCreatorStyle: "Sale de las categorías de los proyectos de este creador en CurseForge. «Sin clasificar» significa que ninguno lo indica.",
+    creatorStyleFilter: "Estilo",
   },
 };
 

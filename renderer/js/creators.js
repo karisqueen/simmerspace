@@ -7,8 +7,11 @@ const creators = {
   popular: null,
   loading: false,
   error: null,
-  noticeHidden: safeRead('patreon-notice-dismissed', false) === true
+  noticeHidden: safeRead('patreon-notice-dismissed', false) === true,
+  style: 'all' // all | maxis | alpha | unknown
 };
+const CREATOR_STYLES = ['all', 'maxis', 'alpha', 'unknown'];
+const STYLE_CATEGORY = /maxis[\s-]*match|\balpha\b/i;
 
 function isFollowing(id) {
   return state.followingCreators.some(f => f.id === Number(id));
@@ -44,14 +47,29 @@ async function loadPopularCreators({ refresh = false } = {}) {
 function creatorInitial(name) {
   return esc((String(name).trim()[0] || '?').toUpperCase());
 }
+// The creator's CurseForge avatar when the API sends one, else their most downloaded project's image, else
+// their initial. Nothing is invented: a broken image falls back to the initial too.
+function creatorAvatar(c) {
+  const picture = c.avatarUrl || c.projects?.find(p => p.logo)?.logo || '';
+  const initial = `<span class="creator-avatar-initial">${creatorInitial(c.name)}</span>`;
+  return `<div class="creator-avatar ${picture ? 'has-image' : ''}" aria-hidden="true">${picture ? `<img src="${esc(picture)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-avatar-fallback>` : ''}${initial}</div>`;
+}
+function creatorStyleLabel(style) {
+  return t({ maxis: 'styleMaxis', alpha: 'styleAlpha', both: 'styleBoth' }[style] || 'styleUnknown');
+}
+function creatorTypes(c) {
+  return (c.categories || []).filter(name => !STYLE_CATEGORY.test(name)).slice(0, 3);
+}
 function popularCreatorCard(c, rank) {
   const projects = c.projects
     .map(p => `<li>${cfThumb(p.logo, 'cf-thumb cf-thumb-sm')}<button class="text-link" data-cf-detail="${p.id}">${esc(p.name)}</button></li>`)
     .join('');
-  return `<article class="creator-card"><header class="creator-head"><div class="creator-avatar" aria-hidden="true">${creatorInitial(c.name)}</div><div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">${esc(format(t('creatorStats'), { projects: n(c.projectCount), downloads: compactNumber(c.downloads) }))}</div></div><span class="meta-pill meta-pill-quiet" title="${esc(t('creatorRankTip'))}">#${rank + 1}</span></header><ul class="creator-projects">${projects}</ul><div class="creator-footer">${followButton(c)}${c.id ? `<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>` : ''}${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
+  const types = creatorTypes(c);
+  const labels = `<div class="creator-labels"><span class="style-pill style-${esc(c.style || 'unknown')}" data-tip="${esc(t('tipCreatorStyle'))}">${esc(creatorStyleLabel(c.style))}</span>${types.map(name => `<span class="meta-pill meta-pill-quiet">${esc(name)}</span>`).join('')}</div>`;
+  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">${esc(format(t('creatorStats'), { projects: n(c.projectCount), downloads: compactNumber(c.downloads) }))}</div></div><span class="meta-pill meta-pill-quiet" title="${esc(t('creatorRankTip'))}">#${rank + 1}</span></header>${labels}<ul class="creator-projects">${projects}</ul><div class="creator-footer">${followButton(c)}${c.id ? `<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>` : ''}${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
 }
 function followedCreatorCard(c) {
-  return `<article class="creator-card"><header class="creator-head"><div class="creator-avatar" aria-hidden="true">${creatorInitial(c.name)}</div><div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">CurseForge</div></div></header><div class="creator-footer">${followButton(c)}<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
+  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(creators.popular?.find(p => p.id === c.id) || c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">CurseForge</div></div></header><div class="creator-footer">${followButton(c)}<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
 }
 
 function patreonNotice() {
@@ -80,8 +98,10 @@ function renderCreatorsPage() {
   else if (creators.error) body = cfErrorState(creators.error, 'creators-retry');
   else if (!creators.popular) body = `<p class="visually-hidden" role="status">${t('loading')}</p>${cfSkeleton(6)}`;
   else {
-    const list = creators.popular.map((c, i) => [c, i]).filter(([c]) => matches(c));
-    body = `<p class="muted-note">${t('creatorsPopularNote')}</p>${list.length ? `<div class="creator-grid">${list.map(([c, i]) => popularCreatorCard(c, i)).join('')}</div>` : empty(t('noResult'), '')}`;
+    const styleOf = c => (c.style === 'both' ? ['maxis', 'alpha'] : [c.style || 'unknown']);
+    const list = creators.popular.map((c, i) => [c, i]).filter(([c]) => matches(c) && (creators.style === 'all' || styleOf(c).includes(creators.style)));
+    const styleChips = chipGroup({ name: 'creator-style', label: t('creatorStyleFilter'), options: CREATOR_STYLES.map(id => [id, id === 'all' ? t('all') : creatorStyleLabel(id)]), selected: creators.style, size: 'sm' });
+    body = `<p class="muted-note">${t('creatorsPopularNote')}</p><div class="toolbar-row creator-filters">${styleChips}</div>${list.length ? `<div class="creator-grid">${list.map(([c, i]) => popularCreatorCard(c, i)).join('')}</div>` : empty(t('noResult'), '')}`;
   }
   content.innerHTML = `${pageHeader(t('creators'), { meta: `<span class="attribution">${t('cfAttribution')}</span>` })}${patreonNotice()}${tabs}<div class="tab-panel" role="tabpanel">${body}</div>`;
   if (creators.tab === 'popular' && cfApi && state.integrations && cfConfigured() && !creators.popular && !creators.error) loadPopularCreators();
@@ -97,6 +117,11 @@ function showCreatorMods(id) {
   searchCurseForge();
 }
 
+// A creator picture that fails to load leaves the initial underneath visible.
+document.addEventListener('error', event => {
+  if (event.target.matches?.('img[data-avatar-fallback]')) event.target.closest('.creator-avatar')?.classList.remove('has-image');
+}, true);
+
 document.addEventListener('click', event => {
   const target = event.target.closest?.('button');
   if (!target) return;
@@ -106,6 +131,10 @@ document.addEventListener('click', event => {
     return render();
   }
   if (target.id === 'creators-retry') return loadPopularCreators({ refresh: true });
+  if (target.dataset.filter === 'creator-style') {
+    creators.style = CREATOR_STYLES.includes(target.dataset.value) ? target.dataset.value : 'all';
+    return render();
+  }
   if (target.dataset.creatorsTab) {
     creators.tab = target.dataset.creatorsTab === 'following' ? 'following' : 'popular';
     return render();

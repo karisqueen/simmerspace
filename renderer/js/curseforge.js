@@ -47,6 +47,12 @@ function cfError(error) {
   if (error?.code === 'CF_RATE_LIMITED') return format(mt('err_CF_RATE_LIMITED'), { seconds: n(error.details?.retryAfter || 30) });
   return errorMessage(error);
 }
+// Up to three of the item's own CurseForge categories, without repeats.
+function cardTags(mod) {
+  const seen = new Set();
+  const tags = (mod.categories || []).filter(c => c.name && !seen.has(c.name.toLowerCase()) && seen.add(c.name.toLowerCase())).slice(0, 3);
+  return tags.length ? `<div class="card-tags">${tags.map(c => `<span class="meta-pill meta-pill-quiet">${esc(c.name)}</span>`).join('')}</div>` : '';
+}
 function cfThumb(url, className = 'cf-thumb') {
   return url ? `<img class="${className}" src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="${className} cf-thumb-empty" aria-hidden="true">${icon('curseforge')}</span>`;
 }
@@ -120,7 +126,7 @@ function curseForgeQueryChanged(query) {
 function cfCard(mod) {
   const authors = mod.authors.map(a => a.name).filter(Boolean).join(', ');
   const followed = mod.authors.some(a => isFollowing(a.id));
-  return `<article class="cc-card cf-card ${followed ? 'is-followed' : ''}">${followed ? `<span class="followed-badge" data-tip="${esc(t('cfFollowedBadge'))}">${icon('heart')}<span class="visually-hidden">${esc(t('cfFollowedBadge'))}</span></span>` : ''}${cfThumb(mod.logo)}<div class="card-body"><h3><button class="card-title-button" data-cf-detail="${mod.id}">${esc(mod.name)}</button></h3><div class="card-creator">${authors ? esc(format(t('cfBy'), { name: authors })) : ''}</div><p class="cf-summary">${esc(mod.summary)}</p><div class="card-meta"><span class="meta-stat" title="${esc(t('cfDownloads'))}">${icon('download')}${compactNumber(mod.downloadCount)}</span>${mod.dateModified ? `<span class="meta-stat">${esc(shortDate(mod.dateModified))}</span>` : ''}${mod.categories[0] ? `<span class="meta-pill meta-pill-quiet">${esc(mod.categories[0].name)}</span>` : ''}</div></div></article>`;
+  return `<article class="cc-card cf-card ${followed ? 'is-followed' : ''}">${followed ? `<span class="followed-badge" data-tip="${esc(t('cfFollowedBadge'))}">${icon('heart')}<span class="visually-hidden">${esc(t('cfFollowedBadge'))}</span></span>` : ''}${cfThumb(mod.logo)}<div class="card-body"><h3><button class="card-title-button" data-cf-detail="${mod.id}">${esc(mod.name)}</button></h3><div class="card-creator">${authors ? esc(format(t('cfBy'), { name: authors })) : ''}</div><p class="cf-summary">${esc(mod.summary)}</p>${cardTags(mod)}<div class="card-meta"><span class="meta-stat" title="${esc(t('cfDownloads'))}">${icon('download')}${compactNumber(mod.downloadCount)}</span>${mod.dateModified ? `<span class="meta-stat">${esc(shortDate(mod.dateModified))}</span>` : ''}</div></div></article>`;
 }
 function cfSkeleton(count = 8) {
   return `<div class="card-grid" aria-hidden="true">${Array.from({ length: count }, () => '<div class="cc-card skeleton-card"><span class="skeleton skeleton-thumb"></span><div class="card-body"><span class="skeleton skeleton-line"></span><span class="skeleton skeleton-line short"></span></div></div>').join('')}</div>`;
