@@ -101,6 +101,14 @@ las cabeceras son válidas (115 archivos). Detalle en [validacion-instalaciones.
 modo directo, así que no cubre el proxy, el inicio de sesión ni la app instalada con NSIS.
 Resultado en [app-escritorio.json](evidencia-0.12.2/app-escritorio.json).
 
+## Autorización de la clave
+
+La comparación con otro gestor instalado en este PC mostró que descargó proyectos que hoy tienen la distribución desactivada,
+usando la misma API oficial y el campo `downloadUrl`. Lo más probable es que CurseForge conceda enlaces según la clave o el
+acuerdo de cada aplicación, y que la clave de simmerspace no tenga ese acceso. No se ha podido demostrar por completo ni se ha
+usado ninguna credencial ajena. La vía correcta es preguntárselo a CurseForge. simmerspace no necesita cambios para aprovecharlo:
+si la API devuelve el enlace, el archivo se instala directamente.
+
 ## Instalación asistida
 
 Si la API no autoriza la descarga, simmerspace abre la página exacta del archivo. El jugador lo descarga allí, simmerspace lo

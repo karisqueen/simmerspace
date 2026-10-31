@@ -159,6 +159,8 @@ const walk = async d => { const o = []; for (const e of await fs.readdir(d, { wi
     await chip('age', 'child'); await sleep(1200);
     await chip('gender', 'masculine');
     await until(`!cf.loading`); await sleep(900); await until(`!cf.loading`);
+    const state = await js(`JSON.stringify({ results: !!cf.results, error: cf.error ? { code: cf.error.code, message: cf.error.message } : null, loading: cf.loading, filters: cf.filters })`);
+    console.log('estado de Explorar', state);
     const total = await js(`cf.results.pagination.totalCount`);
     report('Pelo + Niño + Masculino da el resultado combinado', total > 0 && total < 400, `${total} resultados`);
     report('Muestra filtros activos', (await js(`document.querySelectorAll('.cf-active-chip').length`)) === 3);
