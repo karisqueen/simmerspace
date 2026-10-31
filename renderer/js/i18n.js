@@ -1,6 +1,13 @@
 /* Interface text in English and Spanish. Every key must exist in both languages (tests/i18n.test.cjs checks this). */
 const DICT = {
   en: {
+    creatorSort_popular: "Most popular",
+    creatorSort_az: "A to Z",
+    creatorSort_uploaded: "Newest uploads",
+    creatorSort_updated: "Recently updated",
+    creatorsCount: "{count} creators",
+    creatorsIndexNote: "All the Sims 4 creators on CurseForge. Popularity is the total downloads of their projects.",
+    creatorsLiveNote: "A sample of creators straight from CurseForge. The search also finds creators outside this list.",
     postsBy: "Posts by @{name}",
     cfAssistedButton: "Install with help",
     cfAssistedTitle: "Install {name}",
@@ -650,6 +657,13 @@ const DICT = {
   },
 
   es: {
+    creatorSort_popular: "Más populares",
+    creatorSort_az: "De la A a la Z",
+    creatorSort_uploaded: "Subidas recientes",
+    creatorSort_updated: "Actualizados hace poco",
+    creatorsCount: "{count} creadores",
+    creatorsIndexNote: "Todos los creadores de Los Sims 4 en CurseForge. La popularidad es el total de descargas de sus proyectos.",
+    creatorsLiveNote: "Una muestra de creadores directamente de CurseForge. La búsqueda también encuentra creadores fuera de esta lista.",
     postsBy: "Publicaciones de @{name}",
     cfAssistedButton: "Instalar con ayuda",
     cfAssistedTitle: "Instalar {name}",
@@ -1303,6 +1317,7 @@ const DICT = {
 // Keys ending in _one are used instead of the plain key when the count is exactly 1.
 const MODS_TEXT = {
   en: {
+    err_CF_BLOCKED: "CurseForge is limiting requests from this connection for a while. Your files and account are fine: try again in a few minutes.",
     err_CF_DOWNLOAD_NOT_ALLOWED: "This project's author turned off downloads through other apps, and CurseForge confirmed it for this file.",
     err_CF_LINK_DENIED: "CurseForge refused a download link for this file. The project does not forbid it, so this may be temporary.",
     err_CF_NO_LINK: "CurseForge gave no download link for this file. Try another version or try again later.",
@@ -1656,6 +1671,7 @@ const MODS_TEXT = {
   },
 
   es: {
+    err_CF_BLOCKED: "CurseForge está limitando las peticiones de esta conexión durante un rato. Tus archivos y tu cuenta están bien: inténtalo de nuevo en unos minutos.",
     err_CF_DOWNLOAD_NOT_ALLOWED: "Quien creó este proyecto desactivó las descargas desde otras apps, y CurseForge lo confirmó para este archivo.",
     err_CF_LINK_DENIED: "CurseForge rechazó dar un enlace de descarga para este archivo. El proyecto no lo prohíbe, así que puede ser temporal.",
     err_CF_NO_LINK: "CurseForge no dio un enlace de descarga para este archivo. Prueba otra versión o inténtalo más tarde.",

@@ -132,6 +132,21 @@ test('a proxy without the CDN route falls back to a plain request', async t => {
   assert.equal((await f.service.install(42, 7)).verified, true);
 });
 
+test('a block by the network in front of the API is not reported as a rejected key', async t => {
+  const page = '<!DOCTYPE HTML><title>ERROR: The request could not be satisfied</title>';
+  const blocked = await setup(t);
+  const service = createCurseForgeService({
+    getConfig: async () => ({ curseforge: { apiKey: KEY, baseUrl: API, proxyUrl: '', gameId: 0 } }),
+    fetchImpl: async () => new Response(page, { status: 403, headers: { 'content-type': 'text/html' } }),
+    wait: async () => {},
+    userDataPath: () => path.join(blocked.base, 'data'),
+    getModsRoot: async () => blocked.mods,
+    moveNoOverwrite
+  });
+  await assert.rejects(service.install(42, 7), { code: 'CF_BLOCKED' });
+  await assert.rejects(service.install(42, 7), { code: 'CF_RATE_LIMITED' }, 'it waits instead of asking again');
+});
+
 test('file-server failures are told apart', async t => {
   for (const [status, code] of [[401, 'CF_CDN_AUTH'], [403, 'CF_CDN_AUTH'], [404, 'CF_CDN_NOT_FOUND'], [503, 'CF_CDN_FAILED']]) {
     const f = await setup(t, { cdn: () => new Response('no', { status }) });

@@ -244,7 +244,8 @@ async function openCurseForgeDetails(modId, { refresh = false } = {}) {
   cf.detailId = modId;
   const cached = cfDetails.get(modId);
   if (cached && !refresh) {
-    openDialog(cfDetailBody(cached), { wide: true });
+    openDialog(cfDetailBody(cached), { wide: true, onClose: () => (cf.detailId = 0) });
+    cf.detailId = modId;
     return;
   }
   openDialog(`${closeButton()}<div class="cf-detail" aria-busy="true"><h2 id="dialog-title">${t('loading')}</h2>${cfSkeleton(1)}</div>`, { wide: true, onClose: () => (cf.detailId = 0) });
@@ -252,7 +253,11 @@ async function openCurseForgeDetails(modId, { refresh = false } = {}) {
     const mod = await callDesktop(cfApi.details, modId);
     cfDetails.set(modId, mod);
     rememberCurseForgeItem(mod);
-    if (cf.detailId === modId && !overlay.hidden) openDialog(cfDetailBody(mod), { wide: true, onClose: () => (cf.detailId = 0) });
+    if (cf.detailId === modId && !overlay.hidden) {
+      // Replacing a dialog runs the previous one's onClose, which clears detailId; this dialog still shows this mod.
+      openDialog(cfDetailBody(mod), { wide: true, onClose: () => (cf.detailId = 0) });
+      cf.detailId = modId;
+    }
   } catch (error) {
     if (cf.detailId === modId && !overlay.hidden) openDialog(`${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('cfErrorTitle')}</h2>${cfErrorState(error, 'cf-retry-details')}</div>`, { onClose: () => (cf.detailId = 0) });
   }
@@ -309,8 +314,10 @@ async function openAssistedInstall(modId, fileId) {
   if (!routeRecords.mods?.path) return toast(mt('noFolderText'), 'error');
   try {
     stopAssistedWatch();
-    assisted.info = await callDesktop(cfApi.assistedInfo, modId, fileId);
+    const info = await callDesktop(cfApi.assistedInfo, modId, fileId);
+    assisted.info = info;
     openDialog(assistedBody(), { onClose: stopAssistedWatch });
+    assisted.info = info; // replacing a dialog runs the previous onClose
     watchAssistedDownload();
   } catch (error) {
     toast(cfError(error), 'error');

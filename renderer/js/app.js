@@ -730,6 +730,7 @@ search.addEventListener('input', () => {
     () => {
       state.query = search.value;
       if (state.page === 'curseforge') return curseForgeQueryChanged(state.query);
+      if (state.page === 'creators') return creatorsQueryChanged(state.query);
       if (state.page === 'mycc') {
         // The top search filters the real library list.
         mods.query = state.query;

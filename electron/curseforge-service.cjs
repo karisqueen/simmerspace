@@ -23,6 +23,7 @@ const MAX_DOWNLOAD_BYTES = 1024 ** 3;
 const REQUEST_TIMEOUT_MS = 15000;
 const DOWNLOAD_IDLE_MS = 60 * 1000; // a download that receives nothing for this long is stopped
 const DOWNLOAD_ATTEMPTS = 3;
+const BLOCK_PAUSE_MS = 5 * 60 * 1000;
 const RETRYABLE = new Set(['CF_OFFLINE', 'CF_NETWORK', 'CF_TIMEOUT', 'CF_CDN_FAILED']);
 const MAX_CATEGORY_FILTERS = 10;
 const MAX_FOLLOWED = 100;
@@ -322,6 +323,13 @@ function createCurseForgeService({
       if (response.status >= 500 && attempt === 0) {
         await wait(600);
         continue;
+      }
+      // The network in front of the API answers a web page when it blocks a client for traffic. That is not a rejected
+      // key: the key may be fine, and asking again only prolongs the block.
+      if (response.status === 403 && /text\/html/i.test(response.headers?.get?.('content-type') || '')) {
+        blockedUntil = now() + BLOCK_PAUSE_MS;
+        stats.lastError = 'CF_BLOCKED';
+        throw cfError('CF_BLOCKED', 'The CurseForge network is limiting requests from this connection.', { status: 403, retryAfter: BLOCK_PAUSE_MS / 1000 });
       }
       const code =
         response.status === 401 || response.status === 403 ? 'CF_UNAUTHORIZED' : response.status === 404 ? 'CF_NOT_FOUND' : response.status === 400 ? 'CF_BAD_REQUEST' : 'CF_SERVER';

@@ -63,8 +63,43 @@ Gameplay, script, Build/Buy, CAS, pelo, ropa, accesorios y poses, en tres franja
 
 Los 42 instalados pasaron checksum y cabecera (`DBPF` o `PK`): 115 archivos, 476 MB. No quedaron temporales.
 
-En 1100 entradas de búsqueda, 378 permitían la distribución (34 %), con grandes diferencias por franja: 6 % en el pelo más
-popular y 66 % en los accesorios más populares. Es una muestra con repeticiones, no una cifra de toda la plataforma.
+## Auditoría completa de la muestra
+
+1100 entradas de búsqueda, 1038 proyectos únicos. Tabla proyecto a proyecto en [muestra.csv](evidencia-0.12.2/muestra.csv).
+
+| Resultado | Proyectos | Etapa | HTTP | Control |
+| --- | --- | --- | --- | --- |
+| Autorizado | 368 (35,5 %) | ninguna: CDN 302 y luego 200 | 200 | n/a |
+| No autorizado | 670 (64,5 %) | `download-url` | 403, cuerpo vacío | CurseForge / autor |
+
+Ningún caso se sale de esas dos filas. Los 670 tienen `allowModDistribution: false`, `isAvailable: true`, metadatos 200 y
+`downloadUrl: null`. Los 177 archivos antiguos revisados en 120 de ellos tampoco tienen enlace. La API no da un motivo escrito:
+la causa se establece por el indicador del proyecto y por la coincidencia total, no por un mensaje. La documentación oficial
+tampoco describe este 403. La muestra no representa a toda la plataforma.
+
+## Dos tipos de 403
+
+| | Enlace denegado | Bloqueo perimetral |
+| --- | --- | --- |
+| Emisor | API de CurseForge | CloudFront |
+| Cuerpo | vacío | HTML de 919 bytes |
+| Afecta a | proyectos concretos | todas las peticiones, unos 3 minutos |
+| Código en la app | `CF_DOWNLOAD_NOT_ALLOWED` | `CF_BLOCKED` |
+
+El bloqueo lo provocó la auditoría con miles de peticiones seguidas. Una clave inválida también da 403 en los metadatos, por eso
+el estado solo no basta y la app comprueba el contexto.
+
+## Validación independiente de las instalaciones
+
+Los 42 archivos instalados se volvieron a descargar y se abrieron con .NET, no con el lector de la app. En los 42 coinciden
+tamaño, SHA-1 publicado, firma ZIP, destino, profundidad y registro; cada .package y .ts4script es idéntico por SHA-256 y todas
+las cabeceras son válidas (115 archivos). Detalle en [validacion-instalaciones.json](evidencia-0.12.2/validacion-instalaciones.json).
+
+## App de escritorio real
+
+`scripts/e2e-downloads.cjs` maneja Electron real con perfil y Mods temporales: 22 de 22 comprobaciones. Sin iniciar sesión y en
+modo directo, así que no cubre el proxy, el inicio de sesión ni la app instalada con NSIS.
+Resultado en [app-escritorio.json](evidencia-0.12.2/app-escritorio.json).
 
 ## Instalación asistida
 

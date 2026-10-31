@@ -1,0 +1,112 @@
+[
+ {
+  "name": "la app abre en Electron real y CurseForge está en modo directo",
+  "ok": true,
+  "detail": "modo=direct"
+ },
+ {
+  "name": "Creadores carga tarjetas reales",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Seguir creador funciona",
+  "ok": true,
+  "detail": "Ahora sigues a AuSims. Sus mods aparecerán primero en Explorar."
+ },
+ {
+  "name": "el botón cambia a Siguiendo al momento",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "el seguimiento persiste tras recargar",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Dejar de seguir funciona",
+  "ok": true,
+  "detail": "Ya no sigues a AuSims."
+ },
+ {
+  "name": "Explorar carga resultados",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "detalle abre con botón Instalar",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "la instalación termina",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "el progreso se muestra y avanza",
+  "ok": true,
+  "detail": "Instalando… | Descargando 0 % | Descargando 4 % | Descargando 11 % | Descargando 23 % | Descargando 39 % | Descargando 54 % | Descargando 62 %"
+ },
+ {
+  "name": "los archivos están en Mods, en su carpeta",
+  "ok": true,
+  "detail": "42 archivos"
+ },
+ {
+  "name": "sin temporales en Mods",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "el duplicado se detecta y pregunta",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Mi CC escanea y lista lo instalado",
+  "ok": true,
+  "detail": "42 archivos"
+ },
+ {
+  "name": "lo instalado figura como descargado por simmerspace",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "detener no deja archivos nuevos en Mods",
+  "ok": true,
+  "detail": "42 antes, 42 después"
+ },
+ {
+  "name": "Detener cancela y avisa",
+  "ok": true,
+  "detail": "La descarga se detuvo. No se instaló nada."
+ },
+ {
+  "name": "MCCC muestra instalación asistida, no Instalar",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "el diálogo asistido se abre con el archivo esperado",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "apunta a la página exacta del archivo",
+  "ok": true,
+  "detail": "https://www.curseforge.com/sims4/mods/mc-command-center/files/8823491"
+ },
+ {
+  "name": "forzar la descarga directa de MCCC termina en la vía asistida",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "sin errores visibles al terminar",
+  "ok": true,
+  "detail": ""
+ }
+]
