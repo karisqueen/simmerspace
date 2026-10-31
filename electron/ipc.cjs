@@ -72,6 +72,14 @@ const validators = {
     }
     return [args[0], args[1] || {}];
   },
+  stringAndBytes: args => {
+    if (typeof args[0] !== 'string' || args[0].length > 4096 || !ArrayBuffer.isView(args[1])) throw new AppError('INVALID_INPUT', 'A file path and image data were expected.');
+    return [args[0], args[1]];
+  },
+  twoIds: args => {
+    if (!Number.isInteger(args[0]) || args[0] < 1 || !Number.isInteger(args[1]) || args[1] < 1) throw new AppError('INVALID_INPUT', 'Two ids were expected.');
+    return [args[0], args[1]];
+  },
   twoIdsAndObject: args => {
     if (!Number.isInteger(args[0]) || args[0] < 1 || !Number.isInteger(args[1]) || args[1] < 1 || (args[2] !== undefined && (typeof args[2] !== 'object' || args[2] === null || Array.isArray(args[2])))) {
       throw new AppError('INVALID_INPUT', 'Two ids were expected.');

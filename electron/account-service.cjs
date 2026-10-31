@@ -439,6 +439,64 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     });
   }
 
+  /* ---------- Account deletion ----------
+     The request and its 60-minute schedule live in the database; a backend worker carries it out, whether or not
+     this app is open (see supabase/migrations/20261101000000_maintenance_0122.sql). */
+  const missingFeature = error => error?.code === 'PGRST202' || error?.code === 'PGRST205' || error?.code === '42P01' || error?.code === '42883';
+  function deletionView(row) {
+    return row ? { status: row.status, scheduledFor: row.scheduled_for, requestedAt: row.requested_at } : { status: 'none', scheduledFor: null, requestedAt: null };
+  }
+  async function deletionStatus() {
+    return run(async sb => {
+      const user = await requireUser(sb);
+      const { data, error } = await sb.from('account_deletions').select('status, scheduled_for, requested_at').eq('user_id', user.id).in('status', ['pending', 'processing', 'failed']).maybeSingle();
+      if (error) {
+        if (missingFeature(error)) return { status: 'unavailable', scheduledFor: null, requestedAt: null };
+        throw error;
+      }
+      return deletionView(data);
+    });
+  }
+  async function requestDeletion() {
+    return run(async sb => {
+      await requireUser(sb);
+      const { data, error } = await sb.rpc('request_account_deletion');
+      if (error) throw missingFeature(error) ? new AppError('ACCOUNT_DELETION_UNAVAILABLE', 'Account deletion is not available yet.') : error;
+      return deletionView(Array.isArray(data) ? data[0] : data);
+    });
+  }
+  async function cancelDeletion() {
+    return run(async sb => {
+      await requireUser(sb);
+      const { data, error } = await sb.rpc('cancel_account_deletion');
+      if (error) throw error;
+      if (data !== true) throw new AppError('ACCOUNT_DELETION_TOO_LATE', 'The deletion has already started.');
+      return deletionView(null);
+    });
+  }
+
+  /* ---------- Creator index ----------
+     One page of the creators table the backend keeps up to date. Returns null when the table is not there yet. */
+  const CREATOR_ORDER = { az: ['name_key', true], popular: ['total_downloads', false], uploaded: ['last_created_at', false], updated: ['last_updated_at', false] };
+  async function listCreators({ query = '', sort = 'popular', style = 'all', page = 1, pageSize = 12 } = {}) {
+    const sb = await supabase();
+    const user = await sessionUser(sb);
+    if (!user) return null;
+    const start = (page - 1) * pageSize;
+    let request = sb.from('cf_creators').select('id, name, url, avatar_url, project_count, total_downloads, last_created_at, last_updated_at, categories, style, top_projects, indexed_at', { count: 'exact' });
+    if (query) request = request.ilike('name_key', `%${query.toLowerCase().replace(/[\\%_]/g, '\\$&')}%`);
+    if (style !== 'all') request = style === 'unknown' ? request.eq('style', 'unknown') : request.in('style', [style, 'both']);
+    const [column, ascending] = CREATOR_ORDER[sort] || CREATOR_ORDER.popular;
+    // The id breaks ties, so no creator appears on two pages.
+    const { data, count, error } = await request.order(column, { ascending, nullsFirst: false }).order('id', { ascending: true }).range(start, start + pageSize - 1);
+    if (error) return null;
+    return {
+      total: count || 0,
+      updatedAt: data?.[0]?.indexed_at || '',
+      creators: (data || []).map(row => ({ id: Number(row.id), name: row.name, url: row.url || '', avatarUrl: row.avatar_url || '', projectCount: row.project_count, downloads: Number(row.total_downloads) || 0, lastCreatedAt: row.last_created_at || '', lastUpdatedAt: row.last_updated_at || '', categories: row.categories || [], style: row.style || 'unknown', projects: Array.isArray(row.top_projects) ? row.top_projects : [] }))
+    };
+  }
+
   async function proxyToken() {
     const { anonKey } = (await getConfig()).supabase;
     if (!anonKey) return null;
@@ -466,6 +524,10 @@ function createAccountService({ getConfig, userDataPath, safeStorage, installId 
     removeAvatar,
     ...community,
     sendFeedback,
+    deletionStatus,
+    requestDeletion,
+    cancelDeletion,
+    listCreators,
     proxyToken
   };
 }

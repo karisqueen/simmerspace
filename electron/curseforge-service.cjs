@@ -1,9 +1,10 @@
 /* CurseForge integration, running only in the desktop process so the API key never reaches the page.
    Uses the official REST API (https://docs.curseforge.com/rest-api/): base https://api.curseforge.com,
    the key sent as the `x-api-key` header, pages of at most 50 results and index + pageSize <= 10,000.
-   Files are installed only when CurseForge returns a downloadUrl for them (authors can turn third-party
-   distribution off); otherwise the player is sent to the mod's CurseForge page. */
+   Files download directly when CurseForge provides a link for them. Authors can turn third-party distribution off;
+   those files are downloaded on the website by the player and installed here after a checksum check. */
 const crypto = require('node:crypto');
+const { constants: fsConstants } = require('node:fs');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { AppError } = require('./errors.cjs');
@@ -12,13 +13,21 @@ const { readZip } = require('./zip-reader.cjs');
 const SIMS4_SLUG = 'sims4';
 const MAX_PAGE_SIZE = 50;
 const MAX_RESULT_WINDOW = 10000;
-const SORT_FIELDS = new Set([1, 2, 3, 4, 5, 6, 7, 8]); // Featured, Popularity, LastUpdated, Name, Author, TotalDownloads, Category, GameVersion
+const SORT_FIELDS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]); // Featured, Popularity, LastUpdated, Name, Author, TotalDownloads, Category, GameVersion, EarlyAccess, FeaturedReleased, ReleasedDate
 const HASH_ALGOS = { 1: 'sha1', 2: 'md5' };
 const MOD_EXTENSIONS = new Set(['.package', '.ts4script']);
+// Saved Sims, households, lots and rooms live in the game's Tray folder, not in Mods.
+const TRAY_EXTENSIONS = new Set(['.trayitem', '.householdbinary', '.hhi', '.sgi', '.blueprint', '.bpi', '.room', '.rmi']);
 const DOWNLOAD_EXTENSIONS = new Set(['.package', '.ts4script', '.zip']);
 const MAX_DOWNLOAD_BYTES = 1024 ** 3;
 const REQUEST_TIMEOUT_MS = 15000;
-const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+const DOWNLOAD_IDLE_MS = 60 * 1000; // a download that receives nothing for this long is stopped
+const DOWNLOAD_ATTEMPTS = 3;
+const RETRYABLE = new Set(['CF_OFFLINE', 'CF_NETWORK', 'CF_TIMEOUT', 'CF_CDN_FAILED']);
+const MAX_CATEGORY_FILTERS = 10;
+const MAX_FOLLOWED = 100;
+const FOLLOWED_PAGES = 20; // projects read per followed creator, in pages of MAX_PAGE_SIZE
+const CREATORS_PAGE_SIZE = 12;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_LIMIT = 300;
 const MAX_CONCURRENT = 4;
@@ -37,6 +46,15 @@ function hostAllowed(url, suffixes) {
 const isImageUrl = url => hostAllowed(url, ['forgecdn.net']);
 const isCurseForgePage = url => hostAllowed(url, ['curseforge.com']);
 const isDownloadUrl = url => hostAllowed(url, ['forgecdn.net', 'curseforge.com']);
+// CurseForge asks for the API key on this host only (blog.curseforge.com, 2026-06-10). It answers with a redirect to
+// mediafilez.forgecdn.net, which needs no key, so the key never travels further than this one request.
+const needsCdnKey = url => {
+  try {
+    return new URL(url).hostname.toLowerCase() === 'edge.forgecdn.net';
+  } catch {
+    return false;
+  }
+};
 
 function int(value, fallback, min, max) {
   const number = Number(value);
@@ -82,13 +100,19 @@ function summarizeFile(file) {
     fileLength: Number(file.fileLength) || 0,
     releaseType: Number(file.releaseType) || 0,
     gameVersions: Array.isArray(file.gameVersions) ? file.gameVersions.filter(v => typeof v === 'string').slice(0, 20) : [],
-    downloadAllowed: typeof file.downloadUrl === 'string' && !!file.downloadUrl && file.isAvailable !== false
+    downloadAllowed: typeof file.downloadUrl === 'string' && !!file.downloadUrl && file.isAvailable !== false,
+    available: file.isAvailable !== false
   };
 }
 
 function summarizeMod(mod) {
   if (!mod || typeof mod !== 'object') return null;
-  const latestFiles = (Array.isArray(mod.latestFiles) ? mod.latestFiles : []).map(summarizeFile).filter(Boolean);
+  // A file that came without a link can still have one at the download-url endpoint when the author allows it.
+  const distributable = mod.allowModDistribution === true;
+  const latestFiles = (Array.isArray(mod.latestFiles) ? mod.latestFiles : [])
+    .map(summarizeFile)
+    .filter(Boolean)
+    .map(file => ({ ...file, downloadAllowed: file.downloadAllowed || (distributable && file.available) }));
   latestFiles.sort((a, b) => String(b.fileDate).localeCompare(String(a.fileDate)));
   const website = mod.links?.websiteUrl;
   return {
@@ -111,6 +135,7 @@ function summarizeMod(mod) {
     websiteUrl: isCurseForgePage(website) ? website : '',
     downloadCount: Number(mod.downloadCount) || 0,
     dateModified: text(mod.dateModified, 40),
+    dateCreated: text(mod.dateCreated, 40),
     classId: Number(mod.classId) || 0,
     categories: (Array.isArray(mod.categories) ? mod.categories : []).slice(0, 12).map(category => ({ id: Number(category?.id) || 0, name: text(category?.name, 120) })),
     allowModDistribution: mod.allowModDistribution !== false,
@@ -121,9 +146,9 @@ function summarizeMod(mod) {
 }
 
 // Newest release file (falls back to newest of any kind) from a mod's latestFiles.
-// Maxis Match or Alpha, only when the creator's own CurseForge categories say so; otherwise "unknown".
-function creatorStyle(categoryNames) {
-  const names = categoryNames.map(name => String(name).toLowerCase());
+// Maxis Match or Alpha, only when the creator's categories or their projects' own words say so; otherwise "unknown".
+function creatorStyle(categoryNames, texts = []) {
+  const names = [...categoryNames, ...texts].map(name => String(name).toLowerCase());
   const maxis = names.some(name => /maxis[\s-]*match/.test(name));
   const alpha = names.some(name => /\balpha\b/.test(name));
   if (maxis && alpha) return 'both';
@@ -177,6 +202,9 @@ function createCurseForgeService({
   getModsRoot,
   moveNoOverwrite,
   trashItem = async () => {},
+  onProgress = () => {},
+  onInstalled = () => {},
+  creatorIndex = async () => null,
   timeoutMs = REQUEST_TIMEOUT_MS
 }) {
   const cache = new Map();
@@ -348,12 +376,15 @@ function createCurseForgeService({
     const pageSize = int(options.pageSize, 20, 1, MAX_PAGE_SIZE);
     const index = int(options.index, 0, 0, MAX_RESULT_WINDOW - pageSize);
     const sortField = SORT_FIELDS.has(Number(options.sortField)) ? Number(options.sortField) : 2;
+    // Several categories at once: CurseForge returns the projects that have all of them.
+    const categoryIds = (Array.isArray(options.categoryIds) ? options.categoryIds : []).map(value => int(value, 0, 1, 2 ** 31)).filter(Boolean).slice(0, MAX_CATEGORY_FILTERS);
     const result = await request('GET', '/v1/mods/search', {
       query: {
         gameId: id,
         classId: int(options.classId, undefined, 1, 2 ** 31),
-        categoryId: int(options.categoryId, undefined, 1, 2 ** 31),
-        authorId: int(options.authorId, undefined, 1, 2 ** 31),
+        categoryId: categoryIds.length ? undefined : int(options.categoryId, undefined, 1, 2 ** 31),
+        categoryIds: categoryIds.length ? JSON.stringify(categoryIds) : undefined,
+        authorId: int(options.authorId, undefined, 1, 2 ** 53 - 1),
         searchFilter: text(options.query, 100).trim() || undefined,
         sortField,
         sortOrder: options.sortOrder === 'asc' ? 'asc' : 'desc',
@@ -369,34 +400,102 @@ function createCurseForgeService({
     };
   }
 
-  // Popular creators: CurseForge has no creator ranking, so this groups the authors of the most popular Sims 4
-  // projects and ranks them by those projects' downloads. Only data the API returns is used: the picture is the
-  // author's avatar when CurseForge sends one, otherwise their most downloaded project's image; content types
-  // and the Maxis Match / Alpha style come from their projects' real CurseForge categories (never guessed).
-  async function popularCreators({ limit = 12 } = {}) {
-    const wanted = int(limit, 12, 1, 24);
-    const pages = await Promise.all([0, MAX_PAGE_SIZE].map(index => search({ sortField: 2, pageSize: MAX_PAGE_SIZE, index })));
+  // Mods of several creators at once, for the "Followed creators" view of Explore. CurseForge filters by one author
+  // per request, so each creator's projects are read (a short cache keeps paging cheap), merged and ordered here.
+  async function searchFollowed(options = {}) {
+    const authors = (Array.isArray(options.authorIds) ? options.authorIds : []).map(value => int(value, 0, 1, 2 ** 53 - 1)).filter(Boolean).slice(0, MAX_FOLLOWED);
+    const pageSize = int(options.pageSize, 20, 1, MAX_PAGE_SIZE);
+    const index = int(options.index, 0, 0, MAX_RESULT_WINDOW - pageSize);
+    const seen = new Map();
+    let truncated = false;
+    for (const authorId of authors) {
+      for (let start = 0; start < FOLLOWED_PAGES * MAX_PAGE_SIZE; start += MAX_PAGE_SIZE) {
+        const page = await search({ ...options, authorId, index: start, pageSize: MAX_PAGE_SIZE, sortField: 2, sortOrder: 'desc' });
+        for (const item of page.mods) seen.set(item.id, item);
+        if (start + MAX_PAGE_SIZE >= page.pagination.totalCount) break;
+        if (start + MAX_PAGE_SIZE >= FOLLOWED_PAGES * MAX_PAGE_SIZE) truncated = true;
+      }
+    }
+    const field = Number(options.sortField);
+    const direction = options.sortOrder === 'asc' ? 1 : -1;
+    const compare = {
+      3: (a, b) => String(a.dateModified).localeCompare(String(b.dateModified)),
+      4: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    }[field] || ((a, b) => a.downloadCount - b.downloadCount);
+    const all = [...seen.values()].sort((a, b) => direction * compare(a, b) || a.id - b.id);
+    return { mods: all.slice(index, index + pageSize), pagination: { index, pageSize, resultCount: Math.min(pageSize, Math.max(0, all.length - index)), totalCount: all.length, reachable: all.length }, truncated };
+  }
+
+  // Groups projects by author, using only what the API returns: the picture is the author's avatar when CurseForge
+  // sends one, otherwise their most downloaded project's image. Content types come from the projects' real
+  // categories. CurseForge has no Maxis Match / Alpha category, so the style is read from the projects' own titles
+  // and summaries, and stays "unknown" when they do not say.
+  function groupCreators(projects) {
     const byAuthor = new Map();
-    for (const project of pages.flatMap(page => page.mods)) {
+    for (const project of projects) {
       for (const author of project.authors.slice(0, 2)) {
         if (!author.name) continue;
         const key = author.id ? `id:${author.id}` : `name:${author.name.toLowerCase()}`;
-        const entry = byAuthor.get(key) || { id: author.id, name: author.name, url: author.url, avatarUrl: '', downloads: 0, projectCount: 0, projects: [], categoryCounts: new Map() };
+        const entry = byAuthor.get(key) || { id: author.id, name: author.name, url: author.url, avatarUrl: '', downloads: 0, projectCount: 0, projects: [], categoryCounts: new Map(), texts: [], lastCreatedAt: '', lastUpdatedAt: '' };
         if (!entry.avatarUrl && author.avatarUrl) entry.avatarUrl = author.avatarUrl;
         entry.downloads += project.downloadCount;
         entry.projectCount++;
+        entry.texts.push(project.name, project.summary);
+        if (project.dateCreated > entry.lastCreatedAt) entry.lastCreatedAt = project.dateCreated;
+        if (project.dateModified > entry.lastUpdatedAt) entry.lastUpdatedAt = project.dateModified;
         for (const category of project.categories) if (category.name) entry.categoryCounts.set(category.name, (entry.categoryCounts.get(category.name) || 0) + 1);
         if (entry.projects.length < 3) entry.projects.push({ id: project.id, name: project.name, logo: project.logo, summary: project.summary, downloadCount: project.downloadCount, websiteUrl: project.websiteUrl, categories: project.categories.map(c => c.name).filter(Boolean).slice(0, 3) });
         byAuthor.set(key, entry);
       }
     }
-    return [...byAuthor.values()]
-      .sort((a, b) => b.downloads - a.downloads)
-      .slice(0, wanted)
-      .map(({ categoryCounts, ...entry }) => {
-        const names = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
-        return { ...entry, categories: names.slice(0, 12), style: creatorStyle(names) };
-      });
+    return [...byAuthor.values()].map(({ categoryCounts, texts, ...entry }) => {
+      const names = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+      return { ...entry, categories: names.slice(0, 12), style: creatorStyle(names, texts) };
+    });
+  }
+
+  // Popular creators: CurseForge has no creator ranking, so this ranks the authors of the most popular projects.
+  async function popularCreators({ limit = 12 } = {}) {
+    const wanted = int(limit, 12, 1, 100);
+    const pages = await Promise.all([0, MAX_PAGE_SIZE].map(index => search({ sortField: 2, pageSize: MAX_PAGE_SIZE, index })));
+    return groupCreators(pages.flatMap(page => page.mods)).sort((a, b) => b.downloads - a.downloads).slice(0, wanted);
+  }
+
+  const CREATOR_SORTS = {
+    az: (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+    popular: (a, b) => b.downloads - a.downloads,
+    uploaded: (a, b) => String(b.lastCreatedAt).localeCompare(String(a.lastCreatedAt)),
+    updated: (a, b) => String(b.lastUpdatedAt).localeCompare(String(a.lastUpdatedAt))
+  };
+  // A sample of the catalog read straight from CurseForge: what a search can reach when the creator index has
+  // nothing for it, or before the index exists. `query` uses CurseForge's text search, which also matches authors.
+  async function liveCreators({ query = '', sort = 'popular', style = 'all' }) {
+    const needle = text(query, 100).trim().toLowerCase();
+    const fields = { az: 4, popular: 2, uploaded: 11, updated: 3 };
+    const sortField = SORT_FIELDS.has(fields[sort]) ? fields[sort] : 2;
+    const pages = await Promise.all([0, MAX_PAGE_SIZE, 2 * MAX_PAGE_SIZE].map(index => search({ sortField, sortOrder: sort === 'az' ? 'asc' : 'desc', query: needle || undefined, pageSize: MAX_PAGE_SIZE, index }).catch(error => {
+      if (index === 0) throw error;
+      return { mods: [] };
+    })));
+    return groupCreators(pages.flatMap(page => page.mods))
+      .filter(item => (!needle || item.name.toLowerCase().includes(needle)) && (style === 'all' || item.style === style || item.style === 'both'))
+      .sort(CREATOR_SORTS[sort] || CREATOR_SORTS.popular);
+  }
+
+  // One page of creators. The full catalog comes from the creator index kept by the backend; when the index is not
+  // available the page says so (`source: 'live'`) and shows what CurseForge can answer directly.
+  async function creatorsPage(options = {}) {
+    const sort = CREATOR_SORTS[options.sort] ? options.sort : 'popular';
+    const style = ['all', 'maxis', 'alpha', 'unknown'].includes(options.style) ? options.style : 'all';
+    const query = text(options.query, 100).trim();
+    const pageSize = int(options.pageSize, CREATORS_PAGE_SIZE, 1, 48);
+    const page = int(options.page, 1, 1, 100000);
+    const indexed = await creatorIndex({ query, sort, style, page, pageSize }).catch(() => null);
+    if (indexed && (indexed.total > 0 || !query)) return { creators: indexed.creators, source: 'index', updatedAt: indexed.updatedAt || '', pagination: { page, pageSize, total: indexed.total, pages: Math.max(1, Math.ceil(indexed.total / pageSize)) } };
+    const list = await liveCreators({ query, sort, style });
+    const pages = Math.max(1, Math.ceil(list.length / pageSize));
+    const current = Math.min(page, pages);
+    return { creators: list.slice((current - 1) * pageSize, current * pageSize), source: 'live', updatedAt: '', pagination: { page: current, pageSize, total: list.length, pages } };
   }
 
   async function mod(modId) {
@@ -426,41 +525,168 @@ function createCurseForgeService({
     return { files: (Array.isArray(result?.data) ? result.data : []).map(summarizeFile).filter(Boolean), pagination: result?.pagination || {} };
   }
 
-  /* ---------- Downloads and installs ---------- */
-  async function download(url, expectedLength) {
+  /* ---------- Downloads and installs ----------
+     1. CurseForge is asked for the file and, when the author allows third-party downloads, for its link.
+     2. The file is streamed to a temporary folder (never into Mods) while its checksum is calculated.
+     3. Length and checksum are checked; only then anything is written inside Mods, under names that replace nothing.
+     4. The install is recorded, so a failure at any step leaves no half-installed mod behind.
+     When the author turned third-party downloads off the API gives no link at all (downloadUrl is null and the
+     download-url endpoint answers 403). That choice is respected: no address is ever built by hand. The player can
+     download the file on the CurseForge website and SimmerSpace installs that copy after checking its checksum. */
+  const tempFolder = () => path.join(userDataPath(), 'downloads-tmp');
+  const jobs = new Map(); // "modId:fileId" -> { cancelled, abort }
+
+  // Removes what a download cut short by a crash or a power cut left behind. Runs once at startup.
+  async function cleanTemporaryDownloads() {
+    if (!jobs.size) await fs.rm(tempFolder(), { recursive: true, force: true }).catch(() => {});
+  }
+
+  function startJob(key) {
+    if (jobs.has(key)) throw cfError('CF_INSTALL_RUNNING', 'This file is already being installed.');
+    const job = { cancelled: false, abort: () => {} };
+    jobs.set(key, job);
+    return job;
+  }
+  function cancelInstall(modId, fileId) {
+    const job = jobs.get(`${modId}:${fileId}`);
+    if (!job) return { cancelled: false };
+    job.cancelled = true;
+    job.abort();
+    return { cancelled: true };
+  }
+
+  // Headers for one CDN request. With the proxy the key stays on the server: it follows edge.forgecdn.net's redirect
+  // and gives back the address that needs no key. A proxy without that route just means a plain request.
+  async function cdnRequest(url) {
+    if (!needsCdnKey(url)) return { url, headers: undefined };
+    const config = (await getConfig()).curseforge;
+    if (!config.proxyUrl) return { url, headers: config.apiKey ? { 'x-api-key': config.apiKey } : undefined };
+    try {
+      const token = await getProxyToken();
+      if (!token) return { url, headers: undefined };
+      const response = await fetchWithTimeout(`${config.proxyUrl}/cdn-resolve?url=${encodeURIComponent(url)}`, { method: 'GET', headers: { Accept: 'application/json', Authorization: `Bearer ${token.bearer}`, apikey: token.apikey } }, timeoutMs);
+      const resolved = response.ok ? (await response.json())?.url : '';
+      return { url: isDownloadUrl(resolved) ? resolved : url, headers: undefined };
+    } catch {
+      return { url, headers: undefined };
+    }
+  }
+
+  async function downloadToTemp(url, expectedLength, job, modId, fileId) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await downloadOnce(url, expectedLength, job, modId, fileId);
+      } catch (error) {
+        if (job.cancelled || attempt >= DOWNLOAD_ATTEMPTS || !RETRYABLE.has(error.code)) throw error;
+        onProgress({ modId, fileId, received: 0, total: expectedLength, retry: attempt });
+        await wait(1000 * attempt);
+      }
+    }
+  }
+
+  async function downloadOnce(url, expectedLength, job, modId, fileId) {
+    await fs.mkdir(tempFolder(), { recursive: true });
+    const temp = path.join(tempFolder(), `${crypto.randomUUID()}.part`);
+    const fail = error => (job.cancelled ? cfError('CF_CANCELLED', 'The download was stopped.') : error);
     let current = url;
     for (let hop = 0; hop < 5; hop++) {
       if (!isDownloadUrl(current)) throw cfError('CF_DOWNLOAD_FAILED', 'The download address is not a CurseForge file server.');
-      const response = await fetchWithTimeout(current, { method: 'GET', redirect: 'manual' }, DOWNLOAD_TIMEOUT_MS);
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('location');
-        if (!location) break;
-        current = new URL(location, current).href;
-        continue;
+      const controller = new AbortController();
+      job.abort = () => controller.abort();
+      let idle = null;
+      const watch = () => {
+        clearTimeout(idle);
+        idle = setTimeout(() => controller.abort(), DOWNLOAD_IDLE_MS);
+      };
+      watch();
+      try {
+        let response;
+        try {
+          const target = await cdnRequest(current);
+          current = target.url;
+          response = await fetchImpl(current, { method: 'GET', redirect: 'manual', cache: 'no-store', signal: controller.signal, ...(target.headers ? { headers: target.headers } : {}) });
+        } catch {
+          throw fail(controller.signal.aborted ? cfError('CF_TIMEOUT', 'CurseForge took too long to answer.') : cfError('CF_OFFLINE', 'Could not reach CurseForge. Check your internet connection.'));
+        }
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get('location');
+          if (!location) throw cfError('CF_DOWNLOAD_FAILED', 'The file server gave no address to follow.');
+          current = new URL(location, current).href;
+          continue;
+        }
+        if (response.status === 401 || response.status === 403) throw cfError('CF_CDN_AUTH', 'The file server did not accept this request.', { status: response.status });
+        if (response.status === 404 || response.status === 410) throw cfError('CF_CDN_NOT_FOUND', 'The file server does not have this file.', { status: response.status });
+        if (!response.ok) throw cfError('CF_CDN_FAILED', `The file server answered with status ${response.status}.`, { status: response.status });
+        if (/text\/html/i.test(response.headers.get('content-type') || '')) throw cfError('CF_NOT_A_FILE', 'The file server sent a web page instead of the file.');
+        const declared = Number(response.headers.get('content-length'));
+        const limit = expectedLength > 0 ? expectedLength : MAX_DOWNLOAD_BYTES;
+        if (declared > limit || declared > MAX_DOWNLOAD_BYTES) throw cfError('CF_DOWNLOAD_FAILED', 'The file is larger than CurseForge said it would be.');
+        const digests = { sha1: crypto.createHash('sha1'), md5: crypto.createHash('md5'), sha256: crypto.createHash('sha256') };
+        const output = await fs.open(temp, 'wx');
+        let received = 0;
+        let reported = 0;
+        let head = Buffer.alloc(0);
+        try {
+          for await (const chunk of response.body) {
+            watch();
+            received += chunk.length;
+            if (received > limit) throw cfError('CF_DOWNLOAD_FAILED', 'The file is larger than CurseForge said it would be.');
+            const bytes = Buffer.from(chunk.buffer ? new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.length) : chunk);
+            if (head.length < 16) head = Buffer.concat([head, bytes.subarray(0, 16)]);
+            await output.write(bytes);
+            for (const digest of Object.values(digests)) digest.update(bytes);
+            if (now() - reported >= 150) {
+              reported = now();
+              onProgress({ modId, fileId, received, total: expectedLength || declared || 0 });
+            }
+          }
+        } catch (error) {
+          if (error instanceof AppError) throw error;
+          throw fail(controller.signal.aborted ? cfError('CF_TIMEOUT', 'The download stalled and was stopped.') : cfError('CF_NETWORK', 'The connection dropped during the download.'));
+        } finally {
+          await output.close().catch(() => {});
+        }
+        onProgress({ modId, fileId, received, total: expectedLength || received, done: true });
+        return { path: temp, size: received, head, sha1: digests.sha1.digest('hex'), md5: digests.md5.digest('hex'), sha256: digests.sha256.digest('hex') };
+      } catch (error) {
+        await fs.unlink(temp).catch(() => {});
+        throw error;
+      } finally {
+        clearTimeout(idle);
       }
-      if (!response.ok) throw cfError('CF_DOWNLOAD_FAILED', `The file server answered with status ${response.status}.`, { status: response.status });
-      const declared = Number(response.headers.get('content-length'));
-      const limit = expectedLength > 0 ? expectedLength : MAX_DOWNLOAD_BYTES;
-      if (declared > limit || declared > MAX_DOWNLOAD_BYTES) throw cfError('CF_DOWNLOAD_FAILED', 'The file is larger than CurseForge said it would be.');
-      const chunks = [];
-      let received = 0;
-      for await (const chunk of response.body) {
-        received += chunk.length;
-        if (received > limit) throw cfError('CF_DOWNLOAD_FAILED', 'The file is larger than CurseForge said it would be.');
-        chunks.push(chunk);
-      }
-      return Buffer.concat(chunks, received);
     }
     throw cfError('CF_DOWNLOAD_FAILED', 'The download was redirected too many times.');
   }
 
-  function verify(buffer, file) {
-    if (file.fileLength > 0 && buffer.length !== file.fileLength) throw cfError('CF_HASH_MISMATCH', 'The downloaded file is incomplete.');
+  async function hashLocalFile(file) {
+    const digests = { sha1: crypto.createHash('sha1'), md5: crypto.createHash('md5'), sha256: crypto.createHash('sha256') };
+    const input = await fs.open(file, 'r');
+    const head = Buffer.alloc(16);
+    let size = 0;
+    try {
+      const buffer = Buffer.allocUnsafe(1024 * 1024);
+      for (;;) {
+        const { bytesRead } = await input.read(buffer, 0, buffer.length, null);
+        if (!bytesRead) break;
+        const part = buffer.subarray(0, bytesRead);
+        if (size < 16) part.copy(head, size, 0, Math.min(16 - size, bytesRead));
+        size += bytesRead;
+        for (const digest of Object.values(digests)) digest.update(part);
+      }
+    } finally {
+      await input.close();
+    }
+    return { path: file, size, head, sha1: digests.sha1.digest('hex'), md5: digests.md5.digest('hex'), sha256: digests.sha256.digest('hex') };
+  }
+
+  function verify(received, file) {
+    const start = received.head.subarray(0, 16).toString('latin1').trimStart().toLowerCase();
+    if (start.startsWith('<!doctype') || start.startsWith('<html')) throw cfError('CF_NOT_A_FILE', 'The file server sent a web page instead of the file.');
+    if (file.fileLength > 0 && received.size !== file.fileLength) throw cfError('CF_HASH_MISMATCH', 'The downloaded file is incomplete.');
     const hashes = Array.isArray(file.hashes) ? file.hashes : [];
     const known = hashes.find(hash => hash?.algo === 1) || hashes.find(hash => hash?.algo === 2);
     if (!known || typeof known.value !== 'string') return false;
-    const actual = crypto.createHash(HASH_ALGOS[known.algo]).update(buffer).digest('hex');
-    if (actual.toLowerCase() !== known.value.toLowerCase()) throw cfError('CF_HASH_MISMATCH', 'The downloaded file failed its integrity check, so it was not installed.');
+    if (received[HASH_ALGOS[known.algo]].toLowerCase() !== known.value.toLowerCase()) throw cfError('CF_HASH_MISMATCH', 'The downloaded file failed its integrity check, so it was not installed.');
     return true;
   }
 
@@ -489,7 +715,8 @@ function createCurseForgeService({
   }
 
   // Writes one file next to its final place, then claims the final name without replacing anything.
-  async function place(root, folder, fileName, data, written) {
+  // `source` is the file's bytes, or { copyFrom } for a verified file that is still in the temporary folder.
+  async function place(root, folder, fileName, source, written) {
     const resolvedFolder = path.resolve(folder);
     const realRoot = await fs.realpath(root);
     if (!resolvedFolder.toLowerCase().startsWith(path.resolve(root).toLowerCase() + path.sep)) throw cfError('OUTSIDE_ROOT', 'Files must stay inside the Mods folder.');
@@ -497,7 +724,8 @@ function createCurseForgeService({
     const realFolder = await fs.realpath(resolvedFolder);
     if (!realFolder.toLowerCase().startsWith(realRoot.toLowerCase() + path.sep)) throw cfError('OUTSIDE_ROOT', 'Files must stay inside the Mods folder.');
     const temp = path.join(resolvedFolder, `.simmerspace-${crypto.randomUUID()}.tmp`);
-    await fs.writeFile(temp, data, { flag: 'wx' });
+    if (source?.copyFrom) await fs.copyFile(source.copyFrom, temp, fsConstants.COPYFILE_EXCL);
+    else await fs.writeFile(temp, source, { flag: 'wx' });
     try {
       const destination = await uniqueDestination(resolvedFolder, fileName);
       await moveNoOverwrite(temp, destination);
@@ -536,31 +764,66 @@ function createCurseForgeService({
     return Object.values(entry).filter(item => item && Number(item.modId) && Number(item.fileId));
   }
 
-  async function install(modId, fileId, { replacePrevious = false } = {}) {
-    const id = int(modId, 0, 1, 2 ** 31);
-    const fid = int(fileId, 0, 1, 2 ** 31);
-    if (!id || !fid) throw cfError('INVALID_INPUT', 'A CurseForge mod and file were expected.');
-    const root = await getModsRoot();
+  // Keeps the install log pointing at files that were renamed, moved, or deleted, so they stay "from SimmerSpace".
+  async function remapInstalledPaths(root, pairs) {
+    const moved = new Map(pairs.map(([from, to]) => [String(from).toLowerCase(), to]));
+    if (!moved.size) return;
+    await writeInstalls(store => {
+      for (const item of Object.values(store.roots[root.toLowerCase()] || {})) {
+        if (Array.isArray(item?.files)) item.files = item.files.flatMap(file => (moved.has(file.toLowerCase()) ? (moved.get(file.toLowerCase()) ? [moved.get(file.toLowerCase())] : []) : [file]));
+      }
+    });
+  }
+
+  // The mod and file as CurseForge describes them, and the link to use: the file's own, or the download-url
+  // endpoint when the file came without one and the author does not forbid it.
+  async function fileRecord(id, fid) {
     const modData = await mod(id);
     const file = (await request('GET', `/v1/mods/${id}/files/${fid}`, { useCache: false }))?.data;
     if (!file || Number(file.modId) !== id) throw cfError('CF_NOT_FOUND', 'That file does not belong to this mod.');
     const websiteUrl = isCurseForgePage(modData?.links?.websiteUrl) ? modData.links.websiteUrl : '';
-    if (!file.downloadUrl || file.isAvailable === false) throw cfError('CF_DOWNLOAD_NOT_ALLOWED', 'The author only allows downloads from the CurseForge website.', { websiteUrl });
+    const pageUrl = websiteUrl ? `${websiteUrl}/files/${fid}` : '';
+    if (file.isAvailable === false) throw cfError('CF_FILE_UNAVAILABLE', 'CurseForge does not offer this file right now.', { websiteUrl, pageUrl });
+    return { modData, file, websiteUrl, pageUrl };
+  }
+  // A missing downloadUrl proves nothing on its own, so the download-url endpoint is always asked. Saying the author
+  // forbids downloads needs both signals: the project's own flag and the endpoint's refusal. Metadata has already been
+  // read with this key by now, so a refusal here is about this file and not about the key.
+  async function authorizedLink({ modData, file, websiteUrl, pageUrl }, id, fid) {
+    const details = { websiteUrl, pageUrl, fileName: text(file.fileName, 300), fileLength: Number(file.fileLength) || 0 };
+    if (file.downloadUrl) return file.downloadUrl;
+    const authorSaysNo = modData?.allowModDistribution === false;
+    let refused = false;
+    try {
+      const link = (await request('GET', `/v1/mods/${id}/files/${fid}/download-url`, { useCache: false }))?.data;
+      if (typeof link === 'string' && link) return link;
+    } catch (error) {
+      if (!['CF_UNAUTHORIZED', 'CF_NOT_FOUND'].includes(error.code)) throw error;
+      refused = error.code === 'CF_UNAUTHORIZED';
+      if (error.details?.status === 401) throw error;
+    }
+    if (authorSaysNo) throw cfError('CF_DOWNLOAD_NOT_ALLOWED', 'The author only allows downloads from the CurseForge website.', details);
+    throw cfError(refused ? 'CF_LINK_DENIED' : 'CF_NO_LINK', refused ? 'CurseForge refused a download link for this file.' : 'CurseForge gave no download link for this file.', details);
+  }
+
+  // Everything after the file has been received and verified. `received.path` is left for the caller to clean up.
+  async function installVerified({ id, fid, record, received, verified, replacePrevious }) {
+    const { modData, file, websiteUrl } = record;
+    const root = await getModsRoot();
     const fileName = safeFileName(path.basename(String(file.fileName || '')));
     const extension = path.extname(fileName).toLowerCase();
     if (!fileName || !DOWNLOAD_EXTENSIONS.has(extension)) throw cfError('CF_UNSUPPORTED_FILE', 'This kind of file has to be installed by hand.', { websiteUrl });
-
-    const data = await download(file.downloadUrl, Number(file.fileLength) || 0);
-    const verified = verify(data, { fileLength: Number(file.fileLength) || 0, hashes: file.hashes });
     const folder = path.join(root, folderNameForMod(modData?.name));
     const written = [];
     const skipped = [];
+    const added = []; // { absolute, sha256, originalName }
     try {
       if (extension === '.zip') {
-        const archive = readZip(data);
+        const archive = readZip(await fs.readFile(received.path));
         skipped.push(...archive.unsafe);
         const wanted = archive.entries.filter(entry => MOD_EXTENSIONS.has(path.extname(entry.path).toLowerCase()));
         skipped.push(...archive.entries.filter(entry => !wanted.includes(entry)).map(entry => entry.path));
+        if (!wanted.length && archive.entries.some(entry => TRAY_EXTENSIONS.has(path.extname(entry.path).toLowerCase()))) throw cfError('CF_TRAY_CONTENT', 'This download goes in the game\'s Tray folder, not in Mods.', { websiteUrl });
         if (!wanted.length) throw cfError('CF_UNSUPPORTED_FILE', 'This download has no .package or .ts4script files to install.', { websiteUrl });
         for (const entry of wanted) {
           const parts = entry.path.split('/');
@@ -572,19 +835,24 @@ function createCurseForgeService({
           // The game loads scripts at most one folder deep and packages at most five: scripts sit directly in
           // the mod's folder, packages keep up to two of their own subfolders.
           const subfolders = path.extname(name).toLowerCase() === '.ts4script' ? [] : parts.map(safeFileName).filter(Boolean).slice(-2);
-          await place(root, path.join(folder, ...subfolders), name, entry.read(), written);
+          const data = entry.read();
+          const absolute = await place(root, path.join(folder, ...subfolders), name, data, written);
+          added.push({ absolute, sha256: crypto.createHash('sha256').update(data).digest('hex'), originalName: name });
+          await new Promise(resolve => setImmediate(resolve));
         }
       } else {
-        await place(root, folder, fileName, data, written);
+        const absolute = await place(root, folder, fileName, { copyFrom: received.path }, written);
+        added.push({ absolute, sha256: received.sha256, originalName: fileName });
       }
     } catch (error) {
       // Undo only the files this install created.
-      await Promise.all(written.map(file => fs.unlink(file).catch(() => {})));
+      await Promise.all(written.map(item => fs.unlink(item).catch(() => {})));
       throw error;
     }
 
-    const relative = written.map(file => path.relative(root, file));
+    const relative = written.map(item => path.relative(root, item));
     const key = root.toLowerCase();
+    const logo = isImageUrl(modData?.logo?.thumbnailUrl) ? modData.logo.thumbnailUrl : '';
     let previous = null;
     await writeInstalls(store => {
       store.roots[key] ||= {};
@@ -597,11 +865,12 @@ function createCurseForgeService({
         displayName: text(file.displayName, 300) || fileName,
         authors: (modData?.authors || []).slice(0, 4).map(author => text(author?.name, 120)).filter(Boolean),
         websiteUrl,
-        logo: isImageUrl(modData?.logo?.thumbnailUrl) ? modData.logo.thumbnailUrl : '',
+        logo,
         installedAt: new Date(now()).toISOString(),
         files: relative
       };
     });
+    await Promise.resolve(onInstalled({ root, modId: id, fileId: fid, name: text(modData?.name, 200), logo, files: added.map(item => ({ relativePath: path.relative(root, item.absolute), sha256: item.sha256, originalName: item.originalName })) })).catch(() => {});
 
     let replaced = 0;
     if (replacePrevious && previous && previous.fileId !== fid && Array.isArray(previous.files)) {
@@ -617,6 +886,120 @@ function createCurseForgeService({
       }
     }
     return { modId: id, fileId: fid, name: text(modData?.name, 200), authors: (modData?.authors || []).map(a => text(a?.name, 120)).filter(Boolean), files: relative, skipped: skipped.slice(0, 50), skippedCount: skipped.length, verified, replaced };
+  }
+
+  // The same file is installed once, unless the player asks again or a file of the earlier install has gone.
+  async function assertNotInstalled(root, id, fid, reinstall) {
+    if (reinstall) return;
+    const previous = (await readInstalls()).roots[root.toLowerCase()]?.[id];
+    if (!previous || Number(previous.fileId) !== fid || !Array.isArray(previous.files) || !previous.files.length) return;
+    for (const relative of previous.files) {
+      const stat = await fs.lstat(path.resolve(root, relative)).catch(() => null);
+      if (!stat?.isFile()) return;
+    }
+    throw cfError('CF_ALREADY_INSTALLED', 'This version is already installed.', { name: previous.name, files: previous.files.slice(0, 20) });
+  }
+
+  function ids(modId, fileId) {
+    const id = int(modId, 0, 1, 2 ** 31);
+    const fid = int(fileId, 0, 1, 2 ** 31);
+    if (!id || !fid) throw cfError('INVALID_INPUT', 'A CurseForge mod and file were expected.');
+    return { id, fid };
+  }
+
+  async function install(modId, fileId, { replacePrevious = false, reinstall = false } = {}) {
+    const { id, fid } = ids(modId, fileId);
+    const root = await getModsRoot();
+    await assertNotInstalled(root, id, fid, reinstall || replacePrevious);
+    const job = startJob(`${id}:${fid}`);
+    let received = null;
+    try {
+      const record = await fileRecord(id, fid);
+      const link = await authorizedLink(record, id, fid);
+      const expected = { fileLength: Number(record.file.fileLength) || 0, hashes: record.file.hashes };
+      let verified = false;
+      // A corrupted transfer gets one more try before it counts as a failure.
+      for (let attempt = 1; ; attempt++) {
+        received = await downloadToTemp(link, expected.fileLength, job, id, fid);
+        try {
+          verified = verify(received, expected);
+          break;
+        } catch (error) {
+          await fs.unlink(received.path).catch(() => {});
+          received = null;
+          if (error.code !== 'CF_HASH_MISMATCH' || attempt >= 2) throw error;
+        }
+      }
+      return await installVerified({ id, fid, record, received, verified, replacePrevious });
+    } finally {
+      jobs.delete(`${id}:${fid}`);
+      if (received) await fs.unlink(received.path).catch(() => {});
+    }
+  }
+
+  /* ---------- Files the player downloaded from the website ---------- */
+  async function assistedInfo(modId, fileId) {
+    const { id, fid } = ids(modId, fileId);
+    const { modData, file, pageUrl, websiteUrl } = await fileRecord(id, fid);
+    return { modId: id, fileId: fid, name: text(modData?.name, 200), fileName: text(file.fileName, 300), fileLength: Number(file.fileLength) || 0, pageUrl, websiteUrl, canVerify: (Array.isArray(file.hashes) ? file.hashes : []).some(hash => hash?.algo === 1 || hash?.algo === 2) };
+  }
+
+  // Checks a file on this PC against what CurseForge says about the file. Reads it; never changes or moves it.
+  async function checkLocalFile(record, absolute) {
+    const stat = await fs.stat(absolute).catch(() => null);
+    if (!stat?.isFile()) throw cfError('CF_LOCAL_FILE_MISSING', 'That file is no longer there.');
+    const fileLength = Number(record.file.fileLength) || 0;
+    if (fileLength > 0 && stat.size !== fileLength) throw cfError('CF_LOCAL_FILE_MISMATCH', 'This is not the file CurseForge offers for this mod.');
+    const received = await hashLocalFile(absolute);
+    try {
+      return { received, verified: verify(received, { fileLength, hashes: record.file.hashes }) };
+    } catch (error) {
+      if (error.code === 'CF_HASH_MISMATCH') throw cfError('CF_LOCAL_FILE_MISMATCH', 'This is not the file CurseForge offers for this mod.');
+      throw error;
+    }
+  }
+
+  // Looks in a folder (the player's Downloads) for the exact file: same size, then same checksum. Browsers may
+  // rename a download, so the name is only a hint. Partial downloads are ignored until they are complete.
+  async function findDownloaded(modId, fileId, folder) {
+    const { id, fid } = ids(modId, fileId);
+    const record = await fileRecord(id, fid);
+    const wanted = Number(record.file.fileLength) || 0;
+    const extension = path.extname(String(record.file.fileName || '')).toLowerCase();
+    let entries = [];
+    try {
+      entries = await fs.readdir(folder, { withFileTypes: true });
+    } catch {
+      return null;
+    }
+    const candidates = [];
+    for (const entry of entries) {
+      if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== extension) continue;
+      const absolute = path.join(folder, entry.name);
+      const stat = await fs.stat(absolute).catch(() => null);
+      if (stat && (!wanted || stat.size === wanted)) candidates.push({ absolute, exact: entry.name === record.file.fileName, modified: stat.mtimeMs });
+    }
+    candidates.sort((a, b) => b.exact - a.exact || b.modified - a.modified);
+    for (const candidate of candidates.slice(0, 5)) {
+      try {
+        const { verified } = await checkLocalFile(record, candidate.absolute);
+        if (verified || candidate.exact) return candidate.absolute;
+      } catch {}
+    }
+    return null;
+  }
+
+  async function installLocalFile(modId, fileId, absolute, { replacePrevious = false, reinstall = false } = {}) {
+    const { id, fid } = ids(modId, fileId);
+    await assertNotInstalled(await getModsRoot(), id, fid, reinstall || replacePrevious);
+    startJob(`${id}:${fid}`);
+    try {
+      const record = await fileRecord(id, fid);
+      const { received, verified } = await checkLocalFile(record, absolute);
+      return await installVerified({ id, fid, record, received, verified, replacePrevious });
+    } finally {
+      jobs.delete(`${id}:${fid}`);
+    }
   }
 
   async function checkUpdates() {
@@ -721,7 +1104,7 @@ function createCurseForgeService({
     });
   }
 
-  return { isConfigured, searchMods, getModFiles, getDownloadUrl, request, sims4GameId, classes, categories, search, popularCreators, details, files, install, installs, checkUpdates, testConnection, diagnostics, clearCache: () => cache.clear() };
+  return { isConfigured, searchMods, getModFiles, getDownloadUrl, request, sims4GameId, classes, categories, search, searchFollowed, popularCreators, creatorsPage, details, files, install, installs, cancelInstall, assistedInfo, findDownloaded, installLocalFile, remapInstalledPaths, cleanTemporaryDownloads, checkUpdates, testConnection, diagnostics, clearCache: () => cache.clear() };
 }
 
 module.exports = { createCurseForgeService, summarizeMod, summarizeFile, newestFile, htmlToText, folderNameForMod, isDownloadUrl, isImageUrl, isCurseForgePage, creatorStyle };

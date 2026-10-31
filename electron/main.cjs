@@ -1,8 +1,8 @@
-const { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, nativeImage, net, protocol, safeStorage, session, shell } = require('electron');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { fileURLToPath } = require('node:url');
+const { fileURLToPath, pathToFileURL } = require('node:url');
 const { createModsService } = require('./mods-service.cjs');
 const { createSettingsStore, ROUTE_IDS } = require('./settings-store.cjs');
 const { createIpc, validators } = require('./ipc.cjs');
@@ -11,6 +11,9 @@ const { loadAppConfig, describeConfig } = require('./app-config.cjs');
 const { createCurseForgeService } = require('./curseforge-service.cjs');
 const { createAccountService } = require('./account-service.cjs');
 const { createGameLauncher } = require('./game-launcher.cjs');
+const { createLibraryMetadata } = require('./library-metadata.cjs');
+const { createLibraryTools } = require('./library-tools.cjs');
+const { createSims4Config } = require('./sims4-config.cjs');
 const { createUpdater } = require('./updater.cjs');
 const { moveNoOverwrite } = require('./mods-service.cjs');
 
@@ -31,8 +34,12 @@ function isAppPage(url) {
 // never reads or writes the player's normal settings.
 if (process.env.SIMMERSPACE_PROFILE_DIR) app.setPath('userData', path.resolve(process.env.SIMMERSPACE_PROFILE_DIR));
 
+// Local preview images reach the page through this address, so the page never gets a path on this PC.
+protocol.registerSchemesAsPrivileged([{ scheme: 'simmer-preview', privileges: { standard: true, secure: true, supportFetchAPI: false } }]);
+
 let mainWindow;
 const settings = createSettingsStore({ getUserDataPath: () => app.getPath('userData') });
+const metadata = createLibraryMetadata({ userDataPath: () => app.getPath('userData') });
 const modsService = createModsService({
   app,
   dialog,
@@ -40,7 +47,13 @@ const modsService = createModsService({
   getWindow: () => mainWindow,
   getModsRoot: async () => (await settings.loadRoutes()).mods?.path,
   report: progress => sendToPage('mods:scan-progress', progress),
-  reportOrganize: progress => sendToPage('mods:organize-progress', progress)
+  reportOrganize: progress => sendToPage('mods:organize-progress', progress),
+  // Whatever renames or moves a file, its metadata and install record follow it.
+  onPathsMoved: async (root, pairs) => {
+    await metadata.movePaths(root, pairs);
+    await curseforge.remapInstalledPaths(root, pairs);
+  },
+  onCatalogSaved: (root, catalog) => metadata.snapshotTags(root, catalog.files)
 });
 
 // Integration diagnostics are for developers only: start with SIMMERSPACE_DEV=1 or --developer to see them.
@@ -66,7 +79,10 @@ const curseforge = createCurseForgeService({
   userDataPath: () => app.getPath('userData'),
   getModsRoot: () => modsService.selectedRoot(),
   moveNoOverwrite,
-  trashItem: file => shell.trashItem(file)
+  trashItem: file => shell.trashItem(file),
+  onProgress: progress => sendToPage('cf:download-progress', progress),
+  onInstalled: ({ root, files, modId, fileId, name, logo }) => metadata.register(root, files, { modId, fileId, name, logo }),
+  creatorIndex: options => account.listCreators(options)
 });
 const updater = createUpdater({
   supported: app.isPackaged && !PORTABLE_FILE && process.platform === 'win32',
@@ -77,6 +93,72 @@ const gameLauncher = createGameLauncher({
   getGameFolder: async () => (await settings.loadRoutes()).game?.path,
   openPath: file => shell.openPath(file)
 });
+
+const libraryTools = createLibraryTools({
+  getRoot: () => modsService.selectedRoot(),
+  metadata,
+  userDataPath: () => app.getPath('userData'),
+  report: progress => sendToPage('library:tool-progress', progress),
+  onPathsChanged: (root, pairs) => modsService.remapCatalogPaths(root, pairs),
+  onDeleted: async (root, paths) => {
+    await modsService.forgetCatalogPaths(root, paths);
+    await curseforge.remapInstalledPaths(root, paths.map(file => [file, '']));
+  }
+});
+const sims4Config = createSims4Config({
+  getDocumentsRoute: async () => (await settings.loadRoutes()).documents?.path || '',
+  getDocumentsFolder: () => app.getPath('documents'),
+  getSelected: async () => (await settings.load()).sims4ConfigFolder || '',
+  saveSelected: folder => settings.update({ sims4ConfigFolder: folder }),
+  isGameRunning: () => gameLauncher.isRunning()
+});
+
+// After a scan: hashes what is new, reconnects renamed or moved files to their metadata, and restores tags the
+// catalog lost. Runs in the background; the page keeps working meanwhile.
+let reconcileToken = null;
+async function reconcileLibrary(files) {
+  if (!Array.isArray(files)) throw new AppError('INVALID_INPUT', 'A list was expected.');
+  if (reconcileToken) reconcileToken.cancelled = true;
+  const token = { cancelled: false };
+  reconcileToken = token;
+  const root = await modsService.selectedRoot();
+  const list = files.filter(item => typeof item?.relativePath === 'string').slice(0, 200000);
+  const result = await metadata.reconcile(root, list, { token, installed: await curseforge.installs().catch(() => []), onProgress: progress => sendToPage('library:hash-progress', progress) });
+  if (result.moved.length) await modsService.remapCatalogPaths(root, result.moved);
+  const catalog = await modsService.loadCatalog();
+  const recovered = await metadata.recoverTags(root, catalog.files);
+  if (Object.keys(recovered).length) await modsService.mergeCatalogFiles(root, recovered);
+  if (reconcileToken === token) reconcileToken = null;
+  return { ...result, recovered: Object.keys(recovered).length, entries: await metadata.summary(root) };
+}
+
+// The Downloads folder is the only place SimmerSpace looks without being told. A file the player picks or that was
+// found there is remembered here, so the page only ever deals in ids and never hands over a path.
+const assistedFiles = new Map();
+async function findAssistedDownload(modId, fileId) {
+  const found = await curseforge.findDownloaded(modId, fileId, app.getPath('downloads'));
+  if (!found) return { found: false };
+  assistedFiles.set(`${modId}:${fileId}`, found);
+  return { found: true, name: path.basename(found) };
+}
+async function pickAssistedFile(modId, fileId) {
+  const result = await dialog.showOpenDialog(mainWindow, { title: 'Choose the file you downloaded', defaultPath: app.getPath('downloads'), properties: ['openFile'], filters: [{ name: 'Sims 4 downloads', extensions: ['zip', 'package', 'ts4script'] }] });
+  if (result.canceled || !result.filePaths[0]) return { found: false, canceled: true };
+  assistedFiles.set(`${modId}:${fileId}`, result.filePaths[0]);
+  return { found: true, name: path.basename(result.filePaths[0]) };
+}
+async function installAssisted(modId, fileId, options) {
+  const key = `${modId}:${fileId}`;
+  const file = assistedFiles.get(key);
+  if (!file) throw new AppError('CF_LOCAL_FILE_MISSING', 'That file is no longer there.');
+  const result = await curseforge.installLocalFile(modId, fileId, file, { replacePrevious: options.replacePrevious === true, reinstall: options.reinstall === true });
+  assistedFiles.delete(key);
+  return result;
+}
+function openWebsiteFile(url) {
+  if (typeof url === 'string' && /^https:\/\/(www\.)?curseforge\.com\//i.test(url)) shell.openExternal(url);
+  return true;
+}
 
 async function integrationStatus() {
   const summary = describeConfig(await getConfig());
@@ -163,10 +245,17 @@ ipc.handle('cf:test', validators.none, () => curseforge.testConnection());
 ipc.handle('cf:classes', validators.none, () => curseforge.classes());
 ipc.handle('cf:categories', validators.id, classId => curseforge.categories(classId));
 ipc.handle('cf:search', validators.optionalObject, options => curseforge.search(options));
-ipc.handle('cf:creators', validators.optionalObject, options => curseforge.popularCreators(options));
+ipc.handle('cf:search-followed', validators.optionalObject, options => curseforge.searchFollowed(options));
+ipc.handle('cf:creators', validators.optionalObject, options => curseforge.creatorsPage(options));
 ipc.handle('cf:details', validators.id, modId => curseforge.details(modId));
 ipc.handle('cf:files', validators.idAndObject, (modId, options) => curseforge.files(modId, options));
-ipc.handle('cf:install', validators.twoIdsAndObject, (modId, fileId, options) => curseforge.install(modId, fileId, { replacePrevious: options.replacePrevious === true }));
+ipc.handle('cf:install', validators.twoIdsAndObject, (modId, fileId, options) => curseforge.install(modId, fileId, { replacePrevious: options.replacePrevious === true, reinstall: options.reinstall === true }));
+ipc.handle('cf:cancel-install', validators.twoIds, (modId, fileId) => curseforge.cancelInstall(modId, fileId));
+ipc.handle('cf:assisted-info', validators.twoIds, (modId, fileId) => curseforge.assistedInfo(modId, fileId));
+ipc.handle('cf:assisted-find', validators.twoIds, findAssistedDownload);
+ipc.handle('cf:assisted-pick', validators.twoIds, pickAssistedFile);
+ipc.handle('cf:assisted-install', validators.twoIdsAndObject, installAssisted);
+ipc.handle('cf:open-site', validators.string, openWebsiteFile);
 ipc.handle('cf:installs', validators.none, () => curseforge.installs());
 ipc.handle('cf:check-updates', validators.none, () => curseforge.checkUpdates());
 ipc.handle('account:status', validators.none, () => account.status());
@@ -181,6 +270,9 @@ ipc.handle('account:update-profile', validators.object, input => account.updateP
 ipc.handle('account:upload-avatar', validators.object, input => account.uploadAvatar(input));
 ipc.handle('account:remove-avatar', validators.none, () => account.removeAvatar());
 ipc.handle('account:send-feedback', validators.object, input => account.sendFeedback(input));
+ipc.handle('account:deletion-status', validators.none, () => account.deletionStatus());
+ipc.handle('account:request-deletion', validators.none, () => account.requestDeletion());
+ipc.handle('account:cancel-deletion', validators.none, () => account.cancelDeletion());
 ipc.handle('inspiration:list', validators.optionalObject, input => account.listPosts(input));
 ipc.handle('inspiration:profile', validators.object, input => account.getProfile(input));
 ipc.handle('inspiration:create', validators.object, input => account.createPost(input));
@@ -218,6 +310,20 @@ ipc.on('mods:cancel-organize', () => modsService.cancelOrganize());
 ipc.handle('mods:trash', validators.string, relativePath => modsService.trashMod(relativePath));
 ipc.handle('mods:trash-many', validators.list, paths => modsService.trashMods(paths));
 ipc.handle('mods:create-folders', validators.list, names => modsService.createCategoryFolders(names));
+ipc.handle('library:reconcile', validators.list, reconcileLibrary);
+ipc.handle('library:summary', validators.none, async () => metadata.summary(await modsService.selectedRoot()));
+ipc.handle('library:find-duplicates', validators.none, () => libraryTools.findDuplicates());
+ipc.handle('library:find-empty-folders', validators.none, () => libraryTools.findEmptyFolders());
+ipc.handle('library:find-stray-files', validators.none, () => libraryTools.findStrayFiles());
+ipc.on('library:cancel-tool', () => libraryTools.cancel());
+ipc.handle('library:delete-permanently', validators.object, input => libraryTools.deletePermanently(input));
+ipc.handle('library:original-name', validators.string, relativePath => libraryTools.originalNameStatus(relativePath));
+ipc.handle('library:restore-name', validators.string, relativePath => libraryTools.restoreOriginalName(relativePath));
+ipc.handle('library:save-preview', validators.stringAndBytes, (relativePath, data) => libraryTools.savePreview(relativePath, data));
+ipc.handle('library:remove-preview', validators.string, relativePath => libraryTools.removePreview(relativePath));
+ipc.handle('game-config:read', validators.none, () => sims4Config.read());
+ipc.handle('game-config:write', validators.object, input => sims4Config.write(input));
+ipc.handle('game-config:select-folder', validators.string, folder => sims4Config.selectFolder(folder));
 
 function openExternalSafely(url) {
   try {
@@ -276,6 +382,11 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    protocol.handle('simmer-preview', request => {
+      const file = libraryTools.previewFile(new URL(request.url).hostname);
+      return file ? net.fetch(pathToFileURL(file).href) : new Response(null, { status: 404 });
+    });
+    curseforge.cleanTemporaryDownloads();
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -286,13 +397,14 @@ if (!app.requestSingleInstanceLock()) {
 // Let pending tag/settings writes finish before the process exits.
 let quitting = false;
 app.on('before-quit', event => {
+  if (reconcileToken) reconcileToken.cancelled = true;
   if (quitting || (!modsService.hasPendingWrites() && !modsService.isOrganizing())) return;
   event.preventDefault();
   quitting = true;
   // Quitting mid-organize stops after the file being moved, then waits for the tag update.
   modsService.cancelOrganize();
   waitForOrganize()
-    .then(() => Promise.all([modsService.whenIdle(), settings.whenIdle()]))
+    .then(() => Promise.all([modsService.whenIdle(), settings.whenIdle(), metadata.whenIdle()]))
     .finally(() => app.quit());
 });
 async function waitForOrganize() {

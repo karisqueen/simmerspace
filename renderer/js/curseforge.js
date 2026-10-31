@@ -213,8 +213,9 @@ function cfDetailBody(mod) {
   const noMods = !routeRecords.mods?.path;
   const installButton = file => {
     const busy = cf.installing.has(`${mod.id}:${file.id}`);
-    if (!file.downloadAllowed) return `<span class="muted-note">${t('cfSiteOnly')}</span>`;
-    return `<button class="${file === latest ? 'primary-btn' : 'secondary-btn small-chip'}" data-cf-install="${mod.id}" data-file="${file.id}" ${busy ? 'disabled' : ''}>${icon('download')}<span>${busy ? t('cfInstalling') : t('cfInstall')}</span></button>`;
+    if (busy) return `<span class="cf-progress" data-cf-progress="${mod.id}:${file.id}" role="status">${esc(cfProgressText(`${mod.id}:${file.id}`))}</span><button class="tertiary-btn small-chip" data-cf-cancel="${mod.id}" data-file="${file.id}">${t('cfCancelDownload')}</button>`;
+    if (!file.downloadAllowed) return file.available === false ? `<span class="muted-note">${mt('err_CF_FILE_UNAVAILABLE')}</span>` : `<button class="${file === latest ? 'primary-btn' : 'secondary-btn small-chip'}" data-cf-assisted="${mod.id}" data-file="${file.id}" data-tip="${esc(t('cfSiteOnly'))}">${icon('external')}<span>${t('cfAssistedButton')}</span></button>`;
+    return `<button class="${file === latest ? 'primary-btn' : 'secondary-btn small-chip'}" data-cf-install="${mod.id}" data-file="${file.id}">${icon('download')}<span>${t('cfInstall')}</span></button>`;
   };
   const files = mod.latestFiles
     .map(file => `<li class="list-row"><div class="list-row-copy"><b>${esc(file.displayName)}</b><small>${esc(shortDate(file.fileDate))}${file.fileLength ? ` · ${esc(formatBytes(file.fileLength))}` : ''}${file.releaseType === 2 ? ` · ${t('cfBeta')}` : file.releaseType === 3 ? ` · ${t('cfAlpha')}` : ''}</small></div>${installButton(file)}</li>`)
@@ -261,7 +262,104 @@ function refreshOpenDetails() {
   if (mod && !overlay.hidden && dialog.querySelector('.cf-detail')) withFocusPreserved(() => (dialog.innerHTML = cfDetailBody(mod)));
 }
 
-async function installCurseForgeFile(modId, fileId, { replacePrevious = false } = {}) {
+// Download progress, shown on the file's own row.
+const cfProgress = new Map();
+function cfProgressText(key) {
+  const p = cfProgress.get(key);
+  if (!p) return t('cfInstalling');
+  if (p.retry) return t('cfRetrying');
+  if (p.done || !p.total) return t('cfInstalling');
+  return format(t('cfDownloadingPercent'), { percent: n(Math.min(100, Math.floor((p.received / p.total) * 100))) });
+}
+cfApi?.onDownloadProgress(progress => {
+  const key = `${progress.modId}:${progress.fileId}`;
+  cfProgress.set(key, progress);
+  const slot = document.querySelector(`[data-cf-progress="${key}"]`);
+  if (slot) slot.textContent = cfProgressText(key);
+});
+
+/* The author allows this file on the website only. The player downloads it there; simmerspace finds it in Downloads,
+   checks it against CurseForge's checksum and installs it the same way as any other file. */
+const assisted = { info: null, timer: null, found: '', busy: false };
+function stopAssistedWatch() {
+  clearTimeout(assisted.timer);
+  assisted.timer = null;
+  assisted.info = null;
+  assisted.found = '';
+}
+function assistedBody() {
+  const { info, found, busy } = assisted;
+  const status = found ? `${icon('check')}<span>${esc(format(t('cfAssistedFound'), { file: found }))}</span>` : `<span>${esc(format(t('cfAssistedWaiting'), { file: info.fileName }))}</span>`;
+  return `${closeButton()}<div class="form-dialog"><div class="eyebrow">CurseForge</div><h2 id="dialog-title">${esc(format(t('cfAssistedTitle'), { name: info.name }))}</h2><p>${esc(t('cfAssistedWhy'))}</p><ol class="assisted-steps"><li>${esc(t('cfAssistedStep1'))}</li><li>${esc(t('cfAssistedStep2'))}</li></ol><p class="assisted-status" role="status" id="assisted-status">${status}</p><div class="detail-actions">${found ? `<button class="primary-btn" id="cf-assisted-install" ${busy ? 'disabled' : ''}>${icon('download')}<span>${busy ? t('cfInstalling') : t('cfAssistedInstall')}</span></button>` : `<button class="primary-btn" id="cf-assisted-open">${t('cfAssistedOpen')} ${icon('external')}</button>`}<button class="secondary-btn" id="cf-assisted-pick">${t('cfAssistedPick')}</button><button class="tertiary-btn" data-close>${t('cancel')}</button></div></div>`;
+}
+async function watchAssistedDownload() {
+  const info = assisted.info;
+  if (!info || assisted.found) return;
+  try {
+    const result = await callDesktop(cfApi.assistedFind, info.modId, info.fileId);
+    if (assisted.info !== info) return;
+    if (result.found) {
+      assisted.found = result.name;
+      return withFocusPreserved(() => (dialog.innerHTML = assistedBody()));
+    }
+  } catch {}
+  if (assisted.info === info) assisted.timer = setTimeout(watchAssistedDownload, 2000);
+}
+async function openAssistedInstall(modId, fileId) {
+  if (!routeRecords.mods?.path) return toast(mt('noFolderText'), 'error');
+  try {
+    stopAssistedWatch();
+    assisted.info = await callDesktop(cfApi.assistedInfo, modId, fileId);
+    openDialog(assistedBody(), { onClose: stopAssistedWatch });
+    watchAssistedDownload();
+  } catch (error) {
+    toast(cfError(error), 'error');
+  }
+}
+async function runAssistedInstall({ reinstall = false } = {}) {
+  const info = assisted.info;
+  if (!info || assisted.busy) return;
+  assisted.busy = true;
+  dialog.innerHTML = assistedBody();
+  try {
+    const result = await callDesktop(cfApi.assistedInstall, info.modId, info.fileId, { reinstall });
+    assisted.busy = false;
+    closeDialog();
+    finishInstall(result, info.modId);
+  } catch (error) {
+    assisted.busy = false;
+    if (error.code === 'CF_LOCAL_FILE_MISMATCH' || error.code === 'CF_LOCAL_FILE_MISSING') assisted.found = '';
+    if (assisted.info) dialog.innerHTML = assistedBody();
+    toast(cfError(error), 'error');
+    if (assisted.info && !assisted.found) watchAssistedDownload();
+  }
+}
+
+// What every successful install does, however the file arrived.
+function finishInstall(result, modId) {
+  if (result.authors[0] && typeof createCreatorIfMissing === 'function') {
+    const creator = createCreatorIfMissing(result.authors[0]);
+    for (const file of result.files) storeModTags(file, { ...tagsForMod(file), creatorId: creator.id });
+    scheduleModCatalogSave(0);
+  }
+  cf.installs = null;
+  cf.updates = cf.updates ? { ...cf.updates, updates: cf.updates.updates.filter(u => u.modId !== modId) } : null;
+  const summary = format(t('cfInstalledResult'), { name: result.name, count: n(result.files.length) });
+  if (result.skippedCount || !result.verified || result.replaced) {
+    showResultDialog({
+      title: t('cfInstallDone'),
+      summary,
+      note: [result.verified ? '' : t('cfNotVerified'), result.replaced ? format(t('cfReplaced'), { count: n(result.replaced) }) : ''].filter(Boolean).join(' '),
+      failures: result.skipped.map(name => ({ label: name, code: 'CF_SKIPPED' })),
+      describe: () => t('cfSkippedFile'),
+      successes: result.files.map(file => ({ label: fileNameOf(file), detail: file })),
+      successTitle: t('cfInstalledFiles')
+    });
+  } else toast(summary);
+  if (mods.result) setTimeout(scanManagedMods, 0);
+}
+
+async function installCurseForgeFile(modId, fileId, { replacePrevious = false, reinstall = false } = {}) {
   if (!routeRecords.mods?.path) return toast(mt('noFolderText'), 'error');
   const key = `${modId}:${fileId}`;
   if (cf.installing.has(key)) return;
@@ -269,37 +367,26 @@ async function installCurseForgeFile(modId, fileId, { replacePrevious = false } 
   refreshOpenDetails();
   if (state.page === 'curseforge') render();
   try {
-    const result = await callDesktop(cfApi.install, modId, fileId, { replacePrevious });
-    // Tag the new files with the mod's author so they are easy to find in My CC.
-    if (result.authors[0] && typeof createCreatorIfMissing === 'function') {
-      const creator = createCreatorIfMissing(result.authors[0]);
-      for (const file of result.files) storeModTags(file, { ...tagsForMod(file), creatorId: creator.id });
-      scheduleModCatalogSave(0);
-    }
-    cf.installs = null;
-    cf.updates = cf.updates ? { ...cf.updates, updates: cf.updates.updates.filter(u => u.modId !== modId) } : null;
-    const summary = format(t('cfInstalledResult'), { name: result.name, count: n(result.files.length) });
-    if (result.skippedCount || !result.verified || result.replaced) {
-      showResultDialog({
-        title: t('cfInstallDone'),
-        summary,
-        note: [result.verified ? '' : t('cfNotVerified'), result.replaced ? format(t('cfReplaced'), { count: n(result.replaced) }) : ''].filter(Boolean).join(' '),
-        failures: result.skipped.map(name => ({ label: name, code: 'CF_SKIPPED' })),
-        describe: () => t('cfSkippedFile'),
-        successes: result.files.map(file => ({ label: fileNameOf(file), detail: file })),
-        successTitle: t('cfInstalledFiles')
-      });
-    } else toast(summary);
-    if (mods.result) setTimeout(scanManagedMods, 0);
+    finishInstall(await callDesktop(cfApi.install, modId, fileId, { replacePrevious, reinstall }), modId);
   } catch (error) {
-    if (error.code === 'CF_DOWNLOAD_NOT_ALLOWED' || error.code === 'CF_UNSUPPORTED_FILE') {
+    if (error.code === 'CF_DOWNLOAD_NOT_ALLOWED') {
+      cf.installing.delete(key);
+      await openAssistedInstall(modId, fileId);
+    } else if (error.code === 'CF_ALREADY_INSTALLED') {
+      const again = await confirmAction({ title: t('cfAlreadyInstalledTitle'), body: errorMessage(error), details: error.details?.files || [], confirmLabel: t('cfReinstall') });
+      if (again) {
+        cf.installing.delete(key);
+        return installCurseForgeFile(modId, fileId, { reinstall: true });
+      }
+    } else if (error.code === 'CF_UNSUPPORTED_FILE' || error.code === 'CF_TRAY_CONTENT') {
       const site = error.details?.websiteUrl;
       openDialog(
-        `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t(error.code === 'CF_DOWNLOAD_NOT_ALLOWED' ? 'cfSiteOnlyTitle' : 'cfManualTitle')}</h2><p>${esc(errorMessage(error))}</p><div class="detail-actions">${site ? `<a class="primary-btn" href="${esc(site)}" target="_blank" rel="noopener noreferrer">${t('cfViewOnSite')} ${icon('external')}</a>` : ''}<button class="secondary-btn" data-close>${t('close')}</button></div></div>`
+        `${closeButton()}<div class="form-dialog"><h2 id="dialog-title">${t('cfManualTitle')}</h2><p>${esc(errorMessage(error))}</p><div class="detail-actions">${site ? `<a class="primary-btn" href="${esc(site)}" target="_blank" rel="noopener noreferrer">${t('cfViewOnSite')} ${icon('external')}</a>` : ''}<button class="secondary-btn" data-close>${t('close')}</button></div></div>`
       );
     } else toast(cfError(error), 'error');
   } finally {
     cf.installing.delete(key);
+    cfProgress.delete(key);
     refreshOpenDetails();
     if (state.page === 'curseforge') render();
   }
@@ -368,6 +455,21 @@ const CF_CLICK_ACTIONS = {
     searchCurseForge();
   },
   'cf-reload-installs': loadCurseForgeInstalls,
+  'cf-assisted-open': () => assisted.info?.pageUrl && callDesktop(cfApi.openSite, assisted.info.pageUrl),
+  'cf-assisted-install': () => runAssistedInstall(),
+  'cf-assisted-pick': async () => {
+    const info = assisted.info;
+    if (!info) return;
+    try {
+      const result = await callDesktop(cfApi.assistedPick, info.modId, info.fileId);
+      if (result.found && assisted.info === info) {
+        assisted.found = result.name;
+        dialog.innerHTML = assistedBody();
+      }
+    } catch (error) {
+      toast(cfError(error), 'error');
+    }
+  },
   'cf-check-updates': checkCurseForgeUpdates,
   'cf-retry-details': () => cf.detailId && openCurseForgeDetails(cf.detailId, { refresh: true }),
   'cf-open-settings': () => openSettings('curseforge-settings'),
@@ -399,6 +501,8 @@ document.addEventListener('click', async event => {
   if (target.id && CF_CLICK_ACTIONS[target.id]) return CF_CLICK_ACTIONS[target.id](target);
   if (target.dataset.cfDetail) return openCurseForgeDetails(Number(target.dataset.cfDetail));
   if (target.dataset.cfInstall) return installCurseForgeFile(Number(target.dataset.cfInstall), Number(target.dataset.file));
+  if (target.dataset.cfAssisted) return openAssistedInstall(Number(target.dataset.cfAssisted), Number(target.dataset.file));
+  if (target.dataset.cfCancel) return callDesktop(cfApi.cancelInstall, Number(target.dataset.cfCancel), Number(target.dataset.file)).catch(() => {});
   if (target.dataset.cfUpdate) return installCurseForgeFile(Number(target.dataset.cfUpdate), Number(target.dataset.file), { replacePrevious: true });
   if (target.dataset.cfTab) {
     cf.tab = target.dataset.cfTab === 'installed' ? 'installed' : 'browse';

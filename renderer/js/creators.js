@@ -24,7 +24,7 @@ function setFollowing(entry, follow) {
   toast(format(t(follow ? 'creatorFollowSaved' : 'creatorFollowRemoved'), { name: entry.name }));
   render();
 }
-function followButton(entry, { compact = false } = {}) {
+function creatorFollowButton(entry, { compact = false } = {}) {
   const on = isFollowing(entry.id);
   return `<button class="${compact ? 'small-chip' : 'secondary-btn small-chip'} follow-btn ${on ? 'is-on' : ''}" data-follow-creator="${esc(entry.id)}" data-name="${esc(entry.name)}" data-url="${esc(entry.url || '')}" aria-pressed="${on}">${icon(on ? 'check' : 'plus')}<span>${on ? t('followingCreator') : t('followCreator')}</span></button>`;
 }
@@ -66,10 +66,10 @@ function popularCreatorCard(c, rank) {
     .join('');
   const types = creatorTypes(c);
   const labels = `<div class="creator-labels"><span class="style-pill style-${esc(c.style || 'unknown')}" data-tip="${esc(t('tipCreatorStyle'))}">${esc(creatorStyleLabel(c.style))}</span>${types.map(name => `<span class="meta-pill meta-pill-quiet">${esc(name)}</span>`).join('')}</div>`;
-  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">${esc(format(t('creatorStats'), { projects: n(c.projectCount), downloads: compactNumber(c.downloads) }))}</div></div><span class="meta-pill meta-pill-quiet" title="${esc(t('creatorRankTip'))}">#${rank + 1}</span></header>${labels}<ul class="creator-projects">${projects}</ul><div class="creator-footer">${followButton(c)}${c.id ? `<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>` : ''}${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
+  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">${esc(format(t('creatorStats'), { projects: n(c.projectCount), downloads: compactNumber(c.downloads) }))}</div></div><span class="meta-pill meta-pill-quiet" title="${esc(t('creatorRankTip'))}">#${rank + 1}</span></header>${labels}<ul class="creator-projects">${projects}</ul><div class="creator-footer">${creatorFollowButton(c)}${c.id ? `<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>` : ''}${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
 }
 function followedCreatorCard(c) {
-  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(creators.popular?.find(p => p.id === c.id) || c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">CurseForge</div></div></header><div class="creator-footer">${followButton(c)}<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
+  return `<article class="creator-card"><header class="creator-head">${creatorAvatar(creators.popular?.find(p => p.id === c.id) || c)}<div class="creator-identity"><h3>${esc(c.name)}</h3><div class="creator-platforms">CurseForge</div></div></header><div class="creator-footer">${creatorFollowButton(c)}<button class="tertiary-btn small-chip" data-creator-mods="${esc(c.id)}">${t('creatorSeeMods')}</button>${c.url ? `<a class="icon-btn icon-btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(format(t('creatorOpenProfile'), { name: c.name }))}" data-tip="${esc(t('creatorOpenProfileTip'))}">${icon('external')}</a>` : ''}</div></article>`;
 }
 
 function patreonNotice() {

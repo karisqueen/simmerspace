@@ -31,10 +31,22 @@ contextBridge.exposeInMainWorld(
       classes: invoke('cf:classes'),
       categories: invoke('cf:categories'),
       search: invoke('cf:search'),
+      searchFollowed: invoke('cf:search-followed'),
       creators: invoke('cf:creators'),
       details: invoke('cf:details'),
       files: invoke('cf:files'),
       install: invoke('cf:install'),
+      cancelInstall: invoke('cf:cancel-install'),
+      assistedInfo: invoke('cf:assisted-info'),
+      assistedFind: invoke('cf:assisted-find'),
+      assistedPick: invoke('cf:assisted-pick'),
+      assistedInstall: invoke('cf:assisted-install'),
+      openSite: invoke('cf:open-site'),
+      onDownloadProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('cf:download-progress', listener);
+        return () => ipcRenderer.removeListener('cf:download-progress', listener);
+      },
       installs: invoke('cf:installs'),
       checkUpdates: invoke('cf:check-updates')
     }),
@@ -51,6 +63,9 @@ contextBridge.exposeInMainWorld(
       uploadAvatar: invoke('account:upload-avatar'),
       removeAvatar: invoke('account:remove-avatar'),
       sendFeedback: invoke('account:send-feedback'),
+      deletionStatus: invoke('account:deletion-status'),
+      requestDeletion: invoke('account:request-deletion'),
+      cancelDeletion: invoke('account:cancel-deletion'),
       onChange: callback => {
         const listener = (_event, status) => callback(status);
         ipcRenderer.on('account:changed', listener);
@@ -79,6 +94,29 @@ contextBridge.exposeInMainWorld(
       addComment: invoke('comments:add'),
       editComment: invoke('comments:edit'),
       deleteComment: invoke('comments:delete')
+    }),
+    gameConfig: Object.freeze({
+      read: invoke('game-config:read'),
+      write: invoke('game-config:write'),
+      selectFolder: invoke('game-config:select-folder')
+    }),
+    libraryTools: Object.freeze({
+      reconcile: invoke('library:reconcile'),
+      summary: invoke('library:summary'),
+      findDuplicates: invoke('library:find-duplicates'),
+      findEmptyFolders: invoke('library:find-empty-folders'),
+      findStrayFiles: invoke('library:find-stray-files'),
+      cancel: () => ipcRenderer.send('library:cancel-tool'),
+      deletePermanently: invoke('library:delete-permanently'),
+      originalName: invoke('library:original-name'),
+      restoreName: invoke('library:restore-name'),
+      savePreview: invoke('library:save-preview'),
+      removePreview: invoke('library:remove-preview'),
+      onHashProgress: callback => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('library:hash-progress', listener);
+        return () => ipcRenderer.removeListener('library:hash-progress', listener);
+      }
     }),
     manageMods: Object.freeze({
       scan: invoke('mods:scan'),
