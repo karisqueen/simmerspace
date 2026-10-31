@@ -140,6 +140,18 @@ function numberedName(fileName, index) {
   return `${fileName.slice(0, -extension.length)} (${index})${extension}`;
 }
 
+const LABEL_LIMIT = 12;
+function cleanLabels(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  return value.flatMap(item => {
+    const label = typeof item === 'string' ? item.trim().slice(0, 40) : '';
+    if (!label || seen.has(label.toLowerCase())) return [];
+    seen.add(label.toLowerCase());
+    return [label];
+  }).slice(0, LABEL_LIMIT);
+}
+
 function normalizeCatalog(input) {
   const source = input && typeof input === 'object' ? input : {};
   const files = Object.create(null);
@@ -150,6 +162,8 @@ function normalizeCatalog(input) {
       for (const key of ['categoryId', 'creatorId', 'gender', 'age']) {
         if (typeof raw[key] === 'string' && raw[key] && raw[key].length <= 180) tags[key] = raw[key];
       }
+      const labels = cleanLabels(raw.labels);
+      if (labels.length) tags.labels = labels;
       if (Object.keys(tags).length) files[relativePath] = tags;
     }
   }
@@ -183,13 +197,14 @@ function normalizeCatalog(input) {
   };
 }
 
-function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => undefined, report = () => {}, reportOrganize = () => {} }) {
+function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => undefined, report = () => {}, reportOrganize = () => {}, onPathsMoved = async () => {}, onCatalogSaved = async () => {} }) {
   let activeScan = null;
   let activeOrganize = null;
   let organizePlan = null;
   let pendingCatalogWrites = 0;
   let catalogWriteQueue = Promise.resolve();
   const catalogFile = () => path.join(app.getPath('userData'), 'mods-catalog.json');
+  const catalogBackup = () => path.join(app.getPath('userData'), 'mods-catalog.backup.json');
 
   async function selectedRoot() {
     const root = await getModsRoot();
@@ -200,12 +215,25 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
     return absolute;
   }
 
+  async function parseCatalogStore(file) {
+    const store = JSON.parse(await fs.readFile(file, 'utf8'));
+    if (!store || !store.roots || typeof store.roots !== 'object') throw new Error('Not a tag catalog.');
+    return store;
+  }
+
+  // A missing file means "no tags yet". An unreadable one is not the same thing: treating it as empty is how a later
+  // save could wipe every tag. It is set aside, and the last good copy takes over.
   async function readCatalogStore() {
     try {
-      const store = JSON.parse(await fs.readFile(catalogFile(), 'utf8'));
-      return store && store.roots && typeof store.roots === 'object' ? store : { version: 1, roots: {} };
-    } catch {
-      return { version: 1, roots: {} };
+      return await parseCatalogStore(catalogFile());
+    } catch (error) {
+      if (error.code === 'ENOENT') return parseCatalogStore(catalogBackup()).catch(() => ({ version: 1, roots: {} }));
+      await fs.rename(catalogFile(), `${catalogFile()}.unreadable-${Date.now()}`).catch(() => {});
+      try {
+        return await parseCatalogStore(catalogBackup());
+      } catch {
+        return { version: 1, roots: {} };
+      }
     }
   }
 
@@ -214,6 +242,7 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
     await fs.mkdir(path.dirname(file), { recursive: true });
     const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
     await fs.writeFile(temp, JSON.stringify(store), 'utf8');
+    await fs.copyFile(file, catalogBackup()).catch(() => {});
     await fs.rename(temp, file);
   }
 
@@ -232,15 +261,38 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
     return queueCatalogWrite(async () => {
       const store = await readCatalogStore();
       const entry = store.roots[root.toLowerCase()];
-      if (!entry?.files || typeof entry.files !== 'object') return;
-      let changed = false;
-      for (const [oldPath, newPath] of pairs) {
-        if (oldPath === newPath || !Object.prototype.hasOwnProperty.call(entry.files, oldPath)) continue;
-        entry.files[newPath] = entry.files[oldPath];
-        delete entry.files[oldPath];
-        changed = true;
+      if (entry?.files && typeof entry.files === 'object') {
+        let changed = false;
+        for (const [oldPath, newPath] of pairs) {
+          if (oldPath === newPath || !Object.prototype.hasOwnProperty.call(entry.files, oldPath)) continue;
+          entry.files[newPath] = entry.files[oldPath];
+          delete entry.files[oldPath];
+          changed = true;
+        }
+        if (changed) await writeCatalogStore(store);
       }
+      await Promise.resolve(onPathsMoved(root, pairs)).catch(() => {});
+    });
+  }
+  // Drops the tags of files that no longer exist.
+  function forgetCatalogPaths(root, paths) {
+    return queueCatalogWrite(async () => {
+      const store = await readCatalogStore();
+      const entry = store.roots[root.toLowerCase()];
+      if (!entry?.files) return;
+      let changed = false;
+      for (const relativePath of paths) if (delete entry.files[relativePath]) changed = true;
       if (changed) await writeCatalogStore(store);
+    });
+  }
+  // Puts tags back for files the catalog lost (see library-metadata.cjs).
+  function mergeCatalogFiles(root, files) {
+    return queueCatalogWrite(async () => {
+      const store = await readCatalogStore();
+      const key = root.toLowerCase();
+      store.roots[key] ||= { files: {}, categories: [], creators: [], folderCategories: [], folderNames: {} };
+      store.roots[key].files = { ...files, ...store.roots[key].files };
+      await writeCatalogStore(store);
     });
   }
 
@@ -678,11 +730,13 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
     rootRequest.catch(() => {});
     const catalog = normalizeCatalog(input);
     return queueCatalogWrite(async () => {
-      const key = (await rootRequest).toLowerCase();
+      const root = await rootRequest;
+      const key = root.toLowerCase();
       const store = await readCatalogStore();
       store.version = 1;
       store.roots[key] = catalog;
       await writeCatalogStore(store);
+      await Promise.resolve(onCatalogSaved(root, catalog)).catch(() => {});
       return { saved: true, files: Object.keys(catalog.files).length };
     });
   }
@@ -725,6 +779,9 @@ function createModsService({ app, dialog, shell, getModsRoot, getWindow = () => 
     trashMods,
     loadCatalog,
     saveCatalog,
+    remapCatalogPaths,
+    forgetCatalogPaths,
+    mergeCatalogFiles,
     createCategoryFolders,
     hasPendingWrites: () => pendingCatalogWrites > 0,
     whenIdle: () => catalogWriteQueue

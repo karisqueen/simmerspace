@@ -1,5 +1,5 @@
 /* SimmerSpace interface: state, pages and local interactions. */
-let APP_VERSION = '0.12.1';
+let APP_VERSION = '0.12.2';
 
 function savedLanguage() {
   const value = safeGet('language');
@@ -174,7 +174,7 @@ function renderHome() {
   const collections = recent.length
     ? `<section class="section"><div class="section-head"><h2 class="section-title">${t('homeRecentCollections')}</h2><button class="text-link" data-page="collections">${t('viewAllCollections')} →</button></div><div class="collection-grid">${recent.map(c => `<button class="collection-tile" data-collection="${esc(c.id)}">${collectionPreview(c)}<span class="collection-tile-info">${plumbob(c.color)}<strong>${esc(collectionLabel(c))}</strong><span>${c.items.length}</span></span></button>`).join('')}</div></section>`
     : '';
-  content.innerHTML = `${pageHeader(name ? esc(format(t('homeGreeting'), { name })) : t('home'))}${stats}${actions}${collections}`;
+  content.innerHTML = `${pageHeader(name ? esc(format(t('homeGreeting'), { name })) : t('home'))}${deletionBanner()}${stats}${actions}${collections}`;
 }
 // My CC: the real Mods folder library (mods-manager.js and library.js). The sample cards of earlier
 // versions are no longer shown here.
@@ -278,6 +278,7 @@ const SETTINGS_SECTIONS = [
   { id: 'feedback', icon: 'comment', label: 'feedbackNav' },
   { id: 'personalization', icon: 'sparkle', label: 'personalization' },
   { id: 'general', icon: 'sliders', label: 'general' },
+  { id: 'game-settings', icon: 'play', label: 'gameConfigTitle' },
   { id: 'folders', icon: 'folder', label: 'folderRoutes' },
   { id: 'help-settings', icon: 'help', label: 'helpSettings' },
   { id: 'curseforge-settings', icon: 'curseforge', label: 'curseforgeConnection' },
@@ -309,6 +310,8 @@ function settingsSectionBody(id) {
       return `<div class="setting-row setting-row-stack"><span class="setting-label" id="family-label">${t('theme')}</span><div class="theme-cards" role="radiogroup" aria-labelledby="family-label">${THEME_FAMILIES.map(themeCard).join('')}</div></div>${segmented('mode', t('mode'), [['light', t('modeLight')], ['dark', t('modeDark')]], a.mode, t('tipMode'))}${segmented('density', t('density'), [['comfortable', t('densityComfortable')], ['compact', t('densityCompact')]], a.density, t('tipDensity'))}${segmented('motion', t('motion'), [['reduced', t('motionReduced')], ['full', t('motionFull')]], a.motion, t('tipMotion'))}${appearancePreview()}`;
     case 'general':
       return `<div class="setting-row"><span class="setting-label" id="language-label">${t('language')}</span><div class="segmented" role="radiogroup" aria-labelledby="language-label"><button class="segment ${state.lang === 'es' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'es'}" data-language="es" lang="es">Español</button><button class="segment ${state.lang === 'en' ? 'is-selected' : ''}" role="radio" aria-checked="${state.lang === 'en'}" data-language="en" lang="en">English</button></div></div><div class="setting-row"><label class="setting-label" for="group-mode-settings">${t('groupBy')}</label><label class="select-field"><select id="group-mode-settings"><option value="category" ${state.groupMode === 'category' ? 'selected' : ''}>${t('category')}</option><option value="creator" ${state.groupMode === 'creator' ? 'selected' : ''}>${t('creator')}</option></select></label></div>`;
+    case 'game-settings':
+      return gameConfigSettings();
     case 'folders':
       return folderSettingsSection();
     case 'help-settings':
@@ -325,7 +328,7 @@ function settingsSectionBody(id) {
       return '';
   }
 }
-const SETTINGS_SUMMARIES = { feedback: 'feedbackSummary', personalization: 'personalizationSummary', general: 'generalSummary', folders: 'foldersSummary', 'help-settings': 'helpSettingsSummary', 'curseforge-settings': 'curseforgeSummary', updates: 'updatesSummary', about: 'aboutSummary', developer: 'developerSummary' };
+const SETTINGS_SUMMARIES = { 'game-settings': 'gameConfigSummary', feedback: 'feedbackSummary', personalization: 'personalizationSummary', general: 'generalSummary', folders: 'foldersSummary', 'help-settings': 'helpSettingsSummary', 'curseforge-settings': 'curseforgeSummary', updates: 'updatesSummary', about: 'aboutSummary', developer: 'developerSummary' };
 function renderSettings() {
   const active = currentSettingsSection();
   const sections = settingsSections();
@@ -493,6 +496,7 @@ async function launchGame() {
   if (!desktop?.launchGame) return toast(t('desktopOnly'), 'error');
   launching = true;
   try {
+    if ((await openGameConfigDialog('launch')) !== 'launch') return;
     const result = await callDesktop(desktop.launchGame);
     toast(result.repeated ? t('gameAlreadyStarting') : t('gameStarting'));
   } catch (error) {
@@ -730,6 +734,7 @@ search.addEventListener('input', () => {
     () => {
       state.query = search.value;
       if (state.page === 'curseforge') return curseForgeQueryChanged(state.query);
+      if (state.page === 'creators') return creatorsQueryChanged(state.query);
       if (state.page === 'mycc') {
         // The top search filters the real library list.
         mods.query = state.query;

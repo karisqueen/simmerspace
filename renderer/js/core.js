@@ -86,7 +86,7 @@
       }
       if (needle) {
         const creator = lookup.creatorKey ? lookup.creatorLabel?.(file) || '' : lookup.creatorName(tags.creatorId);
-        const text = `${file.relativePath} ${lookup.categoryName(tags.categoryId)} ${creator} ${tags.gender || ''} ${tags.age || ''}`;
+        const text = `${file.relativePath} ${lookup.categoryName(tags.categoryId)} ${creator} ${tags.gender || ''} ${tags.age || ''} ${(tags.labels || []).join(' ')}`;
         if (!text.toLocaleLowerCase().includes(needle)) continue;
       }
       result.push(file);

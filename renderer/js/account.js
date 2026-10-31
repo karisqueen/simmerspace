@@ -14,6 +14,7 @@ const account = {
   username: { value: '', state: 'idle' }, // idle | checking | invalid | taken | free | error
   devBypass: false,
   tourOffered: false,
+  deletion: null, // { status, scheduledFor, requestedAt }
   avatarBusy: false,
   profile: freshProfile('')
 };
@@ -272,7 +273,7 @@ function renderAccount() {
   else if (!p.posts.length) posts = `<div class="empty-state profile-empty">${icon('inspiration', 'empty-icon')}<b>${t('profileNoPosts')}</b><p>${t('profileNoPostsText')}</p></div>`;
   else posts = `<div class="profile-grid">${p.posts.map(profileTile).join('')}</div>${p.more ? `<div class="button-row profile-more"><button class="secondary-btn" data-inspiration-user="${esc(user.id)}">${t('profileSeeAll')}</button></div>` : ''}`;
   const postsPanel = `<section class="panel panel-pad profile-posts"><h2 class="section-title">${icon('inspiration')} ${t('profilePosts')}</h2>${posts}</section>`;
-  const accountPanel = `<section class="panel panel-pad profile-side"><h2 class="section-title">${icon('user')} ${t('profileAccount')}</h2><dl class="facts"><div><dt>${t('email')}</dt><dd>${esc(user.email)}</dd></div></dl>${account.status.persistent ? '' : `<p class="setting-help">${t('sessionNotKept')}</p>`}<div class="button-row"><button class="tertiary-btn" id="account-sign-out">${icon('logout')}<span>${t('signOut')}</span></button></div></section>`;
+  const accountPanel = `<section class="panel panel-pad profile-side"><h2 class="section-title">${icon('user')} ${t('profileAccount')}</h2><dl class="facts"><div><dt>${t('email')}</dt><dd>${esc(user.email)}</dd></div></dl>${account.status.persistent ? '' : `<p class="setting-help">${t('sessionNotKept')}</p>`}<div class="button-row"><button class="tertiary-btn" id="account-sign-out">${icon('logout')}<span>${t('signOut')}</span></button></div>${deletionControls()}</section>`;
   const feedback = `<section class="panel panel-pad profile-side"><h2 class="section-title">${icon('help')} ${t('feedbackTitle')}</h2><p class="setting-help">${t('feedbackText')}</p><div class="button-row"><button class="secondary-btn" data-open-feedback>${icon('edit')}<span>${t('feedbackOpen')}</span></button></div></section>`;
   content.innerHTML = `<div class="profile-page">${hero}<div class="profile-columns">${postsPanel}<div class="profile-aside">${accountPanel}${feedback}</div></div></div>`;
 }
@@ -430,6 +431,56 @@ async function changeAvatar(file) {
   }
 }
 
+/* ---------- Account deletion ----------
+   The app only asks: the backend keeps the 60-minute schedule and deletes the account whether or not the app is open. */
+const DELETION_ACTIVE = ['pending', 'processing', 'failed'];
+async function loadDeletionStatus() {
+  if (!accountApi || !accountUser()) return;
+  try {
+    account.deletion = await callDesktop(accountApi.deletionStatus);
+  } catch {
+    account.deletion = null;
+  }
+  if (['home', 'account'].includes(state.page)) render();
+}
+function deletionTime() {
+  return new Date(account.deletion.scheduledFor).toLocaleString(state.lang, { dateStyle: 'medium', timeStyle: 'short' });
+}
+function deletionBanner() {
+  if (!DELETION_ACTIVE.includes(account.deletion?.status)) return '';
+  return `<div class="deletion-pending" role="status"><b>${esc(t('deletionPendingTitle'))}</b><span>${esc(format(t('deletionPendingText'), { date: deletionTime() }))}</span>${account.deletion.status === 'processing' ? '' : `<div class="button-row"><button class="secondary-btn" id="delete-account-cancel">${t('deletionCancel')}</button></div>`}</div>`;
+}
+function deletionControls() {
+  if (account.deletion?.status === 'unavailable') return '';
+  if (DELETION_ACTIVE.includes(account.deletion?.status)) return deletionBanner();
+  return `<div class="danger-zone"><button class="tertiary-btn danger-quiet" id="delete-account-open">${icon('trash')}<span>${t('deleteAccount')}</span></button></div>`;
+}
+function openDeleteAccountDialog() {
+  const items = ['deleteItemAccount', 'deleteItemProfile', 'deleteItemPosts', 'deleteItemComments', 'deleteItemBoards', 'deleteItemFollows'].map(key => `<li>${esc(t(key))}</li>`).join('');
+  openDialog(`${closeButton()}<div class="form-dialog confirm-dialog is-danger"><div class="eyebrow">${t('profileAccount')}</div><h2 id="dialog-title">${t('deleteAccountTitle')}</h2><p>${t('deleteAccountLead')}</p><ul class="delete-list">${items}</ul><p class="muted-note">${t('deleteAccountKept')}</p><div class="detail-actions"><button class="danger-btn" id="delete-account-confirm">${t('deleteAccountConfirm')}</button><button class="secondary-btn" data-close autofocus>${t('cancel')}</button></div></div>`);
+}
+async function requestAccountDeletion() {
+  try {
+    account.deletion = await callDesktop(accountApi.requestDeletion);
+    closeDialog();
+    render();
+    toast(format(t('deletionPendingText'), { date: deletionTime() }));
+  } catch (error) {
+    closeDialog();
+    toast(errorMessage(error), 'error');
+  }
+}
+async function cancelAccountDeletion() {
+  try {
+    account.deletion = await callDesktop(accountApi.cancelDeletion);
+    render();
+    toast(t('deletionCancelled'));
+  } catch (error) {
+    toast(errorMessage(error), 'error');
+    await loadDeletionStatus();
+  }
+}
+
 /* ---------- Actions ---------- */
 async function accountAction(work) {
   if (account.busy) return;
@@ -552,6 +603,12 @@ document.addEventListener('click', async event => {
   }
   if (target.hasAttribute('data-open-feedback')) return openFeedbackDialog();
   switch (target.id) {
+    case 'delete-account-open':
+      return openDeleteAccountDialog();
+    case 'delete-account-confirm':
+      return requestAccountDeletion();
+    case 'delete-account-cancel':
+      return cancelAccountDeletion();
     case 'auth-retry':
       account.loadError = null;
       render();

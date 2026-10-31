@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.12.2 mantenimiento y gestión de la biblioteca (2026-10-31)
+
+**CurseForge**
+
+- Las descargas consultan siempre el endpoint oficial de enlace, se transmiten a una carpeta temporal con progreso, botón Detener y reintentos, y se comprueban por tamaño, checksum y contenido antes de tocar Mods. Lo incompleto nunca se instala.
+- Cada fallo tiene su propio mensaje: autenticación, distribución desactivada, archivo no disponible, CDN, red, respuesta inválida y bloqueo temporal de la red de CurseForge. Solo se atribuye al autor cuando el proyecto y la API lo confirman.
+- La clave se envía en `x-api-key` a `edge.forgecdn.net`, como pide CurseForge. En la app instalada lo resuelve `curseforge-proxy` y la clave no sale del servidor.
+- Instalación asistida para proyectos con la distribución desactivada: se abre la página exacta del archivo y simmerspace instala la descarga tras verificar su checksum.
+- Detección de versiones ya instaladas y mensaje específico para contenido de la carpeta Tray.
+
+**Creadores y Explorar**
+
+- Corregido el botón Seguir: dos funciones globales con el mismo nombre hacían que se enviara a la función de seguir simlings. Una prueba impide que vuelva a pasar.
+- Creadores: 12 por página, búsqueda con espera, y orden por popularidad, A-Z, subidas recientes y actualizaciones recientes. El catálogo completo lo aporta un índice en el servidor; hasta activarlo se muestra una muestra en vivo con un aviso.
+- Explorar: filtros avanzados plegables por contenido, edad, estilo y más, combinables y aplicados en el servidor; chips para quitarlos, y un filtro de Creadores seguidos que consulta todos sus proyectos.
+- Corregido el detalle de un mod, que no se actualizaba tras abrirse y ocultaba el estado de instalación.
+
+**Biblioteca**
+
+- Corregida la pérdida de etiquetas: ya no se guarda sobre un catálogo sin leer, y un archivo dañado se aparta y se usa su copia de respaldo.
+- Metadatos locales con SHA-256 y nombre original. Los archivos renombrados o movidos, también fuera de la app, conservan etiquetas y vista previa.
+- Vistas previas locales, etiquetas propias y restaurar el nombre original.
+- Cuidado de la biblioteca: duplicados, carpetas vacías y archivos extraños, con borrado permanente y confirmación completa, sin papelera.
+
+**Cuenta y perfiles**
+
+- Eliminar cuenta: se programa a 60 minutos, se puede cancelar y la ejecuta el servidor con la app cerrada. Requiere `supabase/migrations/20261101000000_maintenance_0122.sql` y la función `account-deletion-worker`.
+- Corregido "Mis publicaciones", que llevaba a la cuenta propia desde un perfil ajeno. Ahora dice "Publicaciones de @nombre".
+
+**Ajustes de Los Sims 4**
+
+- Panel para los tres ajustes reales de `Options.ini` al abrir simmerspace, antes de iniciar el juego y en Ajustes, con copia del original y sin escribir con el juego abierto.
+
+Guía completa: [docs/MANTENIMIENTO-0.12.2.md](docs/MANTENIMIENTO-0.12.2.md).
+
 ## 0.12.1 community, library and clearer updates (2026-10-31)
 
 - Sign-up confirms with the link in the email. After signing up, a "You're almost in!" screen explains the three steps and checks the confirmation when you come back; there is no code screen and no resend button. The link opens `docs/cuenta-confirmada.html`.

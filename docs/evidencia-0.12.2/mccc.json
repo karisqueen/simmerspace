@@ -1,0 +1,86 @@
+[
+ {
+  "stage": "proyecto",
+  "request": "GET /v1/mods/663350",
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 4616,
+  "body": {
+   "allowModDistribution": false,
+   "isAvailable": true,
+   "modStatus": 4
+  }
+ },
+ {
+  "stage": "lista de archivos",
+  "request": "GET /v1/mods/663350/files?pageSize=50",
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 4786,
+  "body": {
+   "isAvailable": true,
+   "fileStatus": 4,
+   "downloadUrl": null,
+   "fileName": "McCmdCenter_AllModules_2026_5_0.zip",
+   "fileLength": 2204756,
+   "hashes": [
+    "algo1:bd11fbfd…",
+    "algo2:e70f9c6a…"
+   ],
+   "files": 3
+  }
+ },
+ {
+  "stage": "archivo",
+  "request": "GET /v1/mods/663350/files/8823491",
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 1576,
+  "body": {
+   "isAvailable": true,
+   "fileStatus": 4,
+   "downloadUrl": null,
+   "fileName": "McCmdCenter_AllModules_2026_5_0.zip",
+   "fileLength": 2204756,
+   "hashes": [
+    "algo1:bd11fbfd…",
+    "algo2:e70f9c6a…"
+   ]
+  }
+ },
+ {
+  "stage": "archivos por POST",
+  "request": "POST /v1/mods/files",
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 1578,
+  "body": {
+   "isAvailable": true,
+   "fileStatus": 4,
+   "downloadUrl": null,
+   "fileName": "McCmdCenter_AllModules_2026_5_0.zip",
+   "fileLength": 2204756,
+   "hashes": [
+    "algo1:bd11fbfd…",
+    "algo2:e70f9c6a…"
+   ],
+   "files": 1
+  }
+ },
+ {
+  "stage": "descripción del archivo",
+  "request": "GET /v1/mods/663350/files/8823491/changelog",
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 2406,
+  "body": {}
+ },
+ {
+  "stage": "download-url",
+  "request": "GET /v1/mods/663350/files/8823491/download-url",
+  "status": 403,
+  "contentType": "",
+  "bodyBytes": 0,
+  "body": "(cuerpo vacío)"
+ }
+]

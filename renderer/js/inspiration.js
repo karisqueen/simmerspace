@@ -147,7 +147,10 @@ function inspirationFilters() {
   const chips = [['all', t('all')], ...INSPIRATION_CATEGORIES.map(value => [value, t(`inspCat_${value}`)])];
   const active = insp.tags.length ? `<div class="tag-filter-row"><span class="muted-note">${t('tagFilterActive')}</span>${insp.tags.map(tag => tagChip(tag, { removable: true })).join('')}<button class="text-link" id="insp-clear-tags">${t('clearFilters')}</button></div>` : '';
   return `<div class="toolbar-row inspiration-filters">${tagSearchField()}${chipGroup({ name: 'insp-category', label: t('category'), options: chips, selected: insp.category, hideLabel: true, size: 'sm' })}${
-    me && insp.view === 'discover' ? `<button class="chip chip-sm ${insp.userId === me.id ? 'is-selected' : ''}" data-inspiration-user="${esc(insp.userId === me.id ? '' : me.id)}" aria-pressed="${insp.userId === me.id}">${icon('user', 'chip-check')}<span>${t('myPosts')}</span></button>` : ''
+    // On someone else's profile this names them; it never jumps to the signed-in account.
+    insp.userId && insp.userId !== me?.id
+      ? `<span class="chip chip-sm is-selected" aria-current="true">${icon('user', 'chip-check')}<span>${esc(format(t('postsBy'), { name: insp.profile?.username || '' }))}</span></span>`
+      : me && insp.view === 'discover' ? `<button class="chip chip-sm ${insp.userId === me.id ? 'is-selected' : ''}" data-inspiration-user="${esc(insp.userId === me.id ? '' : me.id)}" aria-pressed="${insp.userId === me.id}">${icon('user', 'chip-check')}<span>${t('myPosts')}</span></button>` : ''
   }</div>${active}`;
 }
 

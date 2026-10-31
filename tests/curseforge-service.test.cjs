@@ -213,7 +213,8 @@ test('installs a verified .package into its own folder and never overwrites an e
   const installs = await f.service.installs();
   assert.equal(installs[0].fileId, 7);
   const downloadCall = f.calls.find(call => call.url === CDN);
-  assert.equal(downloadCall.options.headers, undefined, 'the API key is not sent to the file server');
+  assert.equal(downloadCall.options.headers['x-api-key'], FAKE_KEY, 'edge.forgecdn.net needs the key, as a header');
+  assert.ok(!downloadCall.url.includes(FAKE_KEY), 'the key must never be part of a URL');
   assert.deepEqual((await fs.readdir(folder)).filter(name => name.endsWith('.tmp')), []);
 });
 
@@ -228,7 +229,7 @@ test('refuses files that fail the hash check and leaves nothing behind', async t
 
 test('sends players to CurseForge when the author does not allow third-party downloads', async t => {
   const file = { id: 7, modId: 42, fileName: 'Cozy.package', fileLength: 5, downloadUrl: null };
-  const f = await setup(t, { routes: { [`${API}/v1/mods/42/files/7`]: json({ data: file }), [`${API}/v1/mods/42`]: json({ data: modRecord() }) } });
+  const f = await setup(t, { routes: { [`${API}/v1/mods/42/files/7/download-url`]: () => new Response(null, { status: 403 }), [`${API}/v1/mods/42/files/7`]: json({ data: file }), [`${API}/v1/mods/42`]: json({ data: modRecord({ allowModDistribution: false }) }) } });
   await assert.rejects(f.service.install(42, 7), error => error.code === 'CF_DOWNLOAD_NOT_ALLOWED' && error.details.websiteUrl.startsWith('https://www.curseforge.com/'));
 });
 

@@ -1,0 +1,147 @@
+[
+ {
+  "name": "Ajustes muestra los valores reales del archivo",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Aplicar cambia el archivo real y nada más",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "guarda copia del original",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Iniciar el juego muestra el panel antes",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Biblioteca lista los archivos con miniatura",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Duplicados distingue contenido idéntico de mismo nombre",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Nada seleccionado por defecto",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "La confirmación tiene Cancelar enfocado y muestra la ruta",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Cancelar no borra nada",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Confirmar borra exactamente lo elegido",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Detecta carpetas vacías anidadas, también la que dejó el duplicado",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Borra las carpetas vacías",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Archivos extraños clasifica sin borrar",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "La vista previa se ve desde el almacén local",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "La imagen está en el PC y el mod no cambió",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Tras reiniciar y renombrar fuera, conserva etiquetas",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Tras reiniciar y renombrar fuera, conserva la vista previa",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Pelo + Niño + Masculino da el resultado combinado",
+  "ok": true,
+  "detail": "118 resultados"
+ },
+ {
+  "name": "Muestra filtros activos",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Quitar un filtro amplía los resultados",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "La paginación conserva los filtros",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Creadores seguidos sin seguir a nadie explica qué hacer",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Creadores pagina de 12 en 12",
+  "ok": true,
+  "detail": "live"
+ },
+ {
+  "name": "Orden A-Z aplicado",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "La búsqueda encuentra un creador fuera de la primera página",
+  "ok": true,
+  "detail": "deaderpool_mccc"
+ },
+ {
+  "name": "Eliminar cuenta abre su pantalla con Cancelar enfocado",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Muestra el estado pendiente con opción de cancelar",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "name": "Los ocho temas aplican a lo nuevo",
+  "ok": true,
+  "detail": "8/8"
+ },
+ {
+  "name": "Sin errores de JavaScript en la página",
+  "ok": true,
+  "detail": ""
+ }
+]

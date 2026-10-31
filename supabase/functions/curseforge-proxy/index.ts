@@ -29,6 +29,25 @@ const ALLOWED: Array<[string, RegExp]> = [
   ['POST', /^\/v1\/mods$/]
 ];
 
+// The CDN asks for the API key on edge.forgecdn.net and redirects to a host that needs none. The app has no key, so
+// this follows that one redirect here and returns the address. The file itself never passes through this function.
+async function cdnResolve(url: URL): Promise<Response> {
+  let target: URL;
+  try {
+    target = new URL(url.searchParams.get('url') ?? '');
+  } catch {
+    return Response.json({ error: 'bad url' }, { status: 400 });
+  }
+  if (target.protocol !== 'https:' || target.hostname !== 'edge.forgecdn.net') return Response.json({ error: 'not allowed' }, { status: 400 });
+  const upstream = await fetch(target, { redirect: 'manual', headers: { 'x-api-key': KEY } });
+  await upstream.body?.cancel();
+  const location = upstream.headers.get('Location') ?? '';
+  if (upstream.status < 300 || upstream.status >= 400 || !location) return Response.json({ error: 'no redirect', status: upstream.status }, { status: 502 });
+  const next = new URL(location, target);
+  if (next.protocol !== 'https:' || !/(^|\.)forgecdn\.net$/.test(next.hostname)) return Response.json({ error: 'unexpected host' }, { status: 502 });
+  return Response.json({ url: next.href });
+}
+
 // Tokens already checked with Supabase Auth, kept for a few minutes so a page of results costs one check.
 const checked = new Map<string, number>();
 const CHECK_TTL_MS = 5 * 60 * 1000;
@@ -57,6 +76,7 @@ Deno.serve(async request => {
   const apiPath = at >= 0 ? url.pathname.slice(at + marker.length) : url.pathname;
   if (apiPath === '/health') return Response.json({ ok: true });
   if (!(await signedIn(request))) return Response.json({ error: 'sign in required' }, { status: 401 });
+  if (apiPath === '/cdn-resolve' && request.method === 'GET') return cdnResolve(url);
   if (!ALLOWED.some(([method, pattern]) => method === request.method && pattern.test(apiPath))) {
     return Response.json({ error: 'not allowed' }, { status: 404 });
   }

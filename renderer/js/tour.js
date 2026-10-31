@@ -45,6 +45,7 @@ function endTour() {
   setSidebarOpen(false);
   tour.returnFocus?.focus?.();
   tour.returnFocus = null;
+  setTimeout(showStartupGameConfig, 300);
 }
 
 function showTourStep(index) {
@@ -130,4 +131,6 @@ window.addEventListener('resize', () => {
 
 function maybeStartTour() {
   if (safeRead('onboarding-done', false) !== true) startTour();
+  else showStartupGameConfig();
+  loadDeletionStatus();
 }
