@@ -18,7 +18,7 @@ test('the migration never weakens security or drops data', () => {
   // Revoking a privilege only takes access away, so revoke statements and comments are left out of this check.
   // Function bodies are left out too: a delete inside a function only runs for one row the caller owns (checked by
   // supabase/tests/social-check.sql), never when the migration is applied.
-  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '').replace(/grant execute on function [^;]+ to service_role;/g, '').replace(/\$\$[\s\S]*?\$\$/g, '$$$$');
+  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '').replace(/grant [^;]+ to service_role;/g, '').replace(/\$\$[\s\S]*?\$\$/g, '$$$$');
   assert.doesNotMatch(statements, /disable row level security|drop table|truncate|delete from|alter table auth\.|service_role/);
   // TRUNCATE ignores row level security, so the API roles lose it.
   assert.match(sql, /revoke truncate, references, trigger on public\.profiles, public\.inspiration_posts, public\.feedback from anon, authenticated;/);

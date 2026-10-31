@@ -400,3 +400,7 @@ grant execute on function public.worker_secret_matches(text), public.claim_due_a
   public.purge_account_content(uuid), public.finish_account_deletion(uuid, boolean, text) to service_role;
 revoke all on function public.request_account_deletion(), public.cancel_account_deletion() from public, anon;
 grant execute on function public.request_account_deletion(), public.cancel_account_deletion() to authenticated;
+-- Tables on this project do not grant anything to service_role by default, so the workers get exactly what they use.
+grant select, update on public.cf_index_state to service_role;
+grant select, insert, update on public.cf_index_projects to service_role;
+grant select on public.inspiration_posts to service_role;
