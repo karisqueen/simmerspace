@@ -481,11 +481,15 @@ function createCurseForgeService({
     const needle = text(query, 100).trim().toLowerCase();
     const fields = { az: 4, popular: 2, uploaded: 11, updated: 3 };
     const sortField = SORT_FIELDS.has(fields[sort]) ? fields[sort] : 2;
-    const pages = await Promise.all([0, MAX_PAGE_SIZE, 2 * MAX_PAGE_SIZE].map(index => search({ sortField, sortOrder: sort === 'az' ? 'asc' : 'desc', query: needle || undefined, pageSize: MAX_PAGE_SIZE, index }).catch(error => {
+    const read = (options, index) => search({ ...options, pageSize: MAX_PAGE_SIZE, index }).catch(error => {
       if (index === 0) throw error;
       return { mods: [] };
-    })));
-    return groupCreators(pages.flatMap(page => page.mods))
+    });
+    // CurseForge's text search reads project titles, not author names, so a search also looks through popular projects.
+    const lists = needle ? [{ query: needle, sortField: 2, sortOrder: 'desc' }, { sortField: 2, sortOrder: 'desc' }] : [{ sortField, sortOrder: sort === 'az' ? 'asc' : 'desc' }];
+    const pages = (await Promise.all(lists.map(options => Promise.all([0, MAX_PAGE_SIZE, 2 * MAX_PAGE_SIZE].map(index => read(options, index)))))).flat();
+    const unique = [...new Map(pages.flatMap(page => page.mods).map(item => [item.id, item])).values()];
+    return groupCreators(unique)
       .filter(item => (!needle || item.name.toLowerCase().includes(needle)) && (style === 'all' || item.style === style || item.style === 'both'))
       .sort(CREATOR_SORTS[sort] || CREATOR_SORTS.popular);
   }

@@ -9,12 +9,24 @@ const CF_SORTS = [
   [1, 'cfSortFeatured']
 ];
 
+// Explore's filters, by the real CurseForge category ids for The Sims 4. The API returns the projects that have all the
+// categories asked for, so combinations hold across the whole catalog. Masculine and Feminine are different categories
+// under Clothing and under Body, and hair and makeup live under Body. CurseForge has no Unisex category: it means both.
+// Maxis Match, Alpha and script are not categories, so they search the projects' own text.
+const CF_FILTER_CONTENT = { hair: [5606, 'body'], clothing: [5340, 'clothing'], shoes: [5601, 'clothing'], bodyAccessories: [5603, 'clothing'], headAccessories: [5923, 'clothing'], furniture: [5621, ''], build: [5438, ''], makeup: [5610, 'body'], skinDetails: [5710, 'body'], skintones: [5609, 'body'], poses: [5599, ''], gameplay: [5091, ''] };
+const CF_FILTER_AGE = { infant: 6179, toddler: 6144, child: 6140, teen: 6142, youngAdult: 6143, adult: 6139, elder: 6141 };
+const CF_FILTER_GENDER = { clothing: { feminine: [5921], masculine: [5920], unisex: [5921, 5920] }, body: { feminine: [5919], masculine: [5918], unisex: [5919, 5918] } };
+const CF_FILTER_STYLE = { maxis: 'maxis match', alpha: 'alpha', script: 'script' };
+
 const cf = {
   tab: 'browse',
   classes: null,
   classesError: null,
   classId: 0,
   authorId: 0,
+  followedOnly: false,
+  filters: { content: '', age: '', gender: '', style: [] },
+  filtersOpen: safeRead('cf-filters-open', false) === true,
   sortField: 2,
   query: '',
   index: 0,
@@ -84,6 +96,13 @@ async function loadCurseForgeClasses() {
   }
   if (state.page === 'curseforge') render();
 }
+function cfFilterRequest() {
+  const { content, age, gender, style } = cf.filters;
+  const [contentId, branch] = CF_FILTER_CONTENT[content] || [];
+  const categoryIds = [contentId, CF_FILTER_AGE[age], ...(CF_FILTER_GENDER[branch === 'body' ? 'body' : 'clothing'][gender] || [])].filter(Boolean);
+  return { categoryIds, query: [cf.query, ...style.map(id => CF_FILTER_STYLE[id])].filter(Boolean).join(' ') };
+}
+const cfFollowedEmpty = () => cf.followedOnly && !state.followingCreators.length;
 async function searchCurseForge() {
   if (!cfApi) return;
   const request = ++cf.request;
@@ -91,7 +110,11 @@ async function searchCurseForge() {
   cf.error = null;
   if (state.page === 'curseforge') render();
   try {
-    const result = await callDesktop(cfApi.search, { query: cf.query, classId: cf.classId || undefined, authorId: cf.authorId || undefined, sortField: cf.sortField, sortOrder: cf.sortField === 4 ? 'asc' : 'desc', index: cf.index, pageSize: cf.pageSize });
+    const options = { ...cfFilterRequest(), classId: cf.classId || undefined, sortField: cf.sortField, sortOrder: cf.sortField === 4 ? 'asc' : 'desc', index: cf.index, pageSize: cf.pageSize };
+    let result;
+    if (cfFollowedEmpty()) result = null;
+    else if (cf.followedOnly && !cf.authorId) result = await callDesktop(cfApi.searchFollowed, { ...options, authorIds: state.followingCreators.map(f => f.id) });
+    else result = await callDesktop(cfApi.search, { ...options, authorId: cf.authorId || undefined });
     if (request !== cf.request) return;
     cf.results = result;
   } catch (error) {
@@ -131,24 +154,39 @@ function cfCard(mod) {
 function cfSkeleton(count = 8) {
   return `<div class="card-grid" aria-hidden="true">${Array.from({ length: count }, () => '<div class="cc-card skeleton-card"><span class="skeleton skeleton-thumb"></span><div class="card-body"><span class="skeleton skeleton-line"></span><span class="skeleton skeleton-line short"></span></div></div>').join('')}</div>`;
 }
+// Every selected filter, as [group, value, label].
+function cfActiveFilters() {
+  const { content, age, gender, style } = cf.filters;
+  return [content && ['content', content, t(`cfType_${content}`)], age && ['age', age, t(`cfAge_${age}`)], gender && ['gender', gender, t(`cfGender_${gender}`)], ...style.map(id => ['style', id, t(`cfStyle_${id}`)])].filter(Boolean);
+}
+function cfFilterPanel() {
+  const active = cfActiveFilters();
+  const group = (name, label, ids, prefix, selected, multi = false) => chipGroup({ name: `cf-f-${name}`, label, options: ids.map(id => [id, t(`${prefix}${id}`)]), selected, multi, size: 'sm' });
+  const chips = active.length
+    ? `<div class="cf-active-filters">${active.map(([name, value, label]) => `<span class="cf-active-chip"><span>${esc(label)}</span><button data-cf-remove="${name}" data-value="${esc(value)}" aria-label="${esc(format(t('cfRemoveFilter'), { name: label }))}">${icon('close')}</button></span>`).join('')}<button class="text-link" id="cf-clear-filters">${t('clearFilters')}</button></div>`
+    : '';
+  return `<details class="cf-filters" id="cf-filter-panel" ${cf.filtersOpen ? 'open' : ''}><summary>${icon('sliders')}<span>${t('cfAdvancedFilters')}</span>${active.length ? `<span class="badge">${n(active.length)}</span>` : ''}</summary><div class="cf-filters-body">${group('content', t('cfFilterContent'), Object.keys(CF_FILTER_CONTENT), 'cfType_', cf.filters.content)}${group('age', t('cfFilterAge'), Object.keys(CF_FILTER_AGE), 'cfAge_', cf.filters.age)}${group('gender', t('cfFilterGender'), ['feminine', 'masculine', 'unisex'], 'cfGender_', cf.filters.gender)}${group('style', t('cfFilterStyle'), Object.keys(CF_FILTER_STYLE), 'cfStyle_', cf.filters.style, true)}<p class="muted-note">${t('cfFilterNote')}</p></div></details>${chips}`;
+}
 function cfBrowse() {
   const classes = cf.classes
     ? `<div class="filter-bar"><div class="filter-row">${chipGroup({ name: 'cf-class', label: t('category'), options: [['0', t('all')], ...cf.classes.map(c => [String(c.id), c.name])], selected: String(cf.classId), hideLabel: true })}<div class="filter-tools"><label class="select-field select-inline"><span>${t('sort')}</span><select id="cf-sort">${CF_SORTS.map(([value, key]) => `<option value="${value}" ${cf.sortField === value ? 'selected' : ''}>${t(key)}</option>`).join('')}</select></label></div></div></div>`
     : cf.classesError
       ? ''
       : '<div class="filter-bar"><span class="skeleton skeleton-line"></span></div>';
-  const followedChips = state.followingCreators.length
-    ? `<div class="toolbar-row followed-row">${chipGroup({ name: 'cf-author', label: t('cfFollowedFilter'), options: [['0', t('cfAllCreators')], ...state.followingCreators.map(f => [String(f.id), f.name])], selected: String(cf.authorId), size: 'sm' })}</div>`
-    : '';
+  const followedToggle = `<div class="toolbar-row followed-row"><button class="chip chip-sm ${cf.followedOnly ? 'is-selected' : ''}" id="cf-followed-only" aria-pressed="${cf.followedOnly}">${icon('heart', 'chip-check')}<span>${t('cfFollowedCreators')}</span></button>${
+    cf.followedOnly && state.followingCreators.length ? chipGroup({ name: 'cf-author', label: t('cfFollowedFilter'), options: [['0', t('cfAllCreators')], ...state.followingCreators.map(f => [String(f.id), f.name])], selected: String(cf.authorId), size: 'sm', hideLabel: true }) : ''
+  }</div>`;
+  const followedChips = `${cfFilterPanel()}${followedToggle}`;
   let body = '';
-  if (cf.loading && !cf.results) body = `<p class="visually-hidden" role="status">${t('loading')}</p>${cfSkeleton()}`;
+  if (cfFollowedEmpty()) body = empty(t('cfFollowedEmpty'), t('cfFollowedEmptyText'), `<button class="secondary-btn" data-page="creators">${t('creators')}</button>`);
+  else if (cf.loading && !cf.results) body = `<p class="visually-hidden" role="status">${t('loading')}</p>${cfSkeleton()}`;
   else if (cf.error) body = cfErrorState(cf.error, 'cf-retry-search');
-  else if (cf.results && !cf.results.mods.length) body = empty(t('cfNoResults'), cf.query ? format(t('cfNoResultsFor'), { query: esc(cf.query) }) : '', cf.query || cf.classId || cf.authorId ? `<button class="secondary-btn" id="cf-clear-search">${t('resetFilters')}</button>` : '');
+  else if (cf.results && !cf.results.mods.length) body = empty(t('cfNoResults'), cf.query ? format(t('cfNoResultsFor'), { query: esc(cf.query) }) : '', cf.query || cf.classId || cf.authorId || cfActiveFilters().length || cf.followedOnly ? `<button class="secondary-btn" id="cf-clear-search">${t('resetFilters')}</button>` : '');
   else if (cf.results) {
     const { index, pageSize, reachable, totalCount } = cf.results.pagination;
     const pages = Math.max(1, Math.ceil(reachable / pageSize));
     const page = Math.floor(index / pageSize) + 1;
-    body = `<p class="result-count" role="status">${esc(format(t('cfResultCount'), { count: compactNumber(totalCount) }))}${cf.loading ? ` · ${t('loading')}` : ''}</p><div class="card-grid ${cf.loading ? 'is-refreshing' : ''}">${rankByFollowing(cf.results.mods, state.followingCreators).map(cfCard).join('')}</div>${
+    body = `${cf.results.truncated ? notice(esc(t('cfFollowedTruncated'))) : ''}<p class="result-count" role="status">${esc(format(t('cfResultCount'), { count: compactNumber(totalCount) }))}${cf.loading ? ` · ${t('loading')}` : ''}</p><div class="card-grid ${cf.loading ? 'is-refreshing' : ''}">${rankByFollowing(cf.results.mods, state.followingCreators).map(cfCard).join('')}</div>${
       pages > 1
         ? `<nav class="pager" aria-label="${esc(mt('pagination'))}"><button class="secondary-btn small-chip" data-cf-page="-1" ${page <= 1 || cf.loading ? 'disabled' : ''}>← ${t('previous')}</button><span>${esc(format(mt('pageOf'), { page: n(page), pages: n(pages) }))}</span><button class="secondary-btn small-chip" data-cf-page="1" ${page >= pages || cf.loading ? 'disabled' : ''}>${t('next')} →</button></nav>`
         : ''
@@ -202,7 +240,7 @@ function renderCurseForge() {
   content.innerHTML = `${header}${tabs}<div class="tab-panel" role="tabpanel">${cf.tab === 'browse' ? cfBrowse() : cfInstalled()}</div>`;
   if (cf.tab === 'browse') {
     loadCurseForgeClasses();
-    if (!cf.results && !cf.loading && !cf.error) searchCurseForge();
+    if (!cf.results && !cf.loading && !cf.error && !cfFollowedEmpty()) searchCurseForge();
   } else if (!cf.installs && routeRecords.mods?.path) loadCurseForgeInstalls();
 }
 
@@ -456,9 +494,23 @@ const CF_CLICK_ACTIONS = {
     cf.query = '';
     cf.classId = 0;
     cf.authorId = 0;
+    cf.followedOnly = false;
+    cf.filters = { content: '', age: '', gender: '', style: [] };
     cf.index = 0;
     state.query = '';
     search.value = '';
+    searchCurseForge();
+  },
+  'cf-clear-filters': () => {
+    cf.filters = { content: '', age: '', gender: '', style: [] };
+    cf.index = 0;
+    searchCurseForge();
+  },
+  'cf-followed-only': () => {
+    cf.followedOnly = !cf.followedOnly;
+    cf.authorId = 0;
+    cf.index = 0;
+    cf.results = null;
     searchCurseForge();
   },
   'cf-reload-installs': loadCurseForgeInstalls,
@@ -527,12 +579,34 @@ document.addEventListener('click', async event => {
     cf.index = 0;
     return searchCurseForge();
   }
+  if (target.dataset.filter?.startsWith('cf-f-')) {
+    const name = target.dataset.filter.slice(5);
+    const value = target.dataset.value;
+    if (name === 'style') cf.filters.style = cf.filters.style.includes(value) ? cf.filters.style.filter(id => id !== value) : [...cf.filters.style, value];
+    else cf.filters[name] = cf.filters[name] === value ? '' : value;
+    // Clothing, hair and the rest belong to one class; a class chosen earlier could only empty the results.
+    if (name === 'content' && cf.filters.content) cf.classId = 0;
+    cf.index = 0;
+    return searchCurseForge();
+  }
+  if (target.dataset.cfRemove) {
+    const name = target.dataset.cfRemove;
+    if (name === 'style') cf.filters.style = cf.filters.style.filter(id => id !== target.dataset.value);
+    else cf.filters[name] = '';
+    cf.index = 0;
+    return searchCurseForge();
+  }
   if (target.dataset.filter === 'cf-class') {
     cf.classId = Number(target.dataset.value) || 0;
     cf.index = 0;
     return searchCurseForge();
   }
 });
+document.addEventListener('toggle', event => {
+  if (event.target.id !== 'cf-filter-panel') return;
+  cf.filtersOpen = event.target.open;
+  safeWrite('cf-filters-open', cf.filtersOpen);
+}, true);
 document.addEventListener('change', event => {
   if (event.target.id !== 'cf-sort') return;
   cf.sortField = Number(event.target.value) || 2;

@@ -142,6 +142,7 @@ function renderCreatorsPage() {
 // Opens Explore filtered to one creator's projects.
 function showCreatorMods(id) {
   cf.authorId = Number(id) || 0;
+  cf.followedOnly = false;
   cf.index = 0;
   cf.tab = 'browse';
   cf.results = null;

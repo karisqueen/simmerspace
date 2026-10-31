@@ -1,0 +1,317 @@
+/* 0.12.2: Explore filters, library previews, Library Care, the game settings panel and account deletion. Colors come
+   from the theme tokens only, so all eight themes work. */
+
+/* ---------- Explore filters ---------- */
+.cf-filters {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.cf-filters > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-radius: var(--r-lg);
+  font-weight: var(--fw-medium);
+  list-style: none;
+}
+.cf-filters > summary::-webkit-details-marker {
+  display: none;
+}
+.cf-filters > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.cf-filters[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.cf-filters > summary:hover {
+  background: var(--surface-2);
+}
+.cf-filters > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cf-filters-body {
+  display: grid;
+  gap: 12px;
+  padding: 4px 14px 14px;
+}
+.cf-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.cf-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+}
+.cf-active-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cf-active-chip button:hover {
+  background: var(--accent-soft-2);
+}
+.cf-active-chip button .icon {
+  width: 12px;
+  height: 12px;
+}
+.cf-progress {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+}
+.assisted-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-2);
+}
+.assisted-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.assisted-status .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--success);
+}
+
+/* ---------- Library previews ---------- */
+.mod-thumb {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.mod-thumb:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.mod-thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mod-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mod-thumb .icon {
+  width: 22px;
+  height: 22px;
+}
+.preview-stage {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  max-height: 56vh;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.preview-stage img {
+  max-width: 100%;
+  max-height: 56vh;
+  object-fit: contain;
+}
+.preview-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--text-3);
+}
+.preview-empty .icon {
+  width: 32px;
+  height: 32px;
+}
+.mod-label {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* ---------- Library Care ---------- */
+.care-menu {
+  position: relative;
+}
+.care-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.care-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.care-menu-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  gap: 2px;
+  width: min(340px, 80vw);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 12px 32px color-mix(in oklab, var(--text) 16%, transparent);
+}
+.care-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.care-menu-item:hover,
+.care-menu-item:focus-visible {
+  background: var(--accent-soft);
+}
+.care-menu-item > .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--accent-text);
+}
+.care-menu-item span {
+  display: grid;
+  gap: 2px;
+}
+.care-menu-item small {
+  color: var(--text-3);
+}
+.care-list {
+  display: grid;
+  gap: 8px;
+  max-height: 46vh;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+.care-group {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.care-group legend {
+  padding: 0 6px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+.form-dialog label.care-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.care-row:hover {
+  background: var(--surface-2);
+}
+.form-dialog label.care-row input {
+  flex: none;
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+.care-row-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.care-row-copy b,
+.care-row-copy small {
+  overflow-wrap: anywhere;
+}
+.care-row-copy small {
+  color: var(--text-3);
+}
+.care-actions {
+  align-items: center;
+}
+.care-actions > .muted-note {
+  flex: 1 1 200px;
+  margin: 0;
+}
+
+/* ---------- Game settings and account deletion ---------- */
+.game-config-dialog .switch-row {
+  padding: 10px 0;
+}
+.deletion-pending {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--danger) 35%, var(--line));
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--danger) 9%, var(--surface));
+}
+.delete-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-2);
+}
+.danger-zone {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}

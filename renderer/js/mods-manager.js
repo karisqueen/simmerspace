@@ -67,6 +67,7 @@ const mods = {
   selected: new Set(),
   working: false, // a file-changing action is running
   catalog: emptyCatalog(),
+  catalogLoaded: false, // tags are only ever saved over a catalog that was read: see loadModCatalog
   catalogVersion: 0,
   resultVersion: 0,
   cache: { key: '', files: [] },
@@ -133,10 +134,13 @@ async function loadModCatalog() {
   try {
     const loaded = await callDesktop(modsApi.loadCatalog);
     mods.catalog = { ...emptyCatalog(), ...loaded };
+    mods.catalogLoaded = true;
     catalogChanged();
   } catch (error) {
+    // A catalog that could not be read is not an empty one. Saving this page's empty copy over it is how tags were lost.
     if (error.code !== 'MODS_ROOT_NOT_SET') console.warn('Could not load the local Mods catalog:', error.code);
-    mods.catalog = emptyCatalog();
+    mods.catalogLoaded = false;
+    if (error.code === 'MODS_ROOT_NOT_SET') mods.catalog = emptyCatalog();
     catalogChanged();
   }
 }
@@ -144,6 +148,8 @@ async function saveModCatalog() {
   clearTimeout(catalogSaveTimer);
   catalogSaveTimer = null;
   if (!catalogDirty) return;
+  if (!mods.catalogLoaded) await loadModCatalogBeforeSave();
+  if (!mods.catalogLoaded) return;
   catalogDirty = false;
   if (!modsApi) return;
   try {
@@ -152,6 +158,12 @@ async function saveModCatalog() {
     catalogDirty = true;
     toast(`${mt('tagSaveFailed')} ${errorMessage(error)}`, 'error');
   }
+}
+// A change made while the catalog was unreadable joins the stored tags instead of replacing them.
+async function loadModCatalogBeforeSave() {
+  const pending = mods.catalog;
+  await loadModCatalog();
+  if (mods.catalogLoaded) mods.catalog = { ...mods.catalog, files: { ...mods.catalog.files, ...pending.files }, creators: [...mods.catalog.creators, ...pending.creators.filter(item => !mods.catalog.creators.some(known => known.id === item.id))] };
 }
 // Tag edits are saved shortly after the last change so typing a folder name does not write on every key.
 function scheduleModCatalogSave(delay = 350) {
@@ -201,6 +213,10 @@ function updateModPath(oldPath, newPath) {
     catalogDirty = true;
   }
   if (mods.selected.delete(oldPath)) mods.selected.add(newPath);
+  if (care.meta[oldPath]) {
+    care.meta[newPath] = care.meta[oldPath];
+    delete care.meta[oldPath];
+  }
   const file = mods.byPath.get(oldPath);
   if (file) {
     mods.byPath.delete(oldPath);
@@ -221,6 +237,7 @@ function removeModPaths(paths) {
       delete mods.catalog.files[relativePath];
       catalogDirty = true;
     }
+    delete care.meta[relativePath];
     mods.selected.delete(relativePath);
     mods.byPath.delete(relativePath);
   }
@@ -276,7 +293,7 @@ const n = value => Number(value || 0).toLocaleString(state.lang);
 // The page heading is "My CC"; the folder facts sit under it and the library section is titled "Library".
 function renderModsIntro() {
   const organize = mods.result && modsApi ? `<button class="primary-btn" id="open-organizer" data-tip="${esc(t('tipOrganize'))}" ${mods.busy || mods.working ? 'disabled' : ''}>${icon('folderCog')}<span>${t('organizeFolders')}</span></button>` : '';
-  return `${libraryFolderStrip()}<div class="library-head"><h2 class="library-title" id="mods-title">${t('libraryTitle')}</h2><div class="library-head-actions">${mods.result ? libraryViewSwitch() : ''}${organize}</div></div>`;
+  return `${libraryFolderStrip()}<div class="library-head"><h2 class="library-title" id="mods-title">${t('libraryTitle')}</h2><div class="library-head-actions">${mods.result ? libraryViewSwitch() : ''}${libraryCareMenu()}${organize}</div></div>${hashStatus()}`;
 }
 function renderModsToolbar() {
   const pendingCount = mods.busy ? 0 : pendingClassification().length;
@@ -358,7 +375,7 @@ function renderModRow(file) {
   const warning = modDepthWarning(file);
   const path = esc(file.relativePath);
   const name = esc(file.name);
-  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}"><span class="scan-file-icon" aria-hidden="true" title="${file.extension === 'ts4script' ? mt('scriptFile') : mt('packageFile')}">${file.extension === 'ts4script' ? '⚙' : '✧'}</span><span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags">${originBadge(file)}<i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="icon-btn icon-btn-sm" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}" data-tip="${esc(mt('editTags'))}">${icon('tag')}</button><button class="icon-btn icon-btn-sm" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" data-tip="${esc(file.enabled ? mt('disable') : mt('enable'))}" ${mods.working ? 'disabled' : ''}>${icon(file.enabled ? 'eye' : 'eyeOff')}</button><button class="icon-btn icon-btn-sm" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" data-tip="${esc(mt('rename'))}" ${mods.working ? 'disabled' : ''}>${icon('edit')}</button><button class="icon-btn icon-btn-sm danger-quiet" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" data-tip="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>${icon('trash')}</button></span></li>`;
+  return `<li class="managed-mod-row ${mods.selected.has(file.relativePath) ? 'is-selected' : ''} ${file.enabled ? '' : 'is-off'}"><input type="checkbox" data-mod-select="${path}" ${mods.selected.has(file.relativePath) ? 'checked' : ''} aria-label="${esc(format(mt('selectFile'), { name: file.name }))}">${modThumb(file)}<span class="managed-mod-copy"><b title="${name}">${name}</b><small title="${path}">${path}</small><span class="managed-mod-tags">${originBadge(file)}<i class="${file.enabled ? 'is-enabled' : 'is-disabled'}">${file.enabled ? mt('enabledState') : mt('disabledState')}</i>${category ? `<i>${esc(category)}</i>` : `<i class="is-empty">${mt('noCategory')}</i>`}${creator ? `<i>${esc(creator)}</i>` : ''}${dims ? `<i>${esc(dims)}</i>` : ''}${(tags.labels || []).map(label => `<i class="mod-label">#${esc(label)}</i>`).join('')}${warning ? `<i class="script-depth-warning" title="${esc(mt(`${warning}Help`))}">⚠ ${esc(mt(warning))}</i>` : ''}</span></span><span class="managed-mod-actions"><button class="icon-btn icon-btn-sm" data-edit-mod-tags="${path}" aria-label="${esc(format(mt('editTagsFor'), { name: file.name }))}" data-tip="${esc(mt('editTags'))}">${icon('tag')}</button><button class="icon-btn icon-btn-sm" data-toggle-mod="${path}" aria-label="${esc(format(mt(file.enabled ? 'disableFile' : 'enableFile'), { name: file.name }))}" data-tip="${esc(file.enabled ? mt('disable') : mt('enable'))}" ${mods.working ? 'disabled' : ''}>${icon(file.enabled ? 'eye' : 'eyeOff')}</button><button class="icon-btn icon-btn-sm" data-rename-mod="${path}" aria-label="${esc(format(mt('renameFile'), { name: file.name }))}" data-tip="${esc(mt('rename'))}" ${mods.working ? 'disabled' : ''}>${icon('edit')}</button><button class="icon-btn icon-btn-sm danger-quiet" data-trash-mod="${path}" aria-label="${esc(format(mt('removeFile'), { name: file.name }))}" data-tip="${esc(mt('remove'))}" ${mods.working ? 'disabled' : ''}>${icon('trash')}</button></span></li>`;
 }
 function renderModsList(filtered) {
   const pages = Math.max(1, Math.ceil(filtered.length / MODS_PAGE_SIZE));
@@ -447,6 +464,7 @@ async function scanManagedMods() {
     mods.page = 0;
     mods.selected.clear();
     toast(result.cancelled ? mt('scanCancelledPartial') : format(mt('scanDone'), { count: n(result.files.length) }));
+    if (!result.cancelled) reconcileLibrary();
     setTimeout(offerClassification, 400);
   } catch (error) {
     mods.error = error;
@@ -504,7 +522,7 @@ function createCreatorIfMissing(name) {
   return creator;
 }
 function storeModTags(relativePath, tags) {
-  const compact = Object.fromEntries(Object.entries(tags).filter(([, value]) => typeof value === 'string' && value));
+  const compact = Object.fromEntries(Object.entries(tags).filter(([, value]) => (typeof value === 'string' && value) || (Array.isArray(value) && value.length)));
   if (Object.keys(compact).length) mods.catalog.files[relativePath] = compact;
   else delete mods.catalog.files[relativePath];
 }
@@ -581,7 +599,7 @@ function openModTagsDialog(relativePath) {
   const tags = tagsForMod(relativePath);
   const currentCreator = creatorForMod(tags.creatorId)?.name || '';
   openDialog(
-    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('editTags')} · ${mt('tagsOnlyNote')}</div><h2 id="dialog-title">${mt('editTagsTitle')}</h2><p class="path-text">${esc(relativePath)}</p><label>${mt('category')}<select id="mod-tag-category">${categoryOptions(tags.categoryId)}</select></label><label>${mt('creator')}<input id="mod-tag-creator" list="mod-tag-creators" value="${esc(currentCreator)}" placeholder="${esc(mt('noCreator'))}">${creatorsDatalist('mod-tag-creators')}</label><label>${mt('gender')}<select id="mod-tag-gender">${genderOptions(tags.gender)}</select></label><label>${mt('age')}<select id="mod-tag-age">${ageOptions(tags.age)}</select></label><div class="detail-actions"><button class="primary-btn" id="save-mod-tags" data-mod-path="${esc(relativePath)}">${mt('saveTags')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
+    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('editTags')} · ${mt('tagsOnlyNote')}</div><h2 id="dialog-title">${mt('editTagsTitle')}</h2><p class="path-text">${esc(relativePath)}</p><label>${mt('category')}<select id="mod-tag-category">${categoryOptions(tags.categoryId)}</select></label><label>${mt('creator')}<input id="mod-tag-creator" list="mod-tag-creators" value="${esc(currentCreator)}" placeholder="${esc(mt('noCreator'))}">${creatorsDatalist('mod-tag-creators')}</label><label>${mt('gender')}<select id="mod-tag-gender">${genderOptions(tags.gender)}</select></label><label>${mt('age')}<select id="mod-tag-age">${ageOptions(tags.age)}</select></label><label>${mt('labels')}<input id="mod-tag-labels" value="${esc((tags.labels || []).join(', '))}" placeholder="${esc(mt('labelsPlaceholder'))}" maxlength="400"></label><div class="detail-actions"><button class="primary-btn" id="save-mod-tags" data-mod-path="${esc(relativePath)}">${mt('saveTags')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
   );
 }
 function openRenameModDialog(relativePath) {
@@ -590,7 +608,7 @@ function openRenameModDialog(relativePath) {
   const base = dot > 0 ? name.slice(0, dot) : name;
   const extension = dot > 0 ? name.slice(dot) : '';
   openDialog(
-    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('changeGroup')}</div><h2 id="dialog-title">${mt('rename')}</h2><p class="path-text">${esc(relativePath)}</p><label>${mt('fileName')}<span class="input-with-suffix"><input id="rename-mod-name" value="${esc(base)}" maxlength="180" spellcheck="false"><span aria-hidden="true">${esc(extension)}</span></span></label><p class="muted-note">${mt('renameNote')}</p><div class="detail-actions"><button class="primary-btn" id="save-mod-name" data-mod-path="${esc(relativePath)}">${mt('saveName')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
+    `${closeButton()}<div class="form-dialog mods-form"><div class="eyebrow">${mt('changeGroup')}</div><h2 id="dialog-title">${mt('rename')}</h2><p class="path-text">${esc(relativePath)}</p><label>${mt('fileName')}<span class="input-with-suffix"><input id="rename-mod-name" value="${esc(base)}" maxlength="180" spellcheck="false"><span aria-hidden="true">${esc(extension)}</span></span></label><p class="muted-note">${mt('renameNote')}</p><div class="detail-actions"><button class="primary-btn" id="save-mod-name" data-mod-path="${esc(relativePath)}">${mt('saveName')}</button><button class="secondary-btn" data-restore-name="${esc(relativePath)}">${mt('restoreNameAction')}</button><button class="secondary-btn" data-close>${t('cancel')}</button></div></div>`
   );
   document.getElementById('rename-mod-name')?.select();
 }
@@ -704,7 +722,8 @@ const MOD_CLICK_ACTIONS = {
       categoryId: document.getElementById('mod-tag-category')?.value || '',
       creatorId: creator?.id || '',
       gender: document.getElementById('mod-tag-gender')?.value || '',
-      age: document.getElementById('mod-tag-age')?.value || ''
+      age: document.getElementById('mod-tag-age')?.value || '',
+      labels: (document.getElementById('mod-tag-labels')?.value || '').split(',').map(label => label.trim()).filter(Boolean).slice(0, 12)
     });
     scheduleModCatalogSave();
     closeDialog();

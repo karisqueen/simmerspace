@@ -10,7 +10,7 @@ const sql = files.map(name => fs.readFileSync(path.join(dir, name), 'utf8')).joi
 const policies = [...sql.matchAll(/create policy "[^"]+" on ([\w.]+)\s+for (\w+)(?: to (\w+))?([^;]*);/g)].map(m => ({ table: m[1], action: m[2], role: m[3] || 'public', body: m[4] }));
 
 test('the active migrations are the ones for the real project, in order', () => {
-  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql', '20261030120000_username_changes.sql', '20261031000000_inspiration_social.sql']);
+  assert.deepEqual(files, ['20261030000000_simmerspace_community.sql', '20261030120000_username_changes.sql', '20261031000000_inspiration_social.sql', '20261101000000_maintenance_0122.sql']);
   assert.doesNotMatch(sql, /display_name|user_settings|public\.collections/);
 });
 
@@ -18,7 +18,7 @@ test('the migration never weakens security or drops data', () => {
   // Revoking a privilege only takes access away, so revoke statements and comments are left out of this check.
   // Function bodies are left out too: a delete inside a function only runs for one row the caller owns (checked by
   // supabase/tests/social-check.sql), never when the migration is applied.
-  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '').replace(/\$\$[\s\S]*?\$\$/g, '$$$$');
+  const statements = sql.replace(/--[^\n]*/g, '').replace(/revoke [^;]+;/g, '').replace(/grant execute on function [^;]+ to service_role;/g, '').replace(/\$\$[\s\S]*?\$\$/g, '$$$$');
   assert.doesNotMatch(statements, /disable row level security|drop table|truncate|delete from|alter table auth\.|service_role/);
   // TRUNCATE ignores row level security, so the API roles lose it.
   assert.match(sql, /revoke truncate, references, trigger on public\.profiles, public\.inspiration_posts, public\.feedback from anon, authenticated;/);

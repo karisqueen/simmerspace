@@ -25,7 +25,7 @@ const FILE_KINDS = [
   { kind: 'review', reason: 'modSupport', extensions: ['.cfg', '.ini', '.json', '.xml', '.py', '.pyc', '.pyo', '.dll', '.sims3pack', '.trayitem', '.blueprint', '.householdbinary', '.hhi', '.sgi', '.bpi', '.room', '.rmi'] }
 ];
 // Files with the game's formats whose first bytes do not match need a look: they will not load.
-const MAGIC = { '.package': 'DBPF', '.ts4script': 'PK' };
+const MAGIC = { '.package': ['DBPF'], '.ts4script': ['PK'] };
 
 function classify(name) {
   const lower = name.toLowerCase();
@@ -179,7 +179,7 @@ function createLibraryTools({ getRoot, metadata, userDataPath, onPathsChanged = 
         const type = modType(file.name);
         let verdict = null;
         if (type) {
-          const magic = MAGIC[type.extension];
+          const [magic] = MAGIC[type.extension];
           const head = await readMagic(absolute, magic.length).catch(() => '');
           verdict = head === magic ? { kind: 'recognized' } : { kind: 'review', reason: 'damaged' };
         } else if (!file.regular) verdict = { kind: 'review', reason: 'link' };
@@ -240,7 +240,7 @@ function createLibraryTools({ getRoot, metadata, userDataPath, onPathsChanged = 
     const deletedFiles = results.filter(item => item.ok && item.kind === 'file').map(item => item.relativePath);
     if (deletedFiles.length) {
       const removed = await metadata.forget(root, deletedFiles);
-      await Promise.all(removed.filter(entry => entry.preview).map(entry => fs.unlink(previewPath(entry.preview)).catch(() => {})));
+      await Promise.all(removed.filter(entry => entry.preview).map(entry => fs.unlink(previewPath(entry.preview.split('?')[0])).catch(() => {})));
       await onDeleted(root, deletedFiles);
     }
     return { deleted: results.filter(item => item.ok).length, failed: results.filter(item => !item.ok).length, freed: results.reduce((sum, item) => sum + (item.ok ? item.size : 0), 0), results };
